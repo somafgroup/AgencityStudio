@@ -1,0 +1,30 @@
+[project]
+name = "agencitystudio"
+version = "0.1.0"
+description = "Web interface and orchestration layer for AgencityLab"
+requires-python = ">=3.12"
+dependencies = [
+    "Django>=5.2,<6",
+    "psycopg[binary]>=3.2",
+    "python-dotenv>=1.0",
+    "uvicorn>=0.35",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-django>=4.9",
+    "ruff>=0.12",
+    "pre-commit>=4",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["config*", "common*", "labbridge*"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["tests.py", "test_*.py"]
+
+[tool.ruff]
+line-length = 88
