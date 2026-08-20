@@ -14,18 +14,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
-  Command,
   Sun,
   Moon,
   Monitor,
   Info,
   RefreshCw,
   X,
-  CheckCircle2,
-  AlertTriangle,
-  CircleAlert,
-  LoaderCircle,
-  Settings,
 } from 'lucide';
 
 window.Alpine = Alpine;
@@ -44,22 +38,16 @@ const iconSet = {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
-  Command,
   Sun,
   Moon,
   Monitor,
   Info,
   RefreshCw,
   X,
-  CheckCircle2,
-  AlertTriangle,
-  CircleAlert,
-  LoaderCircle,
-  Settings,
 };
 
-function renderIcons(root = document) {
-  createIcons({ icons: iconSet, attrs: { 'aria-hidden': 'true', width: 18, height: 18 }, root });
+function renderIcons() {
+  createIcons({ icons: iconSet, attrs: { 'aria-hidden': 'true', width: 18, height: 18 } });
 }
 
 function applyTheme(theme) {
@@ -117,7 +105,9 @@ Alpine.data('studioShell', () => ({
 Alpine.start();
 renderIcons();
 
-document.body.addEventListener('htmx:afterSwap', (event) => renderIcons(event.target));
+document.body.addEventListener('htmx:afterSwap', renderIcons);
 document.body.addEventListener('htmx:responseError', () => {
-  window.dispatchEvent(new CustomEvent('studio:toast', { detail: { type: 'error', message: 'The requested panel could not be refreshed.' } }));
+  window.dispatchEvent(new CustomEvent('studio:toast', {
+    detail: { type: 'error', message: 'The requested panel could not be refreshed.' },
+  }));
 });
