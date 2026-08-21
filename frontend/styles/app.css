@@ -73,7 +73,8 @@
 @layer components {
   .app-shell { @apply min-h-screen lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]; }
   .app-shell.sidebar-collapsed { @apply lg:grid-cols-[4.75rem_minmax(0,1fr)]; }
-  .sidebar { @apply fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r transition-transform duration-150 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0; background: var(--surface); }
+  .sidebar { @apply fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r transition-transform duration-150 lg:sticky lg:top-0 lg:h-screen; background: var(--surface); transform: translateX(-100%); }
+  .sidebar[data-mobile-open="true"] { transform: translateX(0); }
   .sidebar-collapsed .sidebar { @apply lg:w-[4.75rem]; }
   .sidebar-collapsed .nav-label, .sidebar-collapsed .brand-copy, .sidebar-collapsed .sidebar-footer-copy { @apply lg:hidden; }
   .sidebar-backdrop { @apply fixed inset-0 z-40 bg-black/40 lg:hidden; }
@@ -153,6 +154,10 @@
   .status-dot-ok { background: var(--success); }
   .status-dot-warning { background: var(--warning); }
   .project-nav { @apply flex flex-wrap gap-1 rounded-lg border p-1; background: var(--surface); }
+}
+
+@media (min-width: 64rem) {
+  .sidebar { transform: translateX(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
