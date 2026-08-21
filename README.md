@@ -1,3 +1,3 @@
 # AgencityStudio
 
-Initial foundation repository.
+AgencityStudio is the Web interface and orchestration layer for AgencityLab.
