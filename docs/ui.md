@@ -10,7 +10,7 @@ Plan 1 establishes a server-rendered scientific workspace rather than a SPA. Dja
 - Lucide 1.31.x as the single icon family.
 - esbuild for the small JavaScript bundle.
 
-Run `npm install` and `npm run build` for a one-off build. Use the CSS/JS watch scripts during local frontend work. Generated files under `static/css` and `static/js` are build artifacts and are not source files.
+Run `npm install` and `npm run build` for a one-off build. Use the CSS/JS watch scripts during local frontend work. Generated files under `static/css` and `static/js` are build artifacts and are not source files. The output directories are retained in Git so a fresh checkout always has valid build targets.
 
 ## Visual principles
 
