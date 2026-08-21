@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 jobs:
-  backend:
+  application:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -18,50 +18,55 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U agencitystudio -d agencitystudio"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     env:
       POSTGRES_DB: agencitystudio
       POSTGRES_USER: agencitystudio
       POSTGRES_PASSWORD: agencitystudio
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install dependencies
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Python dependencies
         run: pip install -e . pytest pytest-django
-
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund
+      - name: Frontend build
+        run: npm run build
       - name: Compile Python
-        run: python -m compileall .
-
+        run: python -m compileall config common labbridge tests
       - name: Django checks
         run: python manage.py check
-
       - name: Database migrations check
         run: python manage.py migrate --noinput
-
       - name: Backend tests
         run: pytest
-
-      - name: Install Node dependencies for smoke test
-        run: |
-          npm init -y
-          npm install --save-dev @playwright/test
-          npx playwright install --with-deps chromium
-
+      - name: Collect static assets
+        run: python manage.py collectstatic --noinput
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
       - name: Start application
         run: |
-          uvicorn config.asgi:application --host 127.0.0.1 --port 8000 &
-          sleep 5
+          uvicorn config.asgi:application --host 127.0.0.1 --port 8000 > /tmp/agencitystudio.log 2>&1 &
+          for i in {1..20}; do curl --fail --silent http://127.0.0.1:8000/health/ && exit 0; sleep 1; done
+          cat /tmp/agencitystudio.log
+          exit 1
+      - name: Playwright smoke
+        run: npm run test:e2e
 
-      - name: Playwright smoke test
-        run: npx playwright test
+  docker:
+    runs-on: ubuntu-latest
+    needs: application
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker build
+        run: docker build -t agencitystudio:plan-1 .

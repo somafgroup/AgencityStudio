@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<header class="page-header"><div><p class="muted mb-1 text-sm">{% translate "Workspace" %}</p><h1 class="page-title">{{ section_title }}</h1><p class="muted mt-2 max-w-3xl text-sm leading-6">{{ section_description }}</p></div></header>
+{% if active_nav == "projects" %}{% include "components/project_nav.html" %}{% endif %}
+<div class="mt-5">{% include "components/empty_state.html" with title=section_title|add:" is not implemented yet" description="This workspace is intentionally empty. No placeholder scientific data has been fabricated." %}</div>
+{% endblock %}

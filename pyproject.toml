@@ -1,6 +1,6 @@
 [project]
 name = "agencitystudio"
-version = "0.1.0"
+version = "0.2.0"
 description = "Web interface and orchestration layer for AgencityLab"
 requires-python = ">=3.12"
 dependencies = [
@@ -8,6 +8,7 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "python-dotenv>=1.0",
     "uvicorn>=0.35",
+    "whitenoise>=6.9,<7",
 ]
 
 [dependency-groups]
@@ -18,6 +19,10 @@ dev = [
     "pre-commit>=4",
 ]
 
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["config*", "common*", "labbridge*"]
@@ -27,4 +32,4 @@ DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["tests.py", "test_*.py"]
 
 [tool.ruff]
-line-length = 88
+line-length = 100

@@ -1,0 +1,24 @@
+{
+  "name": "agencitystudio-ui",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build:css": "tailwindcss -i ./frontend/styles/app.css -o ./static/css/app.css --minify",
+    "build:js": "esbuild ./frontend/scripts/app.js --bundle --minify --sourcemap --outfile=./static/js/app.js",
+    "build": "npm run build:css && npm run build:js",
+    "watch:css": "tailwindcss -i ./frontend/styles/app.css -o ./static/css/app.css --watch",
+    "watch:js": "esbuild ./frontend/scripts/app.js --bundle --sourcemap --outfile=./static/js/app.js --watch",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "alpinejs": "3.16.2",
+    "htmx.org": "2.0.10",
+    "lucide": "1.31.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@tailwindcss/cli": "4.3.3",
+    "esbuild": "0.28.2",
+    "tailwindcss": "4.3.3"
+  }
+}
