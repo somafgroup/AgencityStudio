@@ -14,7 +14,7 @@ test('desktop shell navigation, command palette and theme persistence', async ({
   const commandPalette = page.getByRole('dialog', { name: 'Command palette' });
   await expect(commandPalette).toBeVisible();
   await commandPalette.getByRole('textbox', { name: 'Command search' }).fill('Dashboard');
-  await commandPalette.getByRole('link', { name: 'Go to Dashboard', exact: true }).click();
+  await commandPalette.getByRole('link', { name: /^Go to Dashboard/ }).click();
   await expect(page.getByRole('heading', { name: 'Welcome to AgencityStudio', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Theme', exact: true }).click();
