@@ -14,7 +14,7 @@
   <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-black">{% translate "Skip to content" %}</a>
   <div class="app-shell" :class="sidebarCollapsed && 'sidebar-collapsed'">
     <div x-show="mobileNav" x-cloak class="sidebar-backdrop" @click="mobileNav=false" aria-hidden="true"></div>
-    <aside class="sidebar" :class="mobileNav ? 'translate-x-0' : '-translate-x-full'" aria-label="{% translate 'Application sidebar' %}">
+    <aside class="sidebar" :data-mobile-open="mobileNav ? 'true' : 'false'" aria-label="{% translate 'Application sidebar' %}">
       <div class="flex h-16 items-center justify-between gap-2 border-b px-3">
         <a href="{% url 'dashboard' %}" class="flex min-w-0 items-center gap-3 no-underline"><span class="grid size-9 shrink-0 place-items-center rounded-lg font-semibold text-white" style="background:var(--accent)">A</span><span class="brand-copy min-w-0"><span class="block truncate text-sm font-semibold">AgencityStudio</span><span class="muted block truncate text-[11px]">Scientific workspace</span></span></a>
         <button class="icon-btn lg:hidden" type="button" @click="mobileNav=false" aria-label="{% translate 'Close navigation' %}"><i data-lucide="x"></i></button>
