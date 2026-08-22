@@ -22,12 +22,22 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       POSTGRES_DB: agencitystudio
       POSTGRES_USER: agencitystudio
       POSTGRES_PASSWORD: agencitystudio
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
+      REDIS_URL: redis://localhost:6379/0
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,16 +47,28 @@ jobs:
         with:
           node-version: '22'
       - name: Install Python dependencies
-        run: pip install -e . pytest pytest-django
+        run: pip install -e . pytest pytest-django ruff
       - name: Install frontend dependencies
         run: npm install --no-audit --no-fund
       - name: Frontend build
         run: npm run build
+      - name: Python quality
+        run: ruff check config common labbridge tests
       - name: Compile Python
         run: python -m compileall config common labbridge tests
       - name: Django checks
         run: python manage.py check
-      - name: Database migrations check
+      - name: Production Django checks
+        env:
+          DJANGO_SECRET_KEY: ci-production-secret-7f4c262047174ac297c05624e66f9a42
+          DJANGO_ALLOWED_HOSTS: studio.example.test
+          DJANGO_SECURE_HSTS_SECONDS: 31536000
+          DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: 'true'
+          DJANGO_SECURE_HSTS_PRELOAD: 'true'
+        run: python manage.py check --deploy --fail-level WARNING --settings=config.settings.production
+      - name: Database migration consistency
+        run: python manage.py makemigrations --check --dry-run
+      - name: Apply database migrations
         run: python manage.py migrate --noinput
       - name: Backend tests
         run: pytest
@@ -57,7 +79,7 @@ jobs:
       - name: Start application
         run: |
           uvicorn config.asgi:application --host 127.0.0.1 --port 8000 > /tmp/agencitystudio.log 2>&1 &
-          for i in {1..20}; do curl --fail --silent http://127.0.0.1:8000/health/ && exit 0; sleep 1; done
+          for i in {1..20}; do curl --fail --silent http://127.0.0.1:8000/health/ready/ && exit 0; sleep 1; done
           cat /tmp/agencitystudio.log
           exit 1
       - name: Playwright smoke
@@ -68,5 +90,24 @@ jobs:
     needs: application
     steps:
       - uses: actions/checkout@v4
-      - name: Docker build
-        run: docker build -t agencitystudio:plan-1 .
+      - name: Prepare Compose environment
+        run: cp .env.example .env
+      - name: Build application images
+        run: docker compose build web worker
+      - name: Start infrastructure
+        run: docker compose up -d postgres redis
+      - name: Apply migrations in container
+        run: docker compose run --rm web python manage.py migrate --noinput
+      - name: Start web and worker
+        run: docker compose up -d web worker
+      - name: Verify container readiness
+        run: |
+          for i in {1..30}; do curl --fail --silent http://127.0.0.1:8000/health/ready/ && exit 0; sleep 2; done
+          docker compose ps
+          docker compose logs web worker
+          exit 1
+      - name: Verify worker execution
+        run: docker compose exec -T web python -c "from common.tasks import health_ping; assert health_ping.delay().get(timeout=10) == 'pong'"
+      - name: Stop Compose stack
+        if: always()
+        run: docker compose down -v
