@@ -22,7 +22,6 @@ from .models import (
 )
 from .permissions import can_manage_members, can_manage_workspace
 
-
 User = get_user_model()
 
 
@@ -108,11 +107,12 @@ def update_workspace(*, actor, workspace: Workspace, name: str, description: str
 
 
 def _owner_count_locked(workspace: Workspace) -> int:
-    return (
+    owner_ids = list(
         WorkspaceMembership.objects.select_for_update()
         .filter(workspace=workspace, role=WorkspaceRole.OWNER)
-        .count()
+        .values_list("pk", flat=True)
     )
+    return len(owner_ids)
 
 
 @transaction.atomic
@@ -226,40 +226,52 @@ def resolve_invitation(token: str) -> WorkspaceInvitation | None:
     return invitation
 
 
-@transaction.atomic
 def accept_invitation(*, user, token: str) -> WorkspaceMembership:
     """Accept a valid invitation atomically and prevent token reuse."""
     digest = _token_digest(token)
-    try:
-        invitation = (
-            WorkspaceInvitation.objects.select_for_update()
-            .select_related("workspace")
-            .get(token_digest=digest)
-        )
-    except WorkspaceInvitation.DoesNotExist as exc:
-        raise ValidationError("This invitation is invalid.") from exc
+    expired = False
+    membership = None
 
-    if invitation.status != InvitationStatus.PENDING:
-        raise ValidationError("This invitation is no longer available.")
-    if invitation.is_expired:
-        invitation.status = InvitationStatus.EXPIRED
-        invitation.save(update_fields=("status",))
+    with transaction.atomic():
+        try:
+            invitation = (
+                WorkspaceInvitation.objects.select_for_update()
+                .select_related("workspace")
+                .get(token_digest=digest)
+            )
+        except WorkspaceInvitation.DoesNotExist as exc:
+            raise ValidationError("This invitation is invalid.") from exc
+
+        if invitation.status != InvitationStatus.PENDING:
+            raise ValidationError("This invitation is no longer available.")
+        if invitation.is_expired:
+            invitation.status = InvitationStatus.EXPIRED
+            invitation.save(update_fields=("status",))
+            expired = True
+        else:
+            if user.email.lower() != invitation.email.lower():
+                raise PermissionDenied("This invitation belongs to a different email address.")
+
+            try:
+                membership, _ = WorkspaceMembership.objects.get_or_create(
+                    user=user,
+                    workspace=invitation.workspace,
+                    defaults={"role": invitation.role},
+                )
+            except IntegrityError:
+                membership = WorkspaceMembership.objects.get(
+                    user=user,
+                    workspace=invitation.workspace,
+                )
+
+            invitation.status = InvitationStatus.ACCEPTED
+            invitation.accepted_at = timezone.now()
+            invitation.save(update_fields=("status", "accepted_at"))
+
+    if expired:
         raise ValidationError("This invitation has expired.")
-    if user.email.lower() != invitation.email.lower():
-        raise PermissionDenied("This invitation belongs to a different email address.")
-
-    try:
-        membership, _ = WorkspaceMembership.objects.get_or_create(
-            user=user,
-            workspace=invitation.workspace,
-            defaults={"role": invitation.role},
-        )
-    except IntegrityError:
-        membership = WorkspaceMembership.objects.get(user=user, workspace=invitation.workspace)
-
-    invitation.status = InvitationStatus.ACCEPTED
-    invitation.accepted_at = timezone.now()
-    invitation.save(update_fields=("status", "accepted_at"))
+    if membership is None:
+        raise ValidationError("This invitation could not be accepted.")
     return membership
 
 
