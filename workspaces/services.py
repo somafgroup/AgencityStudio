@@ -59,9 +59,12 @@ def ensure_personal_workspace(user) -> Workspace:
 @transaction.atomic
 def create_organisation_workspace(*, owner, name: str, description: str = "") -> Workspace:
     """Create an organisation workspace and its first Owner atomically."""
+    clean_name = name.strip()
+    if not clean_name:
+        raise ValidationError("Workspace name is required.")
     workspace = Workspace.objects.create(
-        name=name.strip(),
-        slug=_unique_workspace_slug(name),
+        name=clean_name,
+        slug=_unique_workspace_slug(clean_name),
         type=WorkspaceType.ORGANISATION,
         description=description.strip(),
     )
@@ -99,8 +102,11 @@ def get_workspace_membership_or_404(*, user, slug: str) -> WorkspaceMembership:
 def update_workspace(*, actor, workspace: Workspace, name: str, description: str) -> Workspace:
     if not can_manage_workspace(actor, workspace):
         raise PermissionDenied
+    clean_name = name.strip()
+    if not clean_name:
+        raise ValidationError("Workspace name is required.")
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
-    locked.name = name.strip()
+    locked.name = clean_name
     locked.description = description.strip()
     locked.save(update_fields=("name", "description", "updated_at"))
     return locked
@@ -128,9 +134,12 @@ def change_member_role(*, actor, membership: WorkspaceMembership, role: str) -> 
     locked = WorkspaceMembership.objects.select_for_update().select_related("workspace").get(
         pk=membership.pk
     )
-    if locked.role == WorkspaceRole.OWNER and role != WorkspaceRole.OWNER:
-        if _owner_count_locked(locked.workspace) <= 1:
-            raise ValidationError("A workspace must keep at least one Owner.")
+    if (
+        locked.role == WorkspaceRole.OWNER
+        and role != WorkspaceRole.OWNER
+        and _owner_count_locked(locked.workspace) <= 1
+    ):
+        raise ValidationError("A workspace must keep at least one Owner.")
     locked.role = role
     locked.save(update_fields=("role",))
     return locked
