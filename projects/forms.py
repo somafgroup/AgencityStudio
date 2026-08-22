@@ -11,7 +11,7 @@ class ProjectForm(forms.ModelForm):
         required=False,
         label=_("Tags"),
         help_text=_("Comma-separated organisational tags."),
-        widget=forms.TextInput(attrs={"placeholder": "mechanics, vibration"}),
+        widget=forms.TextInput(attrs={"placeholder": _("mechanics, vibration")}),
     )
 
     class Meta:
@@ -20,7 +20,9 @@ class ProjectForm(forms.ModelForm):
         widgets = {
             "name": forms.TextInput(attrs={"autocomplete": "off"}),
             "description": forms.Textarea(attrs={"rows": 4}),
-            "domain": forms.TextInput(attrs={"placeholder": "mechanics, robotics, biology…"}),
+            "domain": forms.TextInput(
+                attrs={"placeholder": _("mechanics, robotics, biology…")}
+            ),
             "notes": forms.Textarea(attrs={"rows": 5}),
         }
 
