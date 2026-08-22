@@ -47,6 +47,7 @@ class SignupForm(StyledFormMixin, UserCreationForm):
     class Meta:
         model = User
         fields = ("email", "display_name")
+        labels = {"email": _("Email")}
         widgets = {
             "email": forms.EmailInput(attrs={"autocomplete": "email"}),
             "display_name": forms.TextInput(attrs={"autocomplete": "name"}),
@@ -85,6 +86,7 @@ class ProfileForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = User
         fields = ("display_name", "email")
+        labels = {"email": _("Email")}
         widgets = {
             "display_name": forms.TextInput(attrs={"autocomplete": "name"}),
             "email": forms.EmailInput(attrs={"autocomplete": "email"}),
