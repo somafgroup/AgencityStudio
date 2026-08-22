@@ -41,7 +41,7 @@ def test_login_logout_and_email_identifier(client):
 
     login_response = client.post(
         reverse("accounts:login"),
-        {"username": "member@example.com", "password": PASSWORD},
+        {"username": "MEMBER@EXAMPLE.COM", "password": PASSWORD},
     )
     assert login_response.status_code == 302
     assert login_response.url == reverse("dashboard")
