@@ -36,10 +36,18 @@ async function invitationUrlFor(email) {
   throw new Error(`No invitation email found for ${email}`);
 }
 
+async function openNewProjectForm(page) {
+  const main = page.locator('#main-content');
+  const newProject = main.getByRole('link', { name: 'New Project', exact: true }).first();
+  await expect(newProject).toBeVisible();
+  await newProject.click();
+  await expect(page.getByRole('heading', { name: 'New project', exact: true })).toBeVisible();
+}
+
 test('project lifecycle creates edits archives and restores real project metadata', async ({ page }, testInfo) => {
   await signUp(page, retrySafeEmail('project-owner', testInfo), 'Project Owner');
-  await page.getByRole('link', { name: 'Projects', exact: true }).first().click();
-  await page.getByRole('link', { name: 'New Project', exact: true }).first().click();
+  await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Projects', exact: true }).click();
+  await openNewProjectForm(page);
   await page.getByLabel('Name', { exact: true }).fill('Rotor vibration study');
   await page.getByLabel('Description', { exact: true }).fill('Initial rotor description');
   await page.getByLabel('Domain', { exact: true }).fill('mechanics');
@@ -54,7 +62,7 @@ test('project lifecycle creates edits archives and restores real project metadat
   await page.getByRole('button', { name: 'Archive project', exact: true }).click();
   await expect(page.getByText('ARCHIVED', { exact: true })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Projects', exact: true }).first().click();
+  await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Projects', exact: true }).click();
   await page.getByRole('link', { name: 'Archived', exact: true }).click();
   await page.getByRole('link', { name: 'Rotor vibration study', exact: true }).click();
   await page.getByRole('link', { name: 'Settings', exact: true }).click();
@@ -69,11 +77,11 @@ test('viewer can inspect a project but cannot reach project settings', async ({ 
   const ownerEmail = retrySafeEmail('project-sharing-owner', testInfo);
   const viewerEmail = retrySafeEmail('project-sharing-viewer', testInfo);
   await signUp(page, ownerEmail, 'Sharing Owner');
-  await page.getByRole('link', { name: 'Workspaces', exact: true }).first().click();
+  await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Workspaces', exact: true }).click();
   await page.getByRole('link', { name: 'New organisation workspace', exact: true }).click();
   await page.getByLabel('Workspace name', { exact: true }).fill('Shared Project Laboratory');
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click();
-  await page.getByRole('link', { name: 'New Project', exact: true }).first().click();
+  await openNewProjectForm(page);
   await page.getByLabel('Name', { exact: true }).fill('Shared Rotor Project');
   await page.getByRole('button', { name: 'Create project', exact: true }).click();
   const projectUrl = page.url();
