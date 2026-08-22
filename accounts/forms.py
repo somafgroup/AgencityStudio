@@ -3,7 +3,13 @@
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordChangeForm,
+    PasswordResetForm,
+    SetPasswordForm,
+    UserCreationForm,
+)
 from django.utils.translation import gettext_lazy as _
 
 from .models import User, UserManager
@@ -110,6 +116,24 @@ class PreferencesForm(StyledFormMixin, forms.ModelForm):
         except ZoneInfoNotFoundError as exc:
             raise forms.ValidationError(_("Enter a valid IANA timezone.")) from exc
         return value
+
+
+class StyledPasswordResetForm(StyledFormMixin, PasswordResetForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+
+class StyledSetPasswordForm(StyledFormMixin, SetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
+
+
+class StyledPasswordChangeForm(StyledFormMixin, PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style_fields()
 
 
 class ThemePreferenceForm(forms.Form):
