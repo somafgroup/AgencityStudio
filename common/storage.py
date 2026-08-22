@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
@@ -64,22 +63,22 @@ class LocalStorage(Storage):
     def save_chunks(self, name: str, chunks: Iterable[bytes]) -> tuple[str, int, str]:
         target = self._target(name)
         target.parent.mkdir(parents=True, exist_ok=True)
-        temporary = target.with_name(f".{target.name}.{os.getpid()}.tmp")
         digest = hashlib.sha256()
         size = 0
         try:
-            with temporary.open("xb") as handle:
+            # Exclusive creation is the immutability boundary: an existing object is never overwritten.
+            with target.open("xb") as handle:
                 for chunk in chunks:
                     if not chunk:
                         continue
                     handle.write(chunk)
                     digest.update(chunk)
                     size += len(chunk)
-            if target.exists():
-                raise FileExistsError(f"Immutable artifact already exists: {name}")
-            temporary.replace(target)
         except Exception:
-            temporary.unlink(missing_ok=True)
+            # A failed first writer may leave only its own incomplete target; remove it before surfacing.
+            # FileExistsError means another immutable object already existed and must be preserved.
+            if target.exists() and not isinstance(_, FileExistsError):
+                target.unlink(missing_ok=True)
             raise
         return name, size, digest.hexdigest()
 
