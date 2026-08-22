@@ -1,10 +1,11 @@
 """Views for the application shell and operational health surfaces."""
 
 from django.conf import settings
-from django.db import connection
+from django.db import DatabaseError, connection
 from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from redis import Redis
+from redis.exceptions import RedisError
 
 from labbridge.service import get_lab_version, lab_is_compatible
 
@@ -31,7 +32,7 @@ def health(request):
 def _database_status() -> str:
     try:
         connection.ensure_connection()
-    except Exception:  # pragma: no cover - backend failures are collapsed for operational safety
+    except DatabaseError:  # pragma: no cover - backend failures are collapsed for operational safety
         return "unavailable"
     return "available"
 
@@ -44,7 +45,7 @@ def _broker_status() -> str:
             socket_timeout=0.5,
         )
         return "available" if client.ping() else "unavailable"
-    except Exception:  # pragma: no cover - network/backend failures are intentionally collapsed
+    except (RedisError, ValueError):  # pragma: no cover - backend/config failures are collapsed
         return "unavailable"
 
 
