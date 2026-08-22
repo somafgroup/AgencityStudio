@@ -28,6 +28,9 @@ from .forms import (
     PreferencesForm,
     ProfileForm,
     SignupForm,
+    StyledPasswordChangeForm,
+    StyledPasswordResetForm,
+    StyledSetPasswordForm,
     ThemePreferenceForm,
 )
 
@@ -44,6 +47,7 @@ class StudioLogoutView(LogoutView):
 
 class StudioPasswordChangeView(PasswordChangeView):
     template_name = "registration/password_change_form.html"
+    form_class = StyledPasswordChangeForm
     success_url = reverse_lazy("accounts:password-change-done")
 
 
@@ -53,6 +57,7 @@ class StudioPasswordChangeDoneView(PasswordChangeDoneView):
 
 class StudioPasswordResetView(PasswordResetView):
     template_name = "registration/password_reset_form.html"
+    form_class = StyledPasswordResetForm
     email_template_name = "registration/password_reset_email.txt"
     subject_template_name = "registration/password_reset_subject.txt"
     success_url = reverse_lazy("accounts:password-reset-done")
@@ -64,6 +69,7 @@ class StudioPasswordResetDoneView(PasswordResetDoneView):
 
 class StudioPasswordResetConfirmView(PasswordResetConfirmView):
     template_name = "registration/password_reset_confirm.html"
+    form_class = StyledSetPasswordForm
     success_url = reverse_lazy("accounts:password-reset-complete")
 
 
