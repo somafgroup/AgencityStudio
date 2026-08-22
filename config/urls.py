@@ -1,3 +1,4 @@
+from django.contrib import admin
 from django.urls import include, path
 
 from common import views
@@ -10,6 +11,9 @@ urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("health/", views.health, name="health"),
     path("health/ready/", views.readiness, name="readiness"),
+    path("accounts/", include("accounts.urls")),
+    path("workspaces/", include("workspaces.urls")),
+    path("admin/", admin.site.urls),
     path("projects/", views.workspace_section, {"section": "projects"}, name="projects"),
     path("datasets/", views.workspace_section, {"section": "datasets"}, name="datasets"),
     path("analyses/", views.workspace_section, {"section": "analyses"}, name="analyses"),
