@@ -33,6 +33,8 @@ import {
   ArchiveRestore,
   Trash2,
   History,
+  Upload,
+  Download,
 } from 'lucide';
 
 window.Alpine = Alpine;
@@ -70,6 +72,8 @@ const iconSet = {
   ArchiveRestore,
   Trash2,
   History,
+  Upload,
+  Download,
 };
 
 function renderIcons() {
