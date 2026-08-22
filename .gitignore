@@ -1,5 +1,6 @@
 .env
 .venv/
+.emails/
 __pycache__/
 *.py[cod]
 .pytest_cache/
