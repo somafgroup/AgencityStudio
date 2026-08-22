@@ -10,6 +10,10 @@ AgencityStudio uses `accounts.User`, a minimal Django custom user model introduc
 
 A user created through the supported account manager receives one personal workspace and an Owner membership in the same transaction. Personal workspaces cannot be shared, left or deleted through normal workspace flows.
 
+### Existing development databases from Plans 0–1
+
+Plan 2 is the first release that defines `AUTH_USER_MODEL`. A database that already applied Django's built-in `auth`/`admin` migrations while Studio still used Django's default user model must not be treated as safely upgradeable by merely changing the setting in place. Plans 0–1 contained no durable Studio account or scientific domain data, so such foundation-only development databases should be recreated and the Plan 2 migration graph applied from a clean database. Production or otherwise durable databases must never be reset implicitly; any future data-bearing migration from another user model requires an explicit, reviewed migration procedure.
+
 ## Authentication
 
 Plan 2 deliberately uses Django's maintained session authentication primitives rather than a JWT or a custom credential system. Available local flows are:
