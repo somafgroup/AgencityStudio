@@ -107,7 +107,7 @@ jobs:
           docker compose logs web worker
           exit 1
       - name: Verify worker execution
-        run: docker compose exec -T web python -c "from common.tasks import health_ping; assert health_ping.delay().get(timeout=10) == 'pong'"
+        run: docker compose exec -T web python -c "from config import celery_app; result = celery_app.send_task('common.health_ping'); assert result.get(timeout=10) == 'pong'"
       - name: Stop Compose stack
         if: always()
         run: docker compose down -v
