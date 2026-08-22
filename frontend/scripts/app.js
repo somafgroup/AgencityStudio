@@ -20,6 +20,13 @@ import {
   Info,
   RefreshCw,
   X,
+  Building2,
+  ChevronsUpDown,
+  Plus,
+  UserCircle,
+  Settings,
+  Users,
+  LogOut,
 } from 'lucide';
 
 window.Alpine = Alpine;
@@ -44,6 +51,13 @@ const iconSet = {
   Info,
   RefreshCw,
   X,
+  Building2,
+  ChevronsUpDown,
+  Plus,
+  UserCircle,
+  Settings,
+  Users,
+  LogOut,
 };
 
 function renderIcons() {
@@ -56,6 +70,28 @@ function applyTheme(theme) {
   document.documentElement.dataset.theme = value;
   localStorage.setItem('agencity-theme', value);
   window.dispatchEvent(new CustomEvent('agencity:theme-changed', { detail: { theme: value } }));
+  return value;
+}
+
+function csrfToken() {
+  const entry = document.cookie.split('; ').find((cookie) => cookie.startsWith('csrftoken='));
+  return entry ? decodeURIComponent(entry.split('=')[1]) : '';
+}
+
+async function persistTheme(theme) {
+  const endpoint = document.body.dataset.themeEndpoint;
+  if (!endpoint) return;
+  const body = new URLSearchParams({ theme });
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+      'X-CSRFToken': csrfToken(),
+    },
+    body,
+  });
+  if (!response.ok) throw new Error('Theme preference could not be saved.');
 }
 
 Alpine.data('studioShell', () => ({
@@ -72,10 +108,14 @@ Alpine.data('studioShell', () => ({
     });
     window.addEventListener('studio:toast', (event) => this.pushToast(event.detail || {}));
   },
-  setTheme(theme) {
-    this.theme = theme;
-    applyTheme(theme);
-    this.pushToast({ type: 'info', message: `Theme set to ${theme}.` });
+  async setTheme(theme) {
+    this.theme = applyTheme(theme);
+    try {
+      await persistTheme(this.theme);
+      this.pushToast({ type: 'info', message: `Theme set to ${this.theme}.` });
+    } catch (_error) {
+      this.pushToast({ type: 'error', message: 'Theme changed locally but could not be saved.' });
+    }
   },
   toggleCommand() {
     this.commandOpen = !this.commandOpen;
