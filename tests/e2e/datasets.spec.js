@@ -33,6 +33,10 @@ async function openProjectDatasets(page) {
   await navigation.getByRole('link', { name: 'Datasets', exact: true }).click();
 }
 
+async function startDatasetImport(page) {
+  await page.getByRole('link', { name: 'Import Dataset', exact: true }).first().click();
+}
+
 async function openDatasetSection(page, name) {
   const navigation = page.getByRole('navigation', { name: 'Dataset navigation' });
   await navigation.getByRole('link', { name, exact: true }).click();
@@ -48,7 +52,7 @@ test('raw CSV import is inspected annotated confirmed and remains downloadable',
   await createProject(page);
 
   await openProjectDatasets(page);
-  await page.getByRole('link', { name: 'Import Dataset', exact: true }).click();
+  await startDatasetImport(page);
   await page.getByLabel(/^Name/).fill('Rotor measurements');
   const source = 'time,velocity\n0.00,1.0\n0.01,1.2\n0.02,\n0.03,1.6\n';
   await page.getByLabel('Dataset file', { exact: true }).setInputFiles({
@@ -96,7 +100,7 @@ test('malformed XLSX produces a friendly failed import state', async ({ page }, 
   await signUp(page, retrySafeEmail('dataset-failure-owner', testInfo));
   await createProject(page);
   await openProjectDatasets(page);
-  await page.getByRole('link', { name: 'Import Dataset', exact: true }).click();
+  await startDatasetImport(page);
   await page.getByLabel(/^Name/).fill('Broken workbook');
   await page.getByLabel('Dataset file', { exact: true }).setInputFiles({
     name: 'broken.xlsx',
