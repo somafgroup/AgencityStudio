@@ -47,6 +47,8 @@ def inspect_dataset_version(version_id: str, generation: int) -> str:
             return "stale"
         if version.import_status == DatasetImportStatus.PROCESSING:
             return "already-processing"
+        if version.import_status in {DatasetImportStatus.READY, DatasetImportStatus.FAILED}:
+            return "already-finished"
         version.import_status = DatasetImportStatus.PROCESSING
         version.failure_summary = ""
         version.save(update_fields=("import_status", "failure_summary"))
@@ -82,9 +84,12 @@ def inspect_dataset_version(version_id: str, generation: int) -> str:
             exc.__class__.__name__,
         )
         with transaction.atomic():
-            locked = DatasetVersion.objects.select_for_update().select_related(
-                "dataset", "dataset__project", "created_by"
-            ).get(pk=version_id)
+            try:
+                locked = DatasetVersion.objects.select_for_update().select_related(
+                    "dataset", "dataset__project", "created_by"
+                ).get(pk=version_id)
+            except DatasetVersion.DoesNotExist:
+                return "missing-after-failure"
             if locked.inspection_generation != generation:
                 return "stale-failure"
             locked.import_status = DatasetImportStatus.FAILED
@@ -105,9 +110,12 @@ def inspect_dataset_version(version_id: str, generation: int) -> str:
             version.dataset_id,
         )
         with transaction.atomic():
-            locked = DatasetVersion.objects.select_for_update().select_related(
-                "dataset", "dataset__project", "created_by"
-            ).get(pk=version_id)
+            try:
+                locked = DatasetVersion.objects.select_for_update().select_related(
+                    "dataset", "dataset__project", "created_by"
+                ).get(pk=version_id)
+            except DatasetVersion.DoesNotExist:
+                return "missing-after-failure"
             if locked.inspection_generation != generation:
                 return "stale-failure"
             locked.import_status = DatasetImportStatus.FAILED
@@ -123,9 +131,12 @@ def inspect_dataset_version(version_id: str, generation: int) -> str:
         return "failed"
 
     with transaction.atomic():
-        locked = DatasetVersion.objects.select_for_update().select_related(
-            "dataset", "dataset__project", "created_by"
-        ).get(pk=version_id)
+        try:
+            locked = DatasetVersion.objects.select_for_update().select_related(
+                "dataset", "dataset__project", "created_by"
+            ).get(pk=version_id)
+        except DatasetVersion.DoesNotExist:
+            return "missing-after-inspection"
         if locked.inspection_generation != generation:
             return "stale-result"
         locked.columns.all().delete()
