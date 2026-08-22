@@ -39,4 +39,9 @@ line-length = 100
 known-first-party = ["accounts", "common", "config", "labbridge", "workspaces"]
 
 [tool.ruff.lint.per-file-ignores]
+"accounts/forms.py" = ["RUF012"]
+"accounts/migrations/*.py" = ["RUF012"]
+"accounts/models.py" = ["RUF012"]
 "config/settings/*.py" = ["F403", "F405"]
+"workspaces/migrations/*.py" = ["RUF012"]
+"workspaces/models.py" = ["RUF012"]
