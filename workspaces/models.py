@@ -133,7 +133,7 @@ class WorkspaceInvitation(models.Model):
             ),
         ]
         indexes = [
-            models.Index(fields=("workspace", "status"), name="invitation_workspace_status_idx"),
+            models.Index(fields=("workspace", "status"), name="invite_workspace_status_idx"),
             models.Index(fields=("email", "status"), name="invitation_email_status_idx"),
         ]
 
