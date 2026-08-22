@@ -60,7 +60,7 @@ jobs:
         run: python manage.py check
       - name: Production Django checks
         env:
-          DJANGO_SECRET_KEY: ci-production-secret-7f4c262047174ac297c05624e66f9a42
+          DJANGO_SECRET_KEY: ci-only-check-key-not-for-deployment
           DJANGO_ALLOWED_HOSTS: studio.example.test
           DJANGO_SECURE_HSTS_SECONDS: 31536000
           DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: 'true'
@@ -70,7 +70,9 @@ jobs:
         run: python manage.py makemigrations --check --dry-run
       - name: Apply database migrations
         run: python manage.py migrate --noinput
-      - name: Backend tests
+      - name: Backend tests on PostgreSQL
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.ci
         run: pytest
       - name: Collect static assets
         run: python manage.py collectstatic --noinput
