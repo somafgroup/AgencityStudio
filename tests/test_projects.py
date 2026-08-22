@@ -193,6 +193,7 @@ def test_duplicate_copies_metadata_not_identity_status_or_activity_history():
         notes=source.notes,
     )
     archive_project(actor=owner, project=source)
+    source.refresh_from_db()
 
     clone = duplicate_project(actor=editor, project=source)
 
