@@ -9,6 +9,7 @@ handler500 = "common.views.error_500"
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("health/", views.health, name="health"),
+    path("health/ready/", views.readiness, name="readiness"),
     path("projects/", views.workspace_section, {"section": "projects"}, name="projects"),
     path("datasets/", views.workspace_section, {"section": "datasets"}, name="datasets"),
     path("analyses/", views.workspace_section, {"section": "analyses"}, name="analyses"),
