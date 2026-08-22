@@ -66,7 +66,7 @@ class LocalStorage(Storage):
         digest = hashlib.sha256()
         size = 0
         try:
-            # Exclusive creation is the immutability boundary: an existing object is never overwritten.
+            # Exclusive creation is the immutability boundary: existing objects are never overwritten.
             with target.open("xb") as handle:
                 for chunk in chunks:
                     if not chunk:
@@ -74,10 +74,10 @@ class LocalStorage(Storage):
                     handle.write(chunk)
                     digest.update(chunk)
                     size += len(chunk)
-        except Exception:
-            # A failed first writer may leave only its own incomplete target; remove it before surfacing.
-            # FileExistsError means another immutable object already existed and must be preserved.
-            if target.exists() and not isinstance(_, FileExistsError):
+        except Exception as exc:
+            # A failed first writer owns the incomplete target and removes it. A FileExistsError means
+            # another immutable object already exists and must be preserved unchanged.
+            if not isinstance(exc, FileExistsError):
                 target.unlink(missing_ok=True)
             raise
         return name, size, digest.hexdigest()
