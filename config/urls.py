@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.decorators import login_required
 from django.urls import include, path
 
 from common import views
@@ -21,8 +22,8 @@ urlpatterns = [
     path("reports/", views.workspace_section, {"section": "reports"}, name="reports"),
     path("examples/", views.workspace_section, {"section": "examples"}, name="examples"),
     path("advanced/", views.workspace_section, {"section": "advanced"}, name="advanced"),
-    path("about/", views.about, name="about"),
+    path("about/", login_required(views.about), name="about"),
     path("partials/system-status/", views.system_status_partial, name="system-status-partial"),
-    path("dev/ui/", views.dev_ui, name="dev-ui"),
+    path("dev/ui/", login_required(views.dev_ui), name="dev-ui"),
     path("i18n/", include("django.conf.urls.i18n")),
 ]
