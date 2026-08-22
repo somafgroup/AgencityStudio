@@ -12,7 +12,10 @@ class AccountPreferenceMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        previous_language = translation.get_language()
+        previous_timezone = timezone.get_current_timezone()
         user = getattr(request, "user", None)
+
         if user is not None and user.is_authenticated:
             translation.activate(user.locale)
             request.LANGUAGE_CODE = user.locale
@@ -20,6 +23,12 @@ class AccountPreferenceMiddleware:
                 timezone.activate(ZoneInfo(user.timezone))
             except ZoneInfoNotFoundError:
                 timezone.activate(ZoneInfo("UTC"))
-        else:
-            timezone.deactivate()
-        return self.get_response(request)
+
+        try:
+            return self.get_response(request)
+        finally:
+            if previous_language:
+                translation.activate(previous_language)
+            else:
+                translation.deactivate()
+            timezone.activate(previous_timezone)
