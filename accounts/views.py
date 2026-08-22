@@ -78,7 +78,11 @@ class StudioPasswordResetCompleteView(PasswordResetCompleteView):
 
 
 def _signup_mode_allows_public() -> bool:
-    return getattr(settings, "SIGNUP_MODE", "public") == "public"
+    return settings.SIGNUP_MODE == "public"
+
+
+def _signup_mode_allows_invited() -> bool:
+    return settings.SIGNUP_MODE in {"public", "invitation_only"}
 
 
 def signup(request):
@@ -108,6 +112,13 @@ def signup(request):
 
 def invited_signup(request, token: str):
     """Create the invited identity and atomically accept the matching invitation."""
+    if not _signup_mode_allows_invited():
+        return render(
+            request,
+            "registration/signup_unavailable.html",
+            {"page_title": _("Sign up unavailable")},
+            status=403,
+        )
     invitation = resolve_invitation(token)
     if invitation is None:
         raise Http404
