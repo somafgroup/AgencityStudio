@@ -80,7 +80,7 @@ class DatasetImportForm(ImportOptionsMixin, forms.Form):
         required=False,
         label=_("Dataset file"),
         widget=forms.ClearableFileInput(
-            attrs={"class": "input", "accept": ".csv,.tsv,.txt,.xlsx"}
+            attrs={"class": "input", "accept": ".csv,.tsv,.txt,.xlsx", "x-ref": "file"}
         ),
         help_text=_("Supported: CSV, TSV, structured TXT and XLSX."),
     )
