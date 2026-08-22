@@ -187,10 +187,14 @@ def duplicate_project(*, actor, project: Project) -> Project:
 
 @transaction.atomic
 def delete_project(*, actor, project: Project) -> None:
-    """Permanently delete a Project after the caller has obtained explicit confirmation."""
+    """Permanently delete an empty Project after explicit confirmation by the caller."""
     if not can_delete_project(actor, project):
         raise PermissionDenied
     locked = Project.objects.select_for_update().get(pk=project.pk)
+    if locked.datasets.exists():
+        raise ValidationError(
+            _("This project contains datasets and cannot be permanently deleted until they are handled explicitly.")
+        )
     logger.info(
         "project.deleted project_id=%s workspace_id=%s actor_id=%s",
         locked.pk,
