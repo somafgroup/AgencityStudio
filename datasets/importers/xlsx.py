@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from typing import BinaryIO
+from zipfile import BadZipFile
 
 from openpyxl import load_workbook
 from openpyxl.utils.exceptions import InvalidFileException
@@ -19,7 +20,7 @@ class XlsxImporter(BaseImporter):
         handle.seek(0)
         try:
             return load_workbook(handle, read_only=True, data_only=False, keep_links=False)
-        except (InvalidFileException, OSError, ValueError, KeyError) as exc:
+        except (InvalidFileException, BadZipFile, OSError, ValueError, KeyError) as exc:
             raise ImporterError("The XLSX workbook could not be read.") from exc
 
     def open_table(self, handle: BinaryIO, *, filename: str, options: dict) -> TabularSource:
@@ -46,7 +47,10 @@ class XlsxImporter(BaseImporter):
             raise ImporterError("The selected worksheet contains no usable columns.")
         if has_header:
             source_headers = [str(value) if value is not None else "" for value in first]
-            headers = [value if value.strip() else f"Column {index}" for index, value in enumerate(source_headers, 1)]
+            headers = [
+                value if value.strip() else f"Column {index}"
+                for index, value in enumerate(source_headers, 1)
+            ]
         else:
             source_headers = ["" for _ in first]
             headers = [f"Column {index}" for index in range(1, len(first) + 1)]
@@ -61,7 +65,9 @@ class XlsxImporter(BaseImporter):
                 if not has_header:
                     yield first
                 for cells in raw_rows:
-                    metadata["formula_cell_count"] += sum(1 for cell in cells if cell.data_type == "f")
+                    metadata["formula_cell_count"] += sum(
+                        1 for cell in cells if cell.data_type == "f"
+                    )
                     yield [cell.value if cell.value is not None else "" for cell in cells]
             finally:
                 workbook.close()
@@ -70,7 +76,11 @@ class XlsxImporter(BaseImporter):
             headers=headers,
             source_headers=source_headers,
             rows=rows(),
-            detected_options={"sheet": sheet_name, "available_sheets": sheet_names, "has_header": True},
+            detected_options={
+                "sheet": sheet_name,
+                "available_sheets": sheet_names,
+                "has_header": True,
+            },
             metadata=metadata,
         )
 
