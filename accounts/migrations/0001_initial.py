@@ -1,7 +1,8 @@
-import accounts.models
 import django.utils.timezone
 from django.db import migrations, models
 from django.db.models.functions import Lower
+
+import accounts.models
 
 
 class Migration(migrations.Migration):
