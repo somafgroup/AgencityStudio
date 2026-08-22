@@ -17,6 +17,9 @@ class UserManager(BaseUserManager):
     def normalize_studio_email(email: str) -> str:
         return BaseUserManager.normalize_email(email).strip().lower()
 
+    def get_by_natural_key(self, email: str):
+        return self.get(email__iexact=self.normalize_studio_email(email))
+
     def _create_user(self, email: str, password: str | None, **extra_fields):
         if not email:
             raise ValueError("The email address is required.")
