@@ -53,9 +53,9 @@ jobs:
       - name: Frontend build
         run: npm run build
       - name: Python quality
-        run: ruff check config common labbridge tests
+        run: ruff check accounts config common labbridge workspaces tests
       - name: Compile Python
-        run: python -m compileall config common labbridge tests
+        run: python -m compileall accounts config common labbridge workspaces tests
       - name: Django checks
         run: python manage.py check
       - name: Production Django checks
@@ -78,6 +78,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Start application
         run: |
+          rm -rf .emails
+          mkdir -p .emails
           uvicorn config.asgi:application --host 127.0.0.1 --port 8000 > /tmp/agencitystudio.log 2>&1 &
           for i in {1..20}; do curl --fail --silent http://127.0.0.1:8000/health/ready/ && exit 0; sleep 1; done
           cat /tmp/agencitystudio.log
