@@ -1,6 +1,6 @@
+import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
-import django.db.models.deletion
 from django.db.models import Q
 
 
@@ -196,7 +196,7 @@ class Migration(migrations.Migration):
             model_name="workspaceinvitation",
             index=models.Index(
                 fields=["workspace", "status"],
-                name="invitation_workspace_status_idx",
+                name="invite_workspace_status_idx",
             ),
         ),
         migrations.AddIndex(
