@@ -25,8 +25,20 @@ class DatasetAdmin(admin.ModelAdmin):
     list_display = ("name", "project", "current_version", "created_by", "updated_at")
     search_fields = ("name", "description", "project__name")
     list_select_related = ("project", "current_version", "created_by")
-    readonly_fields = ("id", "slug", "current_version", "created_at", "updated_at")
+    readonly_fields = (
+        "id",
+        "project",
+        "slug",
+        "created_by",
+        "current_version",
+        "created_at",
+        "updated_at",
+    )
     inlines = (DatasetVersionInline,)
+
+    def has_delete_permission(self, request, obj=None):
+        """Require the Data Workspace service path so artifact cleanup cannot be bypassed."""
+        return False
 
 
 @admin.register(DatasetVersion)
@@ -72,6 +84,10 @@ class DatasetVersionAdmin(admin.ModelAdmin):
     )
 
     def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """DatasetVersion cleanup must go through the provenance-aware service layer."""
         return False
 
 
