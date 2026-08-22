@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import math
 import statistics
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
+from itertools import pairwise
 
 from .importers.base import ImporterError, TabularSource
 from .models import DatasetColumnRole, DatasetColumnType
@@ -53,7 +55,12 @@ def _parse_number(value: object, decimal_separator: str) -> float | None:
     if not text:
         return None
     if decimal_separator == ",":
-        text = text.replace(".", "").replace(",", ".")
+        # Do not guess thousands separators. A dot under decimal-comma settings is ambiguous.
+        if "." in text:
+            return None
+        text = text.replace(",", ".")
+    elif "," in text:
+        return None
     try:
         return float(text)
     except ValueError:
@@ -69,7 +76,7 @@ def _parse_datetime(value: object) -> datetime | None:
     if not text:
         return None
     try:
-        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+        return datetime.fromisoformat(text)
     except ValueError:
         return None
 
@@ -109,7 +116,7 @@ def _observe(acc: ColumnAccumulator, value: object, *, decimal_separator: str, k
                 else acc.datetime_max
             )
         except TypeError:
-            # Mixed timezone-aware/naive values remain preserved and are diagnosed later if used as time.
+            # Mixed timezone-aware/naive values remain preserved and are diagnosed when used as time.
             pass
         return
     acc.text += 1
@@ -208,7 +215,7 @@ def _time_quality(
         "sampling_regular": None,
     }
     if len(scalars) >= 2 and len(modes) <= 1:
-        diffs = [right - left for left, right in zip(scalars, scalars[1:], strict=False)]
+        diffs = [right - left for left, right in pairwise(scalars)]
         strictly_increasing = all(delta > 0 for delta in diffs)
         summary["strictly_increasing"] = strictly_increasing
         if not strictly_increasing:
@@ -238,14 +245,9 @@ def _time_quality(
                 }
             )
             mode = next(iter(modes), "")
-            if mode.startswith("datetime") or unit.strip().lower() in {
-                "s",
-                "sec",
-                "second",
-                "seconds",
-            }:
-                if median_dt > 0:
-                    summary["observed_sampling_frequency_hz"] = 1.0 / median_dt
+            seconds_unit = unit.strip().lower() in {"s", "sec", "second", "seconds"}
+            if median_dt > 0 and (mode.startswith("datetime") or seconds_unit):
+                summary["observed_sampling_frequency_hz"] = 1.0 / median_dt
             if not regular:
                 issues.append(
                     _issue(
@@ -289,7 +291,8 @@ def inspect_table(
     ]
     issues: list[dict] = []
     source_names = [name for name in table.source_headers if name]
-    duplicate_headers = sorted({name for name in source_names if source_names.count(name) > 1})
+    header_counts = Counter(source_names)
+    duplicate_headers = sorted(name for name, count in header_counts.items() if count > 1)
     if duplicate_headers:
         issues.append(_issue("DUPLICATE_HEADER", "WARNING", names=duplicate_headers))
     row_count = 0
