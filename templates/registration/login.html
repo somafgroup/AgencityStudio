@@ -1,0 +1,15 @@
+{% extends "auth_base.html" %}{% load i18n %}
+{% block content %}
+<h1 class="text-xl font-semibold">{% translate "Sign in" %}</h1>
+<p class="muted mt-1 text-sm">{% translate "Continue to your AgencityStudio workspaces." %}</p>
+<form method="post" class="mt-6 space-y-5">
+  {% csrf_token %}
+  {% include "components/form_fields.html" %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <button class="btn btn-primary w-full" type="submit">{% translate "Sign in" %}</button>
+</form>
+<div class="mt-5 flex flex-wrap justify-between gap-3 text-sm">
+  <a href="{% url 'accounts:password-reset' %}">{% translate "Forgot password?" %}</a>
+  <a href="{% url 'accounts:signup' %}">{% translate "Create account" %}</a>
+</div>
+{% endblock %}
