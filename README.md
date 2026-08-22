@@ -36,10 +36,10 @@ The readiness endpoint should return HTTP 200 once PostgreSQL, Redis and the com
 curl http://localhost:8000/health/ready/
 ```
 
-To verify the asynchronous worker path end to end:
+To verify the asynchronous worker path end to end through Studio's configured Celery application:
 
 ```bash
-docker compose exec web python -c "from common.tasks import health_ping; print(health_ping.delay().get(timeout=10))"
+docker compose exec web python -c "from config import celery_app; result = celery_app.send_task('common.health_ping'); print(result.get(timeout=10))"
 ```
 
 Expected output: `pong`.
