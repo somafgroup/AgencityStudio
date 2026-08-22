@@ -30,17 +30,22 @@ def _activity(version: DatasetVersion, event: str, detail: str) -> None:
     )
 
 
+def _locked_version(version_id: str) -> DatasetVersion:
+    """Lock the version row without locking nullable related records."""
+    return (
+        DatasetVersion.objects.select_for_update(of=("self",))
+        .select_related("dataset", "dataset__project")
+        .get(pk=version_id)
+    )
+
+
 @shared_task(name="datasets.inspect_dataset_version")
 def inspect_dataset_version(version_id: str, generation: int) -> str:
     """Inspect an immutable raw source without preprocessing or scientific inference."""
     started = time.monotonic()
     with transaction.atomic():
         try:
-            version = (
-                DatasetVersion.objects.select_for_update()
-                .select_related("dataset", "dataset__project", "created_by")
-                .get(pk=version_id)
-            )
+            version = _locked_version(version_id)
         except DatasetVersion.DoesNotExist:
             return "missing"
         if version.inspection_generation != generation:
@@ -85,9 +90,7 @@ def inspect_dataset_version(version_id: str, generation: int) -> str:
         )
         with transaction.atomic():
             try:
-                locked = DatasetVersion.objects.select_for_update().select_related(
-                    "dataset", "dataset__project", "created_by"
-                ).get(pk=version_id)
+                locked = _locked_version(version_id)
             except DatasetVersion.DoesNotExist:
                 return "missing-after-failure"
             if locked.inspection_generation != generation:
@@ -111,9 +114,7 @@ def inspect_dataset_version(version_id: str, generation: int) -> str:
         )
         with transaction.atomic():
             try:
-                locked = DatasetVersion.objects.select_for_update().select_related(
-                    "dataset", "dataset__project", "created_by"
-                ).get(pk=version_id)
+                locked = _locked_version(version_id)
             except DatasetVersion.DoesNotExist:
                 return "missing-after-failure"
             if locked.inspection_generation != generation:
@@ -132,9 +133,7 @@ def inspect_dataset_version(version_id: str, generation: int) -> str:
 
     with transaction.atomic():
         try:
-            locked = DatasetVersion.objects.select_for_update().select_related(
-                "dataset", "dataset__project", "created_by"
-            ).get(pk=version_id)
+            locked = _locked_version(version_id)
         except DatasetVersion.DoesNotExist:
             return "missing-after-inspection"
         if locked.inspection_generation != generation:
