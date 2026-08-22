@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<header class="page-header"><div><p class="muted mb-1 text-sm">{% translate "Account" %}</p><h1 class="page-title">{% translate "Profile" %}</h1><p class="muted mt-2 text-sm">{% translate "Manage the identity used across your AgencityStudio workspaces." %}</p></div></header>
+<div class="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(16rem,1fr)]">
+  <section class="card">
+    <form method="post" class="space-y-5">{% csrf_token %}{% include "components/form_fields.html" %}<button class="btn btn-primary" type="submit">{% translate "Save profile" %}</button></form>
+  </section>
+  <aside class="card"><h2 class="section-title">{% translate "Security" %}</h2><p class="muted mt-2 text-sm">{% translate "Password changes keep the current session valid through Django's authenticated password-change flow." %}</p><a class="btn btn-secondary mt-4" href="{% url 'accounts:password-change' %}">{% translate "Change password" %}</a></aside>
+</div>
+{% endblock %}

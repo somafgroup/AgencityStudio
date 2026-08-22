@@ -1,0 +1,6 @@
+{% extends "auth_base.html" %}{% load i18n %}
+{% block content %}
+<h1 class="text-xl font-semibold">{% translate "Sign up unavailable" %}</h1>
+<p class="muted mt-2 text-sm">{% translate "This AgencityStudio instance does not currently allow public registration. You can still join through a valid workspace invitation when invitation-based access is enabled." %}</p>
+<a class="btn btn-primary mt-6 w-full" href="{% url 'accounts:login' %}">{% translate "Sign in" %}</a>
+{% endblock %}

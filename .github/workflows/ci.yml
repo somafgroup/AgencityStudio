@@ -53,14 +53,14 @@ jobs:
       - name: Frontend build
         run: npm run build
       - name: Python quality
-        run: ruff check config common labbridge tests
+        run: ruff check accounts config common labbridge workspaces tests
       - name: Compile Python
-        run: python -m compileall config common labbridge tests
+        run: python -m compileall accounts config common labbridge workspaces tests
       - name: Django checks
         run: python manage.py check
       - name: Production Django checks
         env:
-          DJANGO_SECRET_KEY: ci-production-secret-7f4c262047174ac297c05624e66f9a42
+          DJANGO_SECRET_KEY: ci-only-django-deploy-check-key-2026-not-a-production-secret-8f2a7c91
           DJANGO_ALLOWED_HOSTS: studio.example.test
           DJANGO_SECURE_HSTS_SECONDS: 31536000
           DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: 'true'
@@ -70,7 +70,9 @@ jobs:
         run: python manage.py makemigrations --check --dry-run
       - name: Apply database migrations
         run: python manage.py migrate --noinput
-      - name: Backend tests
+      - name: Backend tests on PostgreSQL
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.ci
         run: pytest
       - name: Collect static assets
         run: python manage.py collectstatic --noinput
@@ -78,6 +80,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Start application
         run: |
+          rm -rf .emails
+          mkdir -p .emails
           uvicorn config.asgi:application --host 127.0.0.1 --port 8000 > /tmp/agencitystudio.log 2>&1 &
           for i in {1..20}; do curl --fail --silent http://127.0.0.1:8000/health/ready/ && exit 0; sleep 1; done
           cat /tmp/agencitystudio.log

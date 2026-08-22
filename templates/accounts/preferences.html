@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<header class="page-header"><div><p class="muted mb-1 text-sm">{% translate "Account" %}</p><h1 class="page-title">{% translate "Preferences" %}</h1><p class="muted mt-2 text-sm">{% translate "Persist theme, language and timezone across authenticated sessions." %}</p></div></header>
+<section class="card max-w-2xl">
+  <form method="post" class="space-y-5">{% csrf_token %}{% include "components/form_fields.html" %}<button class="btn btn-primary" type="submit">{% translate "Save preferences" %}</button></form>
+  <p class="muted mt-5 text-xs">{% translate "For signed-in users, account preferences are authoritative. Browser storage is used only to avoid a theme flash and for signed-out pages." %}</p>
+</section>
+{% endblock %}

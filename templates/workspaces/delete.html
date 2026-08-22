@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<header class="page-header"><div><p class="muted mb-1 text-sm">{{ workspace.name }}</p><h1 class="page-title">{% translate "Delete workspace" %}</h1></div></header>
+<section class="card max-w-2xl"><div class="alert alert-warning"><strong>{% translate "This action is permanent." %}</strong><p class="mt-1">{% translate "Plan 2 organisation workspaces contain memberships and invitations only. Future plans may introduce additional retention rules before deletion." %}</p></div><form method="post" class="mt-5 space-y-5">{% csrf_token %}{% include "components/form_fields.html" %}<div class="toolbar"><button class="btn btn-danger" type="submit">{% translate "Delete workspace" %}</button><a class="btn btn-secondary" href="{% url 'workspaces:settings' workspace.slug %}">{% translate "Cancel" %}</a></div></form></section>
+{% endblock %}

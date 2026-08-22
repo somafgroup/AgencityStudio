@@ -6,11 +6,19 @@ AgencityStudio tests protect application behavior and integration contracts. The
 
 ### Unit and Django tests
 
-`pytest` covers URL/view behavior, health contracts, UI rendering, task lifecycle primitives and the `labbridge` runtime contract. Test settings use SQLite for fast isolated tests and run Celery eagerly with in-memory backends.
+`pytest` covers authentication, password reset, custom-user creation, automatic personal workspaces, organisation creation, workspace permission policies, Owner invariants, invitation lifecycle/security, URL isolation, UI rendering, health contracts, task lifecycle primitives and the `labbridge` runtime contract.
+
+Local test settings use SQLite for fast isolated behavior tests, Django's in-memory email backend, a fast test password hasher and eager Celery with in-memory backends. Permission policies plus representative endpoints are tested instead of an exhaustive role × URL matrix.
 
 ### PostgreSQL integration
 
-CI runs Django checks and applies the real migration graph against PostgreSQL 17 before running the test suite. `makemigrations --check --dry-run` prevents accidental model changes without migrations.
+CI runs the same backend suite with `config.settings.ci`, which preserves the fast test email/password/Celery behavior but replaces SQLite with the real PostgreSQL 17 service. CI also applies the migration graph explicitly before the test suite. `makemigrations --check --dry-run` prevents model changes without migrations. PostgreSQL execution is required for Plan 2 because conditional uniqueness, functional email uniqueness and membership constraints must not rely on SQLite behavior alone.
+
+### Identity and permission security
+
+Blocking regressions include authentication failure, broken reset links, cross-workspace disclosure, privilege escalation, removal/demotion of the final Owner, reusable/expired/revoked invitations and migrations that fail against PostgreSQL. A Django `is_staff` user receives no workspace access unless an explicit membership exists.
+
+Private workspace URLs are tested to return 404 to a non-member. Known members receive 403 for management actions outside their role.
 
 ### AgencityLab integration
 
@@ -18,7 +26,15 @@ The test suite imports the documented AgencityLab package root and verifies that
 
 ### Browser smoke tests
 
-Playwright exercises meaningful shell workflows: application load, primary navigation, command palette, persisted theme and mobile navigation. Avoid tests for visual trivia that is already covered by lower-cost rendering tests.
+Playwright runs Chromium critical flows on pull requests:
+
+- signup → personal workspace → logout → login;
+- organisation workspace creation → members page;
+- invitation email → invited signup/acceptance → membership;
+- Viewer can view a workspace but receives an access-denied response for member management;
+- existing navigation, command palette, persisted theme and mobile navigation.
+
+Selectors use accessible labels/roles rather than pixel snapshots or timing sleeps.
 
 ### Container integration
 
@@ -28,9 +44,15 @@ The Docker CI job builds the application images, starts PostgreSQL and Redis, ap
 
 ```bash
 pytest
-ruff check config common labbridge tests
+ruff check accounts config common labbridge workspaces tests
 npm run build
 npm run test:e2e
+```
+
+For the CI-shaped PostgreSQL backend suite, provide the PostgreSQL environment variables and run:
+
+```bash
+DJANGO_SETTINGS_MODULE=config.settings.ci pytest
 ```
 
 For the full deployment-shaped path, use Docker Compose as documented in the README.

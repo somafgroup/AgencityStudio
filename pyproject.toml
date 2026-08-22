@@ -1,6 +1,6 @@
 [project]
 name = "agencitystudio"
-version = "0.2.0"
+version = "0.3.0"
 description = "Web interface and orchestration layer for AgencityLab"
 requires-python = ">=3.12"
 dependencies = [
@@ -26,7 +26,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["config*", "common*", "labbridge*"]
+include = ["accounts*", "common*", "config*", "labbridge*", "workspaces*"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
@@ -36,7 +36,12 @@ python_files = ["tests.py", "test_*.py"]
 line-length = 100
 
 [tool.ruff.lint.isort]
-known-first-party = ["common", "config", "labbridge"]
+known-first-party = ["accounts", "common", "config", "labbridge", "workspaces"]
 
 [tool.ruff.lint.per-file-ignores]
+"accounts/forms.py" = ["RUF012"]
+"accounts/migrations/*.py" = ["RUF012"]
+"accounts/models.py" = ["RUF012"]
 "config/settings/*.py" = ["F403", "F405"]
+"workspaces/migrations/*.py" = ["RUF012"]
+"workspaces/models.py" = ["RUF012"]

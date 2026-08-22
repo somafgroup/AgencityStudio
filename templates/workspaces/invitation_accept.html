@@ -1,0 +1,20 @@
+{% extends "auth_base.html" %}{% load i18n %}
+{% block content %}
+<h1 class="text-xl font-semibold">{% translate "Workspace invitation" %}</h1>
+{% if invitation_unavailable %}
+  <div class="alert alert-warning mt-5" role="alert"><strong>{% translate "Invitation unavailable" %}</strong><p class="mt-1">{% translate "This invitation has already been used, revoked or expired." %}</p></div>
+  <a class="btn btn-secondary mt-5 w-full" href="{% url 'accounts:login' %}">{% translate "Sign in" %}</a>
+{% else %}
+  <div class="panel mt-5 p-4"><p class="text-sm"><strong>{{ invitation.workspace.name }}</strong></p><p class="muted mt-1 text-xs">{{ invitation.get_role_display }} · {{ invitation.email }}</p></div>
+  {% if user.is_authenticated %}
+    <p class="muted mt-5 text-sm">{% translate "Accepting creates the explicit workspace membership shown above." %}</p>
+    <form method="post" class="mt-5">{% csrf_token %}<button class="btn btn-primary w-full" type="submit">{% translate "Accept invitation" %}</button></form>
+  {% elif account_exists %}
+    <p class="muted mt-5 text-sm">{% translate "Sign in with the invited email address to continue." %}</p>
+    <a class="btn btn-primary mt-5 w-full" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">{% translate "Sign in to accept" %}</a>
+  {% else %}
+    <p class="muted mt-5 text-sm">{% translate "Create a local account with the invited email address to continue." %}</p>
+    <a class="btn btn-primary mt-5 w-full" href="{% url 'accounts:invited-signup' token %}">{% translate "Create account to accept" %}</a>
+  {% endif %}
+{% endif %}
+{% endblock %}

@@ -2,6 +2,7 @@
 
 import redis
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.db import connection
 from django.db.utils import DatabaseError
 from django.http import Http404, JsonResponse
@@ -83,8 +84,9 @@ def readiness(request):
     )
 
 
+@login_required
 def dashboard(request):
-    """Render the honest, data-free initial scientific workspace dashboard."""
+    """Render the authenticated workspace dashboard without fabricated domain data."""
     return render(
         request,
         "studio/dashboard.html",
@@ -92,6 +94,7 @@ def dashboard(request):
     )
 
 
+@login_required
 def workspace_section(request, section: str):
     """Render a future-workspace shell without fabricating domain data."""
     if section not in SECTIONS:
@@ -114,6 +117,7 @@ def about(request):
     return render(request, "studio/about.html", {"page_title": "System information"})
 
 
+@login_required
 def system_status_partial(request):
     """Render the refreshable runtime status panel used by HTMX."""
     return render(request, "components/system_status.html", _system_status_context())

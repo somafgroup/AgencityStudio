@@ -4,31 +4,26 @@
 <header class="page-header">
   <div>
     <p class="muted mb-1 text-sm">{% translate "Scientific workspace" %}</p>
-    <h1 class="page-title">{% translate "Welcome to AgencityStudio" %}</h1>
-    <p class="muted mt-2 max-w-3xl text-sm leading-6">{% translate "A web environment for organising and running AgencityLab workflows without duplicating the scientific implementation." %}</p>
+    <h1 class="page-title">{% blocktranslate with name=user.get_short_name %}Welcome, {{ name }}{% endblocktranslate %}</h1>
+    <p class="muted mt-2 max-w-3xl text-sm leading-6">{% translate "Your identity and workspace boundary are now active. Future scientific objects will inherit explicit ownership and permissions from this foundation." %}</p>
   </div>
-  <div class="toolbar"><a class="btn btn-secondary" href="{% url 'about' %}"><i data-lucide="info"></i>{% translate "System information" %}</a></div>
+  <div class="toolbar"><a class="btn btn-secondary" href="{% url 'workspaces:list' %}">{% translate "Workspaces" %}</a><a class="btn btn-secondary" href="{% url 'about' %}"><i data-lucide="info"></i>{% translate "System information" %}</a></div>
 </header>
 <section class="grid gap-4 lg:grid-cols-3" aria-label="{% translate 'Environment overview' %}">
   <article class="card lg:col-span-2">
-    <div class="flex items-start justify-between gap-4"><div><h2 class="section-title">{% translate "Development foundation" %}</h2><p class="muted mt-1 text-sm">{% translate "Plan 1 establishes the visible workspace. Scientific project workflows arrive in later plans." %}</p></div><span class="badge status-research">RESEARCH UI</span></div>
-    <div class="mt-5 grid gap-3 sm:grid-cols-2">
-      <a class="panel p-4 no-underline transition-shadow hover:shadow-md" href="{% url 'projects' %}"><strong class="text-sm">{% translate "Projects" %}</strong><p class="muted mt-1 text-xs">{% translate "Future containers for datasets, systems and analyses." %}</p></a>
-      <a class="panel p-4 no-underline transition-shadow hover:shadow-md" href="{% url 'datasets' %}"><strong class="text-sm">{% translate "Datasets" %}</strong><p class="muted mt-1 text-xs">{% translate "Future scientific data management workspace." %}</p></a>
-      <a class="panel p-4 no-underline transition-shadow hover:shadow-md" href="{% url 'analyses' %}"><strong class="text-sm">{% translate "Analyses" %}</strong><p class="muted mt-1 text-xs">{% translate "Future orchestration surface for AgencityLab." %}</p></a>
-      <a class="panel p-4 no-underline transition-shadow hover:shadow-md" href="{% url 'reports' %}"><strong class="text-sm">{% translate "Reports" %}</strong><p class="muted mt-1 text-xs">{% translate "Future reproducible outputs and exports." %}</p></a>
-    </div>
+    <div class="flex items-start justify-between gap-4"><div><h2 class="section-title">{{ current_workspace.name }}</h2><p class="muted mt-1 text-sm">{{ current_workspace.get_type_display }} · {{ current_workspace_membership.get_role_display }}</p></div><span class="badge">{{ current_workspace_membership.get_role_display }}</span></div>
+    {% if current_workspace.description %}<p class="muted mt-4 text-sm">{{ current_workspace.description }}</p>{% endif %}
+    <div class="mt-5 toolbar"><a class="btn btn-primary" href="{% url 'workspaces:overview' current_workspace.slug %}">{% translate "Open workspace" %}</a><a class="btn btn-secondary" href="{% url 'workspaces:members' current_workspace.slug %}">{% translate "Members" %}</a></div>
   </article>
   <aside id="system-status" class="card" aria-label="{% translate 'System status' %}">{% include "components/system_status.html" %}</aside>
 </section>
 <section class="mt-6 grid gap-4 xl:grid-cols-3">
-  {% include "components/empty_state.html" with title="No recent projects" description="Projects will appear here after the project workflow is implemented." %}
-  {% include "components/empty_state.html" with title="No recent analyses" description="Analyses will appear here only after real AgencityLab jobs exist." %}
-  {% include "components/empty_state.html" with title="No running tasks" description="Task progress will be shown here when the worker workflow is implemented." %}
+  {% include "components/empty_state.html" with title="No projects yet" description="Plan 3 will add real projects inside the active workspace." %}
+  {% include "components/empty_state.html" with title="No datasets yet" description="Dataset workflows are not implemented in Plan 2." %}
+  {% include "components/empty_state.html" with title="No analyses yet" description="AgencityLab analysis workflows remain a later plan." %}
 </section>
 <section class="mt-6 card">
-  <h2 class="section-title">{% translate "Scientific status language" %}</h2>
-  <p class="muted mt-1 text-sm">{% translate "Studio keeps scientific maturity visible instead of presenting every capability as equivalent." %}</p>
-  <div class="mt-4 flex flex-wrap gap-2"><span class="badge status-canonical">CANONICAL</span><span class="badge status-diagnostic">DIAGNOSTIC</span><span class="badge status-numerical">NUMERICAL</span><span class="badge status-experimental">EXPERIMENTAL</span><span class="badge status-research">RESEARCH</span><span class="badge status-legacy">LEGACY</span><span class="badge status-deprecated">DEPRECATED</span><span class="badge status-warning">WARNING</span></div>
+  <h2 class="section-title">{% translate "Access model" %}</h2>
+  <p class="muted mt-1 text-sm">{% translate "Workspace Owner, Editor, Analyst and Viewer roles are separate from Django instance staff administration. URL knowledge never grants workspace access." %}</p>
 </section>
 {% endblock %}
