@@ -31,12 +31,12 @@ from .services import (
 )
 
 PROJECT_SECTIONS = {
-    "datasets": (_("Datasets"), _("Datasets will be introduced by the Data Workspace plan.")),
-    "systems": (_("Systems"), _("System definitions are not implemented in Plan 3.")),
-    "analyses": (_("Analyses"), _("AgencityLab analysis workflows are not implemented in Plan 3.")),
+    "datasets": (_("Datasets"), _("Datasets are managed by the Data Workspace.")),
+    "systems": (_("Systems"), _("System definitions are not implemented yet.")),
+    "analyses": (_("Analyses"), _("AgencityLab analysis workflows are not implemented yet.")),
     "comparisons": (_("Comparisons"), _("Scientific comparison workflows are not implemented yet.")),
     "reports": (_("Reports"), _("Reproducible report generation is a later development phase.")),
-    "files": (_("Files"), _("Project file management is not implemented in Plan 3.")),
+    "files": (_("Files"), _("Project file management is not implemented yet.")),
 }
 
 
@@ -330,10 +330,14 @@ def project_delete(request, workspace_slug: str, project_id, project_slug: str):
     form = DeleteProjectForm(request.POST or None, project_name=project.name)
     if request.method == "POST" and form.is_valid():
         workspace = project.workspace
-        delete_project(actor=request.user, project=project)
-        messages.success(request, _("Project permanently deleted."))
-        request.session["current_workspace_slug"] = workspace.slug
-        return redirect("projects:list")
+        try:
+            delete_project(actor=request.user, project=project)
+        except ValidationError as exc:
+            form.add_error(None, exc.message)
+        else:
+            messages.success(request, _("Project permanently deleted."))
+            request.session["current_workspace_slug"] = workspace.slug
+            return redirect("projects:list")
     return render(
         request,
         "projects/delete.html",
