@@ -60,7 +60,7 @@ jobs:
         run: python manage.py check
       - name: Production Django checks
         env:
-          DJANGO_SECRET_KEY: ci-only-check-key-not-for-deployment
+          DJANGO_SECRET_KEY: ci-only-django-deploy-check-key-2026-not-a-production-secret-8f2a7c91
           DJANGO_ALLOWED_HOSTS: studio.example.test
           DJANGO_SECURE_HSTS_SECONDS: 31536000
           DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: 'true'
