@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<header class="page-header"><div><p class="muted mb-1 text-sm">{% translate "Workspaces" %}</p><h1 class="page-title">{% translate "New organisation workspace" %}</h1><p class="muted mt-2 text-sm">{% translate "Create a team or laboratory space for shared work. You become its first Owner." %}</p></div></header>
+<section class="card max-w-2xl"><form method="post" class="space-y-5">{% csrf_token %}{% include "components/form_fields.html" %}<div class="toolbar"><button class="btn btn-primary" type="submit">{% translate "Create workspace" %}</button><a class="btn btn-secondary" href="{% url 'workspaces:list' %}">{% translate "Cancel" %}</a></div></form></section>
+{% endblock %}
