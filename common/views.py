@@ -1,11 +1,11 @@
 """Views for the application shell and operational health surfaces."""
 
+import redis
 from django.conf import settings
-from django.db import DatabaseError, connection
+from django.db import connection
+from django.db.utils import DatabaseError
 from django.http import Http404, JsonResponse
 from django.shortcuts import render
-from redis import Redis
-from redis.exceptions import RedisError
 
 from labbridge.service import get_lab_version, lab_is_compatible
 
@@ -39,13 +39,13 @@ def _database_status() -> str:
 
 def _broker_status() -> str:
     try:
-        client = Redis.from_url(
+        client = redis.Redis.from_url(
             settings.CELERY_BROKER_URL,
             socket_connect_timeout=0.5,
             socket_timeout=0.5,
         )
         return "available" if client.ping() else "unavailable"
-    except (RedisError, ValueError):  # pragma: no cover - backend/config failures are collapsed
+    except (redis.exceptions.RedisError, ValueError):  # pragma: no cover - collapsed status
         return "unavailable"
 
 
