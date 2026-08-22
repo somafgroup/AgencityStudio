@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir . \
     && python manage.py collectstatic --noinput \
     && groupadd --system app \
     && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app \
+    && mkdir -p /app/storage \
     && chown -R app:app /app
 USER app
 EXPOSE 8000
