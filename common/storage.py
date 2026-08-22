@@ -14,12 +14,12 @@ class Storage(ABC):
 
     @abstractmethod
     def save(self, name: str, data: bytes) -> str:
-        """Persist immutable bytes and return the backend object identifier."""
+        """Persist bytes and return the concrete backend path for legacy callers."""
         raise NotImplementedError
 
     @abstractmethod
     def save_chunks(self, name: str, chunks: Iterable[bytes]) -> tuple[str, int, str]:
-        """Persist immutable chunks and return path, byte size and exact-source SHA-256."""
+        """Persist immutable chunks and return object id, byte size and exact-source SHA-256."""
         raise NotImplementedError
 
     @abstractmethod
@@ -57,8 +57,9 @@ class LocalStorage(Storage):
         return target
 
     def save(self, name: str, data: bytes) -> str:
-        path, _, _ = self.save_chunks(name, (data,))
-        return path
+        """Preserve the Plan 0 absolute-path return contract for existing callers."""
+        self.save_chunks(name, (data,))
+        return str(self._target(name))
 
     def save_chunks(self, name: str, chunks: Iterable[bytes]) -> tuple[str, int, str]:
         target = self._target(name)
