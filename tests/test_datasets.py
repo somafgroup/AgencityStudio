@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
@@ -423,24 +423,28 @@ def test_upload_size_limit_and_unsupported_format_fail_cleanly(tmp_path):
     owner = make_user("owner@example.com")
     workspace = create_organisation_workspace(owner=owner, name="Limits Lab")
     project = make_project(owner, workspace)
-    with override_settings(DATASET_STORAGE_ROOT=tmp_path, DATASET_MAX_UPLOAD_BYTES=4):
-        with pytest.raises(ValidationError, match="size limit"):
-            create_dataset_from_upload(
-                actor=owner,
-                project=project,
-                name="Too big",
-                description="",
-                uploaded_file=csv_upload(b"12345"),
-            )
-    with override_settings(DATASET_STORAGE_ROOT=tmp_path):
-        with pytest.raises(ValidationError, match="Unsupported dataset format"):
-            create_dataset_from_upload(
-                actor=owner,
-                project=project,
-                name="Legacy",
-                description="",
-                uploaded_file=SimpleUploadedFile("legacy.xls", b"not-xls"),
-            )
+    with (
+        override_settings(DATASET_STORAGE_ROOT=tmp_path, DATASET_MAX_UPLOAD_BYTES=4),
+        pytest.raises(ValidationError, match="size limit"),
+    ):
+        create_dataset_from_upload(
+            actor=owner,
+            project=project,
+            name="Too big",
+            description="",
+            uploaded_file=csv_upload(b"12345"),
+        )
+    with (
+        override_settings(DATASET_STORAGE_ROOT=tmp_path),
+        pytest.raises(ValidationError, match="Unsupported dataset format"),
+    ):
+        create_dataset_from_upload(
+            actor=owner,
+            project=project,
+            name="Legacy",
+            description="",
+            uploaded_file=SimpleUploadedFile("legacy.xls", b"not-xls"),
+        )
 
 
 @pytest.mark.django_db
