@@ -171,6 +171,25 @@ def test_owner_archive_restore_endpoints_redirect_and_apply_lifecycle(client):
 
 
 @pytest.mark.django_db
+def test_editor_duplicate_endpoint_creates_new_project_with_editor_as_creator(client):
+    owner = make_user("owner@example.com")
+    editor = make_user("editor@example.com")
+    workspace = create_organisation_workspace(owner=owner, name="HTTP Duplication Lab")
+    WorkspaceMembership.objects.create(user=editor, workspace=workspace, role=WorkspaceRole.EDITOR)
+    source = make_project(owner, workspace)
+    client.force_login(editor)
+    args = [workspace.slug, source.pk, source.slug]
+
+    response = client.post(reverse("projects:duplicate", args=args))
+
+    assert response.status_code == 302
+    clone = Project.objects.exclude(pk=source.pk).get(workspace=workspace)
+    assert clone.created_by == editor
+    assert clone.status == ProjectStatus.ACTIVE
+    assert clone.pk != source.pk
+
+
+@pytest.mark.django_db
 def test_archive_restore_updates_querysets_and_activity():
     owner = make_user("owner@example.com")
     workspace = create_organisation_workspace(owner=owner, name="Lifecycle Lab")
