@@ -48,7 +48,7 @@ test('project lifecycle creates edits archives and restores real project metadat
   await signUp(page, retrySafeEmail('project-owner', testInfo), 'Project Owner');
   await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Projects', exact: true }).click();
   await openNewProjectForm(page);
-  await page.getByLabel('Name', { exact: true }).fill('Rotor vibration study');
+  await page.getByLabel(/^Name/).fill('Rotor vibration study');
   await page.getByLabel('Description', { exact: true }).fill('Initial rotor description');
   await page.getByLabel('Domain', { exact: true }).fill('mechanics');
   await page.getByLabel('Tags', { exact: true }).fill('rotor, vibration');
@@ -82,7 +82,7 @@ test('viewer can inspect a project but cannot reach project settings', async ({ 
   await page.getByLabel('Workspace name', { exact: true }).fill('Shared Project Laboratory');
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click();
   await openNewProjectForm(page);
-  await page.getByLabel('Name', { exact: true }).fill('Shared Rotor Project');
+  await page.getByLabel(/^Name/).fill('Shared Rotor Project');
   await page.getByRole('button', { name: 'Create project', exact: true }).click();
   const projectUrl = page.url();
 
