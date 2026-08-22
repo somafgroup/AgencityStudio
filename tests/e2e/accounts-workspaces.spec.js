@@ -5,6 +5,11 @@ import { test, expect } from '@playwright/test';
 
 const password = 'Playwright-Plan2-Password!42';
 
+function retrySafeEmail(localPart, testInfo) {
+  const suffix = testInfo.retry ? `-retry-${testInfo.retry}` : '';
+  return `${localPart}${suffix}@example.com`;
+}
+
 async function signUp(page, email, displayName) {
   await page.goto('/accounts/signup/');
   await page.getByLabel('Email', { exact: true }).fill(email);
@@ -39,21 +44,22 @@ async function invitationUrlFor(email) {
   throw new Error(`No invitation email found for ${email}`);
 }
 
-test('account signup creates a personal workspace and supports logout/login', async ({ page }) => {
-  await signUp(page, 'account-owner@example.com', 'Account Owner');
+test('account signup creates a personal workspace and supports logout/login', async ({ page }, testInfo) => {
+  const email = retrySafeEmail('account-owner', testInfo);
+  await signUp(page, email, 'Account Owner');
 
   await expect(page.getByRole('heading', { name: 'Welcome, Account Owner', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Workspaces', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Workspaces', exact: true })).toBeVisible();
-  await expect(page.getByText("Account Owner's workspace", { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: "Account Owner's workspace", exact: true })).toBeVisible();
 
   await signOut(page);
-  await signIn(page, 'account-owner@example.com');
+  await signIn(page, email);
   await expect(page.getByRole('heading', { name: 'Welcome, Account Owner', exact: true })).toBeVisible();
 });
 
-test('owner creates an organisation workspace and reaches member management', async ({ page }) => {
-  await signUp(page, 'organisation-owner@example.com', 'Organisation Owner');
+test('owner creates an organisation workspace and reaches member management', async ({ page }, testInfo) => {
+  await signUp(page, retrySafeEmail('organisation-owner', testInfo), 'Organisation Owner');
   await page.getByRole('link', { name: 'Workspaces', exact: true }).first().click();
   await page.getByRole('link', { name: 'New organisation workspace', exact: true }).click();
   await page.getByLabel('Workspace name', { exact: true }).fill('Biomechanics Group');
@@ -61,15 +67,15 @@ test('owner creates an organisation workspace and reaches member management', as
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Biomechanics Group', exact: true })).toBeVisible();
-  await expect(page.getByText('Owner', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('#main-content').getByText('Owner', { exact: true }).first()).toBeVisible();
   await page.getByRole('link', { name: 'Members', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Members', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Invite member', exact: true })).toBeVisible();
 });
 
-test('invited viewer accepts securely and cannot manage members', async ({ page }) => {
-  const ownerEmail = 'invitation-owner@example.com';
-  const viewerEmail = 'invited-viewer@example.com';
+test('invited viewer accepts securely and cannot manage members', async ({ page }, testInfo) => {
+  const ownerEmail = retrySafeEmail('invitation-owner', testInfo);
+  const viewerEmail = retrySafeEmail('invited-viewer', testInfo);
   await signUp(page, ownerEmail, 'Invitation Owner');
   await page.getByRole('link', { name: 'Workspaces', exact: true }).first().click();
   await page.getByRole('link', { name: 'New organisation workspace', exact: true }).click();
@@ -83,7 +89,7 @@ test('invited viewer accepts securely and cannot manage members', async ({ page 
   await page.getByLabel('Email', { exact: true }).fill(viewerEmail);
   await page.getByLabel('Role', { exact: true }).selectOption('VIEWER');
   await page.getByRole('button', { name: 'Send invitation', exact: true }).click();
-  await expect(page.getByText(viewerEmail, { exact: true })).toBeVisible();
+  await expect(page.locator('#main-content').getByText(viewerEmail, { exact: true })).toBeVisible();
 
   const invitationUrl = await invitationUrlFor(viewerEmail);
   await signOut(page);
@@ -97,7 +103,7 @@ test('invited viewer accepts securely and cannot manage members', async ({ page 
 
   await expect(page.getByRole('heading', { name: 'Invitation Laboratory', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Members', exact: true }).first().click();
-  await expect(page.getByText(viewerEmail, { exact: true })).toBeVisible();
+  await expect(page.locator('#main-content').getByText(viewerEmail, { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Invite member', exact: true })).toHaveCount(0);
 
   await page.goto(`/workspaces/${workspaceSlug}/members/invite/`);
