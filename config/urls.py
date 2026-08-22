@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.urls import include, path
 
 from common import views
+from datasets import views as dataset_views
 
 handler403 = "common.views.error_403"
 handler404 = "common.views.error_404"
@@ -14,6 +15,8 @@ urlpatterns = [
     path("health/ready/", views.readiness, name="readiness"),
     path("accounts/", include("accounts.urls")),
     path("workspaces/", include("workspaces.urls")),
+    # Preserve the Plan 1 global URL name while the Data Workspace also exposes datasets:list.
+    path("datasets/", dataset_views.dataset_list, name="datasets"),
     path("", include("datasets.urls")),
     path("", include("projects.urls")),
     path("admin/", admin.site.urls),
