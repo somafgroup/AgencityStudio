@@ -7,7 +7,7 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8000:8000"
     healthcheck:
@@ -15,6 +15,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  worker:
+    build: .
+    command: celery -A config worker --loglevel=INFO --concurrency=2
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   postgres:
     image: postgres:17
@@ -32,6 +42,11 @@ services:
 
   redis:
     image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

@@ -1,12 +1,13 @@
-"""Views for the Plan 1 application shell and health surfaces."""
+"""Views for the application shell and operational health surfaces."""
 
+import redis
 from django.conf import settings
 from django.db import connection
+from django.db.utils import DatabaseError
 from django.http import Http404, JsonResponse
 from django.shortcuts import render
 
-from labbridge.service import get_lab_version
-
+from labbridge.service import get_lab_version, lab_is_compatible
 
 SECTIONS = {
     "projects": ("Projects", "Organise scientific work into durable project spaces."),
@@ -15,30 +16,71 @@ SECTIONS = {
     "compare": ("Compare", "Compare systems and analyses when scientific workflows are available."),
     "reports": ("Reports", "Build reproducible scientific reports in a later development phase."),
     "examples": ("Examples", "Explore curated examples when the example library is introduced."),
-    "advanced": ("Advanced", "Experimental and research-facing modules will live here with explicit scientific status."),
+    "advanced": (
+        "Advanced",
+        "Experimental and research-facing modules will live here with explicit scientific status.",
+    ),
 }
 
 
 def health(request):
-    """Return a minimal machine-readable process health response."""
+    """Return a minimal liveness response without probing dependencies."""
     return JsonResponse({"status": "ok", "service": "AgencityStudio"})
 
 
 def _database_status() -> str:
     try:
         connection.ensure_connection()
-    except Exception:  # pragma: no cover - backend-specific failures are collapsed for UI safety
+    except DatabaseError:  # pragma: no cover - backend failures are collapsed for operational safety
         return "unavailable"
     return "available"
+
+
+def _broker_status() -> str:
+    try:
+        client = redis.Redis.from_url(
+            settings.CELERY_BROKER_URL,
+            socket_connect_timeout=0.5,
+            socket_timeout=0.5,
+        )
+        return "available" if client.ping() else "unavailable"
+    except (redis.exceptions.RedisError, ValueError):  # pragma: no cover - collapsed status
+        return "unavailable"
 
 
 def _system_status_context() -> dict[str, str]:
     lab_version = get_lab_version()
     return {
         "database_status": _database_status(),
-        "lab_status": "available" if lab_version != "not-installed" else "not-installed",
+        "broker_status": _broker_status(),
+        "lab_status": "compatible" if lab_is_compatible() else "incompatible",
         "lab_version": lab_version,
     }
+
+
+def readiness(request):
+    """Report whether required runtime dependencies are ready to serve work."""
+    context = _system_status_context()
+    ready = (
+        context["database_status"] == "available"
+        and context["broker_status"] == "available"
+        and context["lab_status"] == "compatible"
+    )
+    return JsonResponse(
+        {
+            "status": "ready" if ready else "not-ready",
+            "service": "AgencityStudio",
+            "dependencies": {
+                "database": context["database_status"],
+                "broker": context["broker_status"],
+                "agencitylab": {
+                    "status": context["lab_status"],
+                    "version": context["lab_version"],
+                },
+            },
+        },
+        status=200 if ready else 503,
+    )
 
 
 def dashboard(request):

@@ -1,0 +1,34 @@
+name: Feature request
+description: Propose an AgencityStudio product or workflow improvement
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or user need
+      description: Describe the workflow problem before proposing implementation details.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed capability
+      description: Explain the desired Studio behavior.
+    validations:
+      required: true
+  - type: dropdown
+    id: scientific-boundary
+    attributes:
+      label: Does this require new scientific computation?
+      options:
+        - No, this is Studio UI/orchestration
+        - Yes, AgencityLab support may be required first
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: reproducibility
+    attributes:
+      label: Reproducibility or export requirements
+      description: Note metadata, provenance, import/export or report expectations if relevant.

@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff
+        entry: ruff check config common labbridge tests
+        language: system
+        pass_filenames: false

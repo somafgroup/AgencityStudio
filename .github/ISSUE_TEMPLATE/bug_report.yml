@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a reproducible AgencityStudio defect
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Please distinguish Studio interface/orchestration defects from AgencityLab scientific behavior."
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest reproducible sequence.
+    validations:
+      required: true
+  - type: input
+    id: studio-version
+    attributes:
+      label: AgencityStudio version or commit
+    validations:
+      required: true
+  - type: input
+    id: lab-version
+    attributes:
+      label: AgencityLab version
+      description: Available from the System information page.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser, OS, deployment method and relevant logs without secrets.

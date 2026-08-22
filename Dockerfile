@@ -12,6 +12,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY . .
 COPY --from=frontend /app/static ./static
-RUN pip install --no-cache-dir . && python manage.py collectstatic --noinput
+RUN pip install --no-cache-dir . \
+    && python manage.py collectstatic --noinput \
+    && groupadd --system app \
+    && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app \
+    && chown -R app:app /app
+USER app
 EXPOSE 8000
 CMD ["uvicorn", "config.asgi:application", "--host", "0.0.0.0", "--port", "8000"]
