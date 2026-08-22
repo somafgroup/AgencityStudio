@@ -53,9 +53,9 @@ jobs:
       - name: Frontend build
         run: npm run build
       - name: Python quality
-        run: ruff check accounts config common labbridge workspaces tests
+        run: ruff check accounts config common labbridge projects workspaces tests
       - name: Compile Python
-        run: python -m compileall accounts config common labbridge workspaces tests
+        run: python -m compileall accounts config common labbridge projects workspaces tests
       - name: Django checks
         run: python manage.py check
       - name: Production Django checks

@@ -27,6 +27,12 @@ import {
   Settings,
   Users,
   LogOut,
+  MoreHorizontal,
+  Copy,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+  History,
 } from 'lucide';
 
 window.Alpine = Alpine;
@@ -58,6 +64,12 @@ const iconSet = {
   Settings,
   Users,
   LogOut,
+  MoreHorizontal,
+  Copy,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+  History,
 };
 
 function renderIcons() {

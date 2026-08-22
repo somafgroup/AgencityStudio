@@ -1,0 +1,2 @@
+{% extends "projects/base.html" %}{% load i18n %}
+{% block project_content %}<section class="card"><h2 class="section-title">{{ section_title }}</h2><p class="muted mt-2 text-sm">{{ section_description }}</p><div class="mt-5">{% include "components/empty_state.html" with title="Nothing here yet" description=section_description %}</div></section>{% endblock %}
