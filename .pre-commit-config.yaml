@@ -3,6 +3,6 @@ repos:
     hooks:
       - id: ruff
         name: ruff
-        entry: ruff check config common labbridge tests
+        entry: ruff check accounts config common labbridge workspaces tests
         language: system
         pass_filenames: false
