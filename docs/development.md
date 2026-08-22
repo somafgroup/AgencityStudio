@@ -46,10 +46,10 @@ With Redis available at `REDIS_URL`:
 celery -A config worker --loglevel=INFO
 ```
 
-The deterministic infrastructure task can be used to verify the path:
+The deterministic infrastructure task can be used to verify the actual broker/worker/result path. Load Studio's configured Celery application explicitly when using a standalone Python process:
 
 ```bash
-python -c "from common.tasks import health_ping; print(health_ping.delay().get(timeout=10))"
+python -c "from config import celery_app; result = celery_app.send_task('common.health_ping'); print(result.get(timeout=10))"
 ```
 
 ## Scientific implementation rule
