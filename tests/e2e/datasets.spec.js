@@ -33,6 +33,11 @@ async function openProjectDatasets(page) {
   await navigation.getByRole('link', { name: 'Datasets', exact: true }).click();
 }
 
+async function openDatasetSection(page, name) {
+  const navigation = page.getByRole('navigation', { name: 'Dataset navigation' });
+  await navigation.getByRole('link', { name, exact: true }).click();
+}
+
 async function waitForReady(page) {
   const status = page.locator('#dataset-import-status');
   await expect(status.getByText('READY', { exact: true })).toBeVisible({ timeout: 15000 });
@@ -57,29 +62,29 @@ test('raw CSV import is inspected annotated confirmed and remains downloadable',
   await waitForReady(page);
   await expect(page.getByText('4 rows · 2 columns', { exact: true })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Preview', exact: true }).click();
+  await openDatasetSection(page, 'Preview');
   await expect(page.getByRole('columnheader', { name: 'time', exact: true })).toBeVisible();
   await expect(page.getByRole('columnheader', { name: 'velocity', exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: '1.2', exact: true })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Columns', exact: true }).click();
+  await openDatasetSection(page, 'Columns');
   await page.getByLabel('Role for time', { exact: true }).selectOption('TIME');
   await page.getByLabel('Unit for time', { exact: true }).fill('s');
   await page.getByLabel('Role for velocity', { exact: true }).selectOption('OBSERVABLE');
   await page.getByLabel('Unit for velocity', { exact: true }).fill('m/s');
   await page.getByRole('button', { name: 'Save column annotations', exact: true }).click();
 
-  await page.getByRole('link', { name: 'Overview', exact: true }).click();
+  await openDatasetSection(page, 'Overview');
   await waitForReady(page);
   await page.getByRole('button', { name: 'Confirm as current', exact: true }).click();
   await expect(page.getByText('Current version', { exact: true })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Quality', exact: true }).click();
+  await openDatasetSection(page, 'Quality');
   await expect(page.getByText(/velocity contains 1 missing values/i)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Observed time-axis properties', exact: true })).toBeVisible();
   await expect(page.getByText('Sampling regular', { exact: true })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Source', exact: true }).click();
+  await openDatasetSection(page, 'Source');
   await expect(page.getByText('SHA-256', { exact: true })).toBeVisible();
   const download = page.waitForEvent('download');
   await page.getByRole('link', { name: 'Download exact original', exact: true }).click();
