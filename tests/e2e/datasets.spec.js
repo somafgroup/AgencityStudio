@@ -28,6 +28,11 @@ async function createProject(page) {
   await expect(page.getByRole('heading', { name: 'Dataset workspace project', exact: true })).toBeVisible();
 }
 
+async function openProjectDatasets(page) {
+  const navigation = page.getByRole('navigation', { name: 'Project navigation' });
+  await navigation.getByRole('link', { name: 'Datasets', exact: true }).click();
+}
+
 async function waitForReady(page) {
   const status = page.locator('#dataset-import-status');
   await expect(status.getByText('READY', { exact: true })).toBeVisible({ timeout: 15000 });
@@ -37,7 +42,7 @@ test('raw CSV import is inspected annotated confirmed and remains downloadable',
   await signUp(page, retrySafeEmail('dataset-owner', testInfo));
   await createProject(page);
 
-  await page.getByRole('link', { name: 'Datasets', exact: true }).click();
+  await openProjectDatasets(page);
   await page.getByRole('link', { name: 'Import Dataset', exact: true }).click();
   await page.getByLabel(/^Name/).fill('Rotor measurements');
   const source = 'time,velocity\n0.00,1.0\n0.01,1.2\n0.02,\n0.03,1.6\n';
@@ -85,7 +90,7 @@ test('raw CSV import is inspected annotated confirmed and remains downloadable',
 test('malformed XLSX produces a friendly failed import state', async ({ page }, testInfo) => {
   await signUp(page, retrySafeEmail('dataset-failure-owner', testInfo));
   await createProject(page);
-  await page.getByRole('link', { name: 'Datasets', exact: true }).click();
+  await openProjectDatasets(page);
   await page.getByRole('link', { name: 'Import Dataset', exact: true }).click();
   await page.getByLabel(/^Name/).fill('Broken workbook');
   await page.getByLabel('Dataset file', { exact: true }).setInputFiles({
