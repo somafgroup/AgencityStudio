@@ -273,7 +273,9 @@ def project_settings(request, workspace_slug: str, project_id, project_slug: str
 def project_duplicate(request, workspace_slug: str, project_id, project_slug: str):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
-    _, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
+    _membership, project = _membership_and_project(
+        request, workspace_slug, project_id, project_slug
+    )
     clone = duplicate_project(actor=request.user, project=project)
     messages.success(request, _("Project duplicated."))
     return redirect(
@@ -288,7 +290,9 @@ def project_duplicate(request, workspace_slug: str, project_id, project_slug: st
 def project_archive(request, workspace_slug: str, project_id, project_slug: str):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
-    _, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
+    _membership, project = _membership_and_project(
+        request, workspace_slug, project_id, project_slug
+    )
     archived = archive_project(actor=request.user, project=project)
     messages.success(request, _("Project archived."))
     return redirect(
@@ -303,7 +307,9 @@ def project_archive(request, workspace_slug: str, project_id, project_slug: str)
 def project_restore(request, workspace_slug: str, project_id, project_slug: str):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
-    _, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
+    _membership, project = _membership_and_project(
+        request, workspace_slug, project_id, project_slug
+    )
     restored = restore_project(actor=request.user, project=project)
     messages.success(request, _("Project restored."))
     return redirect(
