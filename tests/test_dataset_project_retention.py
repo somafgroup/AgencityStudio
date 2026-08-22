@@ -33,7 +33,7 @@ def test_project_delete_endpoint_reports_retained_dataset_without_deleting(clien
                 "projects:delete",
                 args=(workspace.slug, project.pk, project.slug),
             ),
-            {"confirmation": project.name},
+            {"confirm_name": project.name},
         )
 
     assert response.status_code == 200
