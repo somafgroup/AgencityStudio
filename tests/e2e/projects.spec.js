@@ -60,14 +60,14 @@ test('project lifecycle creates edits archives and restores real project metadat
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.getByText('Project settings updated.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Archive project', exact: true }).click();
-  await expect(page.getByText('ARCHIVED', { exact: true })).toBeVisible();
+  await expect(page.getByText('Project archived.', { exact: true })).toBeVisible();
 
   await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Projects', exact: true }).click();
   await page.getByRole('link', { name: 'Archived', exact: true }).click();
   await page.getByRole('link', { name: 'Rotor vibration study', exact: true }).click();
   await page.getByRole('link', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: 'Restore project', exact: true }).click();
-  await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible();
+  await expect(page.getByText('Project restored.', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Activity', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Project Activity', exact: true })).toBeVisible();
   await expect(page.getByText('Restored', { exact: true })).toBeVisible();
