@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 BASE_DIR = Path(__file__).resolve().parents[2]
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-development-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "false").lower() == "true"
@@ -73,6 +75,10 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "accounts:login"
 SIGNUP_MODE = os.getenv("AGENCITYSTUDIO_SIGNUP_MODE", "public").strip().lower()
+if SIGNUP_MODE not in {"public", "invitation_only", "disabled"}:
+    raise ImproperlyConfigured(
+        "AGENCITYSTUDIO_SIGNUP_MODE must be public, invitation_only, or disabled."
+    )
 WORKSPACE_INVITATION_TTL = int(os.getenv("WORKSPACE_INVITATION_TTL", "604800"))
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -89,7 +95,7 @@ PASSWORD_RESET_TIMEOUT = 86400
 
 EMAIL_BACKEND = os.getenv(
     "DJANGO_EMAIL_BACKEND",
-    "django.core.mail.backends.console.EmailBackend",
+    "django.core.mail.backends.filebased.EmailBackend",
 )
 EMAIL_HOST = os.getenv("DJANGO_EMAIL_HOST", "localhost")
 EMAIL_PORT = int(os.getenv("DJANGO_EMAIL_PORT", "25"))
