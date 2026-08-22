@@ -9,7 +9,6 @@ from django.shortcuts import render
 
 from labbridge.service import get_lab_version, lab_is_compatible
 
-
 SECTIONS = {
     "projects": ("Projects", "Organise scientific work into durable project spaces."),
     "datasets": ("Datasets", "Import and manage scientific data in a later development phase."),
