@@ -51,7 +51,9 @@ test('account signup creates a personal workspace and supports logout/login', as
   await expect(page.getByRole('heading', { name: 'Welcome, Account Owner', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Workspaces', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Workspaces', exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: "Account Owner's workspace", exact: true })).toBeVisible();
+  await expect(
+    page.locator('#main-content').getByRole('heading', { name: "Account Owner's workspace", exact: true }),
+  ).toBeVisible();
 
   await signOut(page);
   await signIn(page, email);
