@@ -8,13 +8,13 @@ from django.db.utils import DatabaseError
 from django.http import Http404, JsonResponse
 from django.shortcuts import render
 
+from datasets.models import Dataset
 from labbridge.service import get_lab_version, lab_is_compatible
 from projects.models import Project
 from workspaces.permissions import can_create_project
 from workspaces.services import workspace_memberships_for
 
 SECTIONS = {
-    "datasets": ("Datasets", "Import and manage scientific data in a later development phase."),
     "analyses": ("Analyses", "Launch and inspect AgencityLab analyses in a later development phase."),
     "compare": ("Compare", "Compare systems and analyses when scientific workflows are available."),
     "reports": ("Reports", "Build reproducible scientific reports in a later development phase."),
@@ -77,16 +77,24 @@ def _dashboard_project_context(request) -> dict:
             "recent_projects": (),
             "active_project_count": 0,
             "archived_project_count": 0,
+            "recent_datasets": (),
+            "dataset_count": 0,
             "can_create_project": False,
         }
     request.session["current_workspace_slug"] = current.workspace.slug
     projects = Project.objects.for_workspace(current.workspace)
+    datasets = Dataset.objects.for_workspace(current.workspace)
     return {
         "recent_projects": list(
             projects.active().select_related("workspace", "created_by").order_by("-updated_at")[:5]
         ),
         "active_project_count": projects.active().count(),
         "archived_project_count": projects.archived().count(),
+        "recent_datasets": list(
+            datasets.select_related("project", "project__workspace", "current_version")
+            .order_by("-updated_at")[:5]
+        ),
+        "dataset_count": datasets.count(),
         "can_create_project": can_create_project(request.user, current.workspace),
     }
 
@@ -118,7 +126,7 @@ def readiness(request):
 
 @login_required
 def dashboard(request):
-    """Render the authenticated dashboard with real Project summaries only."""
+    """Render the authenticated dashboard with real Project and Dataset summaries only."""
     return render(
         request,
         "studio/dashboard.html",
