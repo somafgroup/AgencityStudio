@@ -1,12 +1,13 @@
 [project]
 name = "agencitystudio"
-version = "0.4.0"
+version = "0.5.0"
 description = "Web interface and orchestration layer for AgencityLab"
 requires-python = ">=3.12"
 dependencies = [
     "Django>=5.2,<6",
     "agencitylab==1.1.3",
     "celery[redis]>=5.5,<6",
+    "openpyxl>=3.1,<4",
     "psycopg[binary]>=3.2",
     "uvicorn>=0.35",
     "whitenoise>=6.9,<7",
@@ -26,7 +27,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["accounts*", "common*", "config*", "labbridge*", "projects*", "workspaces*"]
+include = ["accounts*", "common*", "config*", "datasets*", "labbridge*", "projects*", "workspaces*"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
@@ -36,13 +37,16 @@ python_files = ["tests.py", "test_*.py"]
 line-length = 100
 
 [tool.ruff.lint.isort]
-known-first-party = ["accounts", "common", "config", "labbridge", "projects", "workspaces"]
+known-first-party = ["accounts", "common", "config", "datasets", "labbridge", "projects", "workspaces"]
 
 [tool.ruff.lint.per-file-ignores]
 "accounts/forms.py" = ["RUF012"]
 "accounts/migrations/*.py" = ["RUF012"]
 "accounts/models.py" = ["RUF012"]
 "config/settings/*.py" = ["F403", "F405"]
+"datasets/forms.py" = ["RUF012"]
+"datasets/migrations/*.py" = ["RUF012"]
+"datasets/models.py" = ["RUF012"]
 "projects/forms.py" = ["RUF012"]
 "projects/migrations/*.py" = ["RUF012"]
 "projects/models.py" = ["RUF012"]
