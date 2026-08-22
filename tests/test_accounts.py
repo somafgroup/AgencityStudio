@@ -8,7 +8,6 @@ from django.urls import reverse
 
 from workspaces.models import WorkspaceRole, WorkspaceType
 
-
 User = get_user_model()
 PASSWORD = "Scientific-Plan2-Password!42"
 NEW_PASSWORD = "Scientific-Plan2-NewPassword!84"
@@ -54,9 +53,38 @@ def test_login_logout_and_email_identifier(client):
 
 @pytest.mark.django_db
 @override_settings(SIGNUP_MODE="invitation_only")
-def test_public_signup_can_be_disabled_without_disabling_local_login(client):
+def test_invitation_only_mode_blocks_public_signup(client):
     response = client.get(reverse("accounts:signup"))
     assert response.status_code == 403
+
+
+@pytest.mark.django_db
+@override_settings(SIGNUP_MODE="disabled")
+def test_disabled_mode_blocks_public_and_invited_account_creation(client):
+    assert client.get(reverse("accounts:signup")).status_code == 403
+    assert client.get(reverse("accounts:invited-signup", args=["unused-token"])).status_code == 403
+
+
+@pytest.mark.django_db
+def test_password_change_updates_password_and_preserves_authenticated_session(client):
+    user = User.objects.create_user(email="change@example.com", password=PASSWORD)
+    client.force_login(user)
+
+    response = client.post(
+        reverse("accounts:password-change"),
+        {
+            "old_password": PASSWORD,
+            "new_password1": NEW_PASSWORD,
+            "new_password2": NEW_PASSWORD,
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.url == reverse("accounts:password-change-done")
+    user.refresh_from_db()
+    assert not user.check_password(PASSWORD)
+    assert user.check_password(NEW_PASSWORD)
+    assert client.get(reverse("dashboard")).status_code == 200
 
 
 @pytest.mark.django_db
