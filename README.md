@@ -15,8 +15,11 @@ AgencityStudio is the Web interface and orchestration layer for AgencityLab. It 
 - Workspace roles: Owner, Editor, Analyst and Viewer.
 - Secure expiring workspace invitations whose raw tokens are not stored.
 - Workspace-owned Projects with UUID identity, stable slugs, archive/restore, duplication and activity.
+- Project-owned Datasets with immutable UUID DatasetVersions, exact-source SHA-256 fingerprints and private storage.
+- CSV, TSV, structured TXT, XLSX and pasted tabular import with asynchronous inspection.
+- Server-side Dataset preview, column roles/units, quality findings and version history.
 - Light, dark and system themes.
-- Chromium Playwright coverage for shell, account, workspace, invitation, Project and permission workflows.
+- Chromium Playwright coverage for shell, account, workspace, invitation, Project, Dataset and permission workflows.
 - Docker Compose development/runtime stack.
 - Liveness at `/health/` and dependency readiness at `/health/ready/`.
 
@@ -24,7 +27,7 @@ AgencityStudio is the Web interface and orchestration layer for AgencityLab. It 
 
 Studio must never reproduce canonical equations or reach into private AgencityLab internals. Scientific computation enters through `labbridge`, which imports the documented AgencityLab package surface. The pinned runtime contract is currently AgencityLab `1.1.3`.
 
-Identity, workspace and Project permissions are application concerns only. Projects organise future Datasets, Systems, Analyses and Reports; they do not perform scientific calculations or contain System/Analysis parameters.
+Identity, workspace, Project and Dataset permissions are application concerns only. Dataset inspection describes source data and data quality; it does not infer `A_ref`, `tau`, `w` or `P_c`, and it performs no Agencity calculation. Raw DatasetVersions are never silently sorted, filtered, interpolated, resampled, normalized or otherwise preprocessed.
 
 ## Quick start with Docker Compose
 
@@ -36,7 +39,7 @@ docker compose run --rm web python manage.py migrate --noinput
 docker compose up -d web worker
 ```
 
-Open `http://localhost:8000/`, create a local account and AgencityStudio will create its private personal workspace. The Projects page then creates durable Project containers inside the active workspace.
+Open `http://localhost:8000/`, create a local account and AgencityStudio will create its private personal workspace. Projects organise the scientific work; the Data Workspace can then import raw sources inside a Project while preserving their exact provenance.
 
 The readiness endpoint should return HTTP 200 once PostgreSQL, Redis and the compatible AgencityLab runtime are available:
 
@@ -54,7 +57,15 @@ AGENCITYSTUDIO_SIGNUP_MODE=invitation_only
 AGENCITYSTUDIO_SIGNUP_MODE=disabled
 ```
 
-See `docs/accounts-and-workspaces.md` for exact semantics.
+Dataset uploads are protected by a configurable instance limit:
+
+```text
+DATASET_MAX_UPLOAD_BYTES=<bytes>
+DATASET_MAX_PASTE_BYTES=<bytes>
+DATASET_STORAGE_ROOT=<private path>
+```
+
+See `docs/accounts-and-workspaces.md` for identity/workspace semantics and `docs/datasets.md` for Dataset versioning, storage, import and inspection contracts.
 
 To verify the asynchronous worker path end to end through Studio's configured Celery application:
 
@@ -86,6 +97,6 @@ celery -A config worker --loglevel=INFO
 
 ## Validation
 
-The CI pipeline checks Python quality, Django configuration, production settings, migration consistency, PostgreSQL migrations, backend identity/workspace/Project permission tests, frontend build, critical Playwright flows, Docker image construction, Compose readiness and an actual Celery task round trip.
+The CI pipeline checks Python quality, Django configuration, production settings, migration consistency, PostgreSQL migrations, backend identity/workspace/Project/Dataset permission and provenance tests, frontend build, critical Playwright flows, Docker image construction, Compose readiness and an actual Celery task round trip.
 
-Additional documentation lives under `docs/`, especially `docs/architecture.md`, `docs/accounts-and-workspaces.md`, `docs/projects.md`, `docs/development.md`, `docs/testing.md` and `docs/ui.md`.
+Additional documentation lives under `docs/`, especially `docs/architecture.md`, `docs/accounts-and-workspaces.md`, `docs/projects.md`, `docs/datasets.md`, `docs/development.md`, `docs/testing.md` and `docs/ui.md`.

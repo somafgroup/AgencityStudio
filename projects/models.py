@@ -81,6 +81,13 @@ class ProjectActivityEvent(models.TextChoices):
     ARCHIVED = "ARCHIVED", _("Archived")
     RESTORED = "RESTORED", _("Restored")
     DUPLICATED = "DUPLICATED", _("Duplicated")
+    DATASET_CREATED = "DATASET_CREATED", _("Dataset created")
+    DATASET_IMPORT = "DATASET_IMPORT", _("Dataset import started")
+    DATASET_READY = "DATASET_READY", _("Dataset ready")
+    DATASET_FAILED = "DATASET_FAILED", _("Dataset import failed")
+    DATASET_VERSION = "DATASET_VERSION", _("Dataset version added")
+    DATASET_UPDATED = "DATASET_UPDATED", _("Dataset updated")
+    DATASET_DELETED = "DATASET_DELETED", _("Dataset deleted")
 
 
 class ProjectActivity(models.Model):
