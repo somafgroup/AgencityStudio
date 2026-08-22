@@ -9,9 +9,11 @@ from django.http import Http404, JsonResponse
 from django.shortcuts import render
 
 from labbridge.service import get_lab_version, lab_is_compatible
+from projects.models import Project
+from workspaces.permissions import can_create_project
+from workspaces.services import workspace_memberships_for
 
 SECTIONS = {
-    "projects": ("Projects", "Organise scientific work into durable project spaces."),
     "datasets": ("Datasets", "Import and manage scientific data in a later development phase."),
     "analyses": ("Analyses", "Launch and inspect AgencityLab analyses in a later development phase."),
     "compare": ("Compare", "Compare systems and analyses when scientific workflows are available."),
@@ -59,6 +61,36 @@ def _system_status_context() -> dict[str, str]:
     }
 
 
+def _dashboard_project_context(request) -> dict:
+    memberships = list(workspace_memberships_for(request.user))
+    preferred_slug = request.session.get("current_workspace_slug")
+    current = next(
+        (item for item in memberships if item.workspace.slug == preferred_slug),
+        None,
+    )
+    if current is None:
+        current = next((item for item in memberships if item.workspace.is_personal), None)
+    if current is None and memberships:
+        current = memberships[0]
+    if current is None:
+        return {
+            "recent_projects": (),
+            "active_project_count": 0,
+            "archived_project_count": 0,
+            "can_create_project": False,
+        }
+    request.session["current_workspace_slug"] = current.workspace.slug
+    projects = Project.objects.for_workspace(current.workspace)
+    return {
+        "recent_projects": list(
+            projects.active().select_related("workspace", "created_by").order_by("-updated_at")[:5]
+        ),
+        "active_project_count": projects.active().count(),
+        "archived_project_count": projects.archived().count(),
+        "can_create_project": can_create_project(request.user, current.workspace),
+    }
+
+
 def readiness(request):
     """Report whether required runtime dependencies are ready to serve work."""
     context = _system_status_context()
@@ -86,11 +118,16 @@ def readiness(request):
 
 @login_required
 def dashboard(request):
-    """Render the authenticated workspace dashboard without fabricated domain data."""
+    """Render the authenticated dashboard with real Project summaries only."""
     return render(
         request,
         "studio/dashboard.html",
-        {"active_nav": "dashboard", "page_title": "Dashboard", **_system_status_context()},
+        {
+            "active_nav": "dashboard",
+            "page_title": "Dashboard",
+            **_system_status_context(),
+            **_dashboard_project_context(request),
+        },
     )
 
 

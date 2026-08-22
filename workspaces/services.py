@@ -169,7 +169,12 @@ def delete_organisation_workspace(*, actor, workspace: Workspace) -> None:
         raise ValidationError("Personal workspaces cannot be deleted.")
     if not can_manage_workspace(actor, workspace):
         raise PermissionDenied
-    Workspace.objects.select_for_update().get(pk=workspace.pk).delete()
+    locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
+    if locked.projects.exists():
+        raise ValidationError(
+            "This workspace contains projects and cannot be deleted until they are handled explicitly."
+        )
+    locked.delete()
 
 
 def _token_digest(token: str) -> str:

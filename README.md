@@ -14,8 +14,9 @@ AgencityStudio is the Web interface and orchestration layer for AgencityLab. It 
 - Personal and organisation workspaces with explicit memberships.
 - Workspace roles: Owner, Editor, Analyst and Viewer.
 - Secure expiring workspace invitations whose raw tokens are not stored.
+- Workspace-owned Projects with UUID identity, stable slugs, archive/restore, duplication and activity.
 - Light, dark and system themes.
-- Chromium Playwright coverage for shell, account, workspace, invitation and permission workflows.
+- Chromium Playwright coverage for shell, account, workspace, invitation, Project and permission workflows.
 - Docker Compose development/runtime stack.
 - Liveness at `/health/` and dependency readiness at `/health/ready/`.
 
@@ -23,7 +24,7 @@ AgencityStudio is the Web interface and orchestration layer for AgencityLab. It 
 
 Studio must never reproduce canonical equations or reach into private AgencityLab internals. Scientific computation enters through `labbridge`, which imports the documented AgencityLab package surface. The pinned runtime contract is currently AgencityLab `1.1.3`.
 
-Identity and workspace permissions are application concerns only. Future Projects, Datasets, Systems, Analyses and Reports must reference this boundary instead of embedding a second permission system.
+Identity, workspace and Project permissions are application concerns only. Projects organise future Datasets, Systems, Analyses and Reports; they do not perform scientific calculations or contain System/Analysis parameters.
 
 ## Quick start with Docker Compose
 
@@ -35,7 +36,7 @@ docker compose run --rm web python manage.py migrate --noinput
 docker compose up -d web worker
 ```
 
-Open `http://localhost:8000/`, create a local account and AgencityStudio will create its private personal workspace.
+Open `http://localhost:8000/`, create a local account and AgencityStudio will create its private personal workspace. The Projects page then creates durable Project containers inside the active workspace.
 
 The readiness endpoint should return HTTP 200 once PostgreSQL, Redis and the compatible AgencityLab runtime are available:
 
@@ -85,6 +86,6 @@ celery -A config worker --loglevel=INFO
 
 ## Validation
 
-The CI pipeline checks Python quality, Django configuration, production settings, migration consistency, PostgreSQL migrations, backend identity/permission tests, frontend build, critical Playwright flows, Docker image construction, Compose readiness and an actual Celery task round trip.
+The CI pipeline checks Python quality, Django configuration, production settings, migration consistency, PostgreSQL migrations, backend identity/workspace/Project permission tests, frontend build, critical Playwright flows, Docker image construction, Compose readiness and an actual Celery task round trip.
 
-Additional documentation lives under `docs/`, especially `docs/architecture.md`, `docs/accounts-and-workspaces.md`, `docs/development.md`, `docs/testing.md` and `docs/ui.md`.
+Additional documentation lives under `docs/`, especially `docs/architecture.md`, `docs/accounts-and-workspaces.md`, `docs/projects.md`, `docs/development.md`, `docs/testing.md` and `docs/ui.md`.

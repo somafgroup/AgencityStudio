@@ -5,7 +5,7 @@
   <div>
     <p class="muted mb-1 text-sm">{% translate "Scientific workspace" %}</p>
     <h1 class="page-title">{% blocktranslate with name=user.get_short_name %}Welcome, {{ name }}{% endblocktranslate %}</h1>
-    <p class="muted mt-2 max-w-3xl text-sm leading-6">{% translate "Your identity and workspace boundary are now active. Future scientific objects will inherit explicit ownership and permissions from this foundation." %}</p>
+    <p class="muted mt-2 max-w-3xl text-sm leading-6">{% translate "Your active workspace owns durable Projects. Future scientific data and analyses will attach below that boundary." %}</p>
   </div>
   <div class="toolbar"><a class="btn btn-secondary" href="{% url 'workspaces:list' %}">{% translate "Workspaces" %}</a><a class="btn btn-secondary" href="{% url 'about' %}"><i data-lucide="info"></i>{% translate "System information" %}</a></div>
 </header>
@@ -13,17 +13,11 @@
   <article class="card lg:col-span-2">
     <div class="flex items-start justify-between gap-4"><div><h2 class="section-title">{{ current_workspace.name }}</h2><p class="muted mt-1 text-sm">{{ current_workspace.get_type_display }} · {{ current_workspace_membership.get_role_display }}</p></div><span class="badge">{{ current_workspace_membership.get_role_display }}</span></div>
     {% if current_workspace.description %}<p class="muted mt-4 text-sm">{{ current_workspace.description }}</p>{% endif %}
-    <div class="mt-5 toolbar"><a class="btn btn-primary" href="{% url 'workspaces:overview' current_workspace.slug %}">{% translate "Open workspace" %}</a><a class="btn btn-secondary" href="{% url 'workspaces:members' current_workspace.slug %}">{% translate "Members" %}</a></div>
+    <div class="mt-5 grid gap-3 sm:grid-cols-2"><div class="rounded-lg border p-3"><p class="muted text-xs uppercase tracking-wide">{% translate "Active projects" %}</p><p class="mt-1 text-xl font-semibold">{{ active_project_count }}</p></div><div class="rounded-lg border p-3"><p class="muted text-xs uppercase tracking-wide">{% translate "Archived projects" %}</p><p class="mt-1 text-xl font-semibold">{{ archived_project_count }}</p></div></div>
+    <div class="mt-5 toolbar"><a class="btn btn-primary" href="{% url 'projects:list' %}">{% translate "Open Projects" %}</a>{% if can_create_project %}<a class="btn btn-secondary" href="{% url 'projects:create-in-workspace' current_workspace.slug %}">{% translate "New Project" %}</a>{% endif %}<a class="btn btn-secondary" href="{% url 'workspaces:overview' current_workspace.slug %}">{% translate "Workspace overview" %}</a></div>
   </article>
   <aside id="system-status" class="card" aria-label="{% translate 'System status' %}">{% include "components/system_status.html" %}</aside>
 </section>
-<section class="mt-6 grid gap-4 xl:grid-cols-3">
-  {% include "components/empty_state.html" with title="No projects yet" description="Plan 3 will add real projects inside the active workspace." %}
-  {% include "components/empty_state.html" with title="No datasets yet" description="Dataset workflows are not implemented in Plan 2." %}
-  {% include "components/empty_state.html" with title="No analyses yet" description="AgencityLab analysis workflows remain a later plan." %}
-</section>
-<section class="mt-6 card">
-  <h2 class="section-title">{% translate "Access model" %}</h2>
-  <p class="muted mt-1 text-sm">{% translate "Workspace Owner, Editor, Analyst and Viewer roles are separate from Django instance staff administration. URL knowledge never grants workspace access." %}</p>
-</section>
+<section class="mt-6 card"><div class="flex items-center justify-between gap-3"><div><h2 class="section-title">{% translate "Recent projects" %}</h2><p class="muted mt-1 text-sm">{% translate "Real projects from the active workspace, ordered by recent updates." %}</p></div><a class="btn btn-ghost" href="{% url 'projects:list' %}">{% translate "View all" %}</a></div>{% if recent_projects %}<div class="table-wrap mt-4"><table class="table"><thead><tr><th scope="col">{% translate "Project" %}</th><th scope="col">{% translate "Domain" %}</th><th scope="col">{% translate "Updated" %}</th></tr></thead><tbody>{% for project in recent_projects %}<tr><td><a class="font-semibold" href="{% url 'projects:overview' current_workspace.slug project.id project.slug %}">{{ project.name }}</a></td><td class="muted">{{ project.domain|default:'—' }}</td><td class="muted">{{ project.updated_at|date:"SHORT_DATETIME_FORMAT" }}</td></tr>{% endfor %}</tbody></table></div>{% else %}{% include "components/empty_state.html" with title="No projects yet" description="Create a Project to organise the scientific work owned by this workspace." %}{% if can_create_project %}<div class="mt-4 text-center"><a class="btn btn-primary" href="{% url 'projects:create-in-workspace' current_workspace.slug %}">{% translate "New Project" %}</a></div>{% endif %}{% endif %}</section>
+<section class="mt-6 grid gap-4 md:grid-cols-2">{% include "components/empty_state.html" with title="No datasets yet" description="Dataset workflows are not implemented yet." %}{% include "components/empty_state.html" with title="No analyses yet" description="AgencityLab analysis workflows remain a later plan." %}</section>
 {% endblock %}

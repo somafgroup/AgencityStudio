@@ -1,0 +1,108 @@
+"""Durable Project models owned by Workspaces."""
+
+import uuid
+
+from django.conf import settings
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+
+
+class ProjectStatus(models.TextChoices):
+    ACTIVE = "ACTIVE", _("Active")
+    ARCHIVED = "ARCHIVED", _("Archived")
+
+
+class ProjectQuerySet(models.QuerySet):
+    """Small query helpers for the two supported Project lifecycle states."""
+
+    def active(self):
+        return self.filter(status=ProjectStatus.ACTIVE)
+
+    def archived(self):
+        return self.filter(status=ProjectStatus.ARCHIVED)
+
+    def for_workspace(self, workspace):
+        return self.filter(workspace=workspace)
+
+
+class Project(models.Model):
+    """Workspace-owned container for future scientific datasets and analyses."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    workspace = models.ForeignKey(
+        "workspaces.Workspace",
+        on_delete=models.PROTECT,
+        related_name="projects",
+    )
+    name = models.CharField(max_length=180)
+    slug = models.SlugField(max_length=180)
+    description = models.TextField(blank=True)
+    domain = models.CharField(max_length=160, blank=True)
+    tags = models.JSONField(default=list, blank=True)
+    notes = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=16,
+        choices=ProjectStatus.choices,
+        default=ProjectStatus.ACTIVE,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="projects_created",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
+
+    objects = ProjectQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["-updated_at", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("workspace", "slug"),
+                name="project_workspace_slug_unique",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=("workspace", "status"), name="project_ws_status_idx"),
+            models.Index(fields=("workspace", "-updated_at"), name="project_ws_updated_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class ProjectActivityEvent(models.TextChoices):
+    CREATED = "CREATED", _("Created")
+    UPDATED = "UPDATED", _("Updated")
+    ARCHIVED = "ARCHIVED", _("Archived")
+    RESTORED = "RESTORED", _("Restored")
+    DUPLICATED = "DUPLICATED", _("Duplicated")
+
+
+class ProjectActivity(models.Model):
+    """Lightweight application activity; not scientific provenance."""
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="activity")
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="project_activity_events",
+    )
+    event = models.CharField(max_length=16, choices=ProjectActivityEvent.choices)
+    detail = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=("project", "-created_at"), name="project_activity_time_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.project} · {self.event}"

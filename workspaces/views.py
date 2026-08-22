@@ -20,7 +20,12 @@ from .forms import (
     WorkspaceSettingsForm,
 )
 from .models import InvitationStatus, WorkspaceInvitation, WorkspaceMembership
-from .permissions import can_delete_workspace, can_manage_members, can_manage_workspace
+from .permissions import (
+    can_create_project,
+    can_delete_workspace,
+    can_manage_members,
+    can_manage_workspace,
+)
 from .services import (
     accept_invitation,
     change_member_role,
@@ -87,10 +92,18 @@ def overview(request, slug: str):
     membership = get_workspace_membership_or_404(user=request.user, slug=slug)
     request.session["current_workspace_slug"] = membership.workspace.slug
     member_count = membership.workspace.memberships.count()
+    projects = membership.workspace.projects.select_related("created_by")
     return render(
         request,
         "workspaces/overview.html",
-        _workspace_context(membership, member_count=member_count),
+        _workspace_context(
+            membership,
+            member_count=member_count,
+            active_project_count=projects.active().count(),
+            archived_project_count=projects.archived().count(),
+            recent_projects=list(projects.active().order_by("-updated_at")[:5]),
+            can_create_project=can_create_project(request.user, membership.workspace),
+        ),
     )
 
 
@@ -292,10 +305,14 @@ def delete_workspace_view(request, slug: str):
         raise PermissionDenied
     form = DeleteWorkspaceForm(request.POST or None, workspace_name=workspace.name)
     if request.method == "POST" and form.is_valid():
-        delete_organisation_workspace(actor=request.user, workspace=workspace)
-        request.session.pop("current_workspace_slug", None)
-        messages.success(request, _("Workspace deleted."))
-        return redirect("dashboard")
+        try:
+            delete_organisation_workspace(actor=request.user, workspace=workspace)
+        except ValidationError as exc:
+            messages.error(request, exc.message)
+        else:
+            request.session.pop("current_workspace_slug", None)
+            messages.success(request, _("Workspace deleted."))
+            return redirect("dashboard")
     return render(
         request,
         "workspaces/delete.html",
