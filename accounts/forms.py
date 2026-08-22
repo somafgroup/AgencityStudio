@@ -32,7 +32,10 @@ class StyledFormMixin:
 
 
 class EmailAuthenticationForm(StyledFormMixin, AuthenticationForm):
-    username = forms.EmailField(label=_("Email"), widget=forms.EmailInput(autocomplete="email"))
+    username = forms.EmailField(
+        label=_("Email"),
+        widget=forms.EmailInput(attrs={"autocomplete": "email"}),
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
