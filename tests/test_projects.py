@@ -152,6 +152,25 @@ def test_viewer_can_open_project_but_direct_mutation_routes_are_denied(client):
 
 
 @pytest.mark.django_db
+def test_owner_archive_restore_endpoints_redirect_and_apply_lifecycle(client):
+    owner = make_user("owner@example.com")
+    workspace = create_organisation_workspace(owner=owner, name="HTTP Lifecycle Lab")
+    project = make_project(owner, workspace)
+    client.force_login(owner)
+    args = [workspace.slug, project.pk, project.slug]
+
+    archive_response = client.post(reverse("projects:archive", args=args))
+    assert archive_response.status_code == 302
+    project.refresh_from_db()
+    assert project.status == ProjectStatus.ARCHIVED
+
+    restore_response = client.post(reverse("projects:restore", args=args))
+    assert restore_response.status_code == 302
+    project.refresh_from_db()
+    assert project.status == ProjectStatus.ACTIVE
+
+
+@pytest.mark.django_db
 def test_archive_restore_updates_querysets_and_activity():
     owner = make_user("owner@example.com")
     workspace = create_organisation_workspace(owner=owner, name="Lifecycle Lab")
