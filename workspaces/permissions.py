@@ -1,4 +1,4 @@
-"""Central object-level permission policies for workspaces and their Projects."""
+"""Central object-level permission policies for Workspaces and their owned content."""
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -63,4 +63,40 @@ def can_duplicate_project(user, project) -> bool:
 
 def can_delete_project(user, project) -> bool:
     membership = membership_for(user, project.workspace)
+    return membership is not None and membership.role == WorkspaceRole.OWNER
+
+
+def can_create_dataset(user, project) -> bool:
+    """Owners and Editors may add raw data to active Projects."""
+    return getattr(project, "status", None) == "ACTIVE" and can_edit_project(user, project)
+
+
+def can_view_dataset(user, dataset) -> bool:
+    return can_view_project(user, dataset.project)
+
+
+def can_download_dataset(user, dataset) -> bool:
+    return can_view_dataset(user, dataset)
+
+
+def can_edit_dataset(user, dataset) -> bool:
+    return getattr(dataset.project, "status", None) == "ACTIVE" and can_edit_project(
+        user, dataset.project
+    )
+
+
+def can_add_dataset_version(user, dataset) -> bool:
+    return can_edit_dataset(user, dataset)
+
+
+def can_annotate_dataset(user, dataset) -> bool:
+    return can_edit_dataset(user, dataset)
+
+
+def can_confirm_dataset_version(user, dataset) -> bool:
+    return can_edit_dataset(user, dataset)
+
+
+def can_delete_dataset(user, dataset) -> bool:
+    membership = membership_for(user, dataset.project.workspace)
     return membership is not None and membership.role == WorkspaceRole.OWNER
