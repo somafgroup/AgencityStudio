@@ -22,7 +22,11 @@ def test_dashboard_and_primary_sections_require_identity_and_render(client):
     assert response.status_code == 200
     assert b"Welcome, UI User" in response.content
 
-    for name in ("projects", "datasets", "analyses", "compare", "reports", "examples", "advanced"):
+    projects_response = client.get(reverse("projects:list"))
+    assert projects_response.status_code == 200
+    assert b"Durable scientific containers" in projects_response.content
+
+    for name in ("datasets", "analyses", "compare", "reports", "examples", "advanced"):
         response = client.get(reverse(name))
         assert response.status_code == 200
         assert b"No placeholder scientific data has been fabricated" in response.content
