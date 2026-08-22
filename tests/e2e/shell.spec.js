@@ -36,6 +36,7 @@ test('authenticated desktop shell navigation, command palette and theme persiste
   await page.getByRole('button', { name: 'Theme', exact: true }).click();
   await page.getByRole('button', { name: 'Dark', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.getByText('Theme set to dark.', { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(pageErrors).toEqual([]);
