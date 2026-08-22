@@ -34,7 +34,6 @@ from .services import (
     update_workspace,
 )
 
-
 User = get_user_model()
 
 
@@ -51,7 +50,6 @@ def _workspace_context(membership: WorkspaceMembership, **extra):
 
 
 @login_required
-
 def workspace_list(request):
     memberships = (
         WorkspaceMembership.objects.filter(user=request.user)
@@ -66,7 +64,6 @@ def workspace_list(request):
 
 
 @login_required
-
 def create_workspace(request):
     form = OrganisationWorkspaceForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -86,7 +83,6 @@ def create_workspace(request):
 
 
 @login_required
-
 def overview(request, slug: str):
     membership = get_workspace_membership_or_404(user=request.user, slug=slug)
     request.session["current_workspace_slug"] = membership.workspace.slug
@@ -99,7 +95,6 @@ def overview(request, slug: str):
 
 
 @login_required
-
 def activate_workspace(request, slug: str):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -109,7 +104,6 @@ def activate_workspace(request, slug: str):
 
 
 @login_required
-
 def settings_view(request, slug: str):
     membership = get_workspace_membership_or_404(user=request.user, slug=slug)
     workspace = membership.workspace
@@ -140,7 +134,6 @@ def settings_view(request, slug: str):
 
 
 @login_required
-
 def members(request, slug: str):
     membership = get_workspace_membership_or_404(user=request.user, slug=slug)
     workspace = membership.workspace
@@ -180,7 +173,6 @@ def _send_invitation_email(request, invitation: WorkspaceInvitation, token: str)
 
 
 @login_required
-
 def invite(request, slug: str):
     membership = get_workspace_membership_or_404(user=request.user, slug=slug)
     if not can_manage_members(request.user, membership.workspace):
@@ -215,7 +207,6 @@ def invite(request, slug: str):
 
 
 @login_required
-
 def change_role(request, slug: str, membership_id: int):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -240,7 +231,6 @@ def change_role(request, slug: str, membership_id: int):
 
 
 @login_required
-
 def remove_member_view(request, slug: str, membership_id: int):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -255,12 +245,12 @@ def remove_member_view(request, slug: str, membership_id: int):
         remove_member(actor=request.user, membership=target)
     except ValidationError as exc:
         messages.error(request, exc.message)
-    messages.success(request, _("Member removed."))
+    else:
+        messages.success(request, _("Member removed."))
     return redirect("workspaces:members", slug=slug)
 
 
 @login_required
-
 def leave_workspace(request, slug: str):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -275,7 +265,6 @@ def leave_workspace(request, slug: str):
 
 
 @login_required
-
 def revoke_invitation_view(request, slug: str, invitation_id: int):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -296,7 +285,6 @@ def revoke_invitation_view(request, slug: str, invitation_id: int):
 
 
 @login_required
-
 def delete_workspace_view(request, slug: str):
     membership = get_workspace_membership_or_404(user=request.user, slug=slug)
     workspace = membership.workspace
@@ -323,7 +311,11 @@ def accept_invitation_view(request, token: str):
         return render(
             request,
             "workspaces/invitation_accept.html",
-            {"invitation": invitation, "invitation_unavailable": True, "page_title": _("Invitation")},
+            {
+                "invitation": invitation,
+                "invitation_unavailable": True,
+                "page_title": _("Invitation"),
+            },
             status=410,
         )
 
