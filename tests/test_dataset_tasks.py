@@ -1,7 +1,13 @@
 import pytest
 from django.contrib.auth import get_user_model
 
-from datasets.models import Dataset, DatasetImportStatus, DatasetSourceFormat, DatasetSourceKind, DatasetVersion
+from datasets.models import (
+    Dataset,
+    DatasetImportStatus,
+    DatasetSourceFormat,
+    DatasetSourceKind,
+    DatasetVersion,
+)
 from datasets.tasks import inspect_dataset_version
 from projects.models import ProjectActivity, ProjectActivityEvent
 from projects.services import create_project
@@ -12,7 +18,10 @@ User = get_user_model()
 
 @pytest.mark.django_db
 def test_duplicate_delivery_does_not_reinspect_terminal_version():
-    owner = User.objects.create_user(email="task-owner@example.com", password="Plan4-task-test-password!42")
+    owner = User.objects.create_user(
+        email="task-owner@example.com",
+        password="Plan4-task-test-password!42",
+    )
     workspace = create_organisation_workspace(owner=owner, name="Task Idempotence Lab")
     project = create_project(actor=owner, workspace=workspace, name="Task project")
     dataset = Dataset.objects.create(
