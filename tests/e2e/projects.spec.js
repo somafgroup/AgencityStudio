@@ -51,7 +51,7 @@ test('project lifecycle creates edits archives and restores real project metadat
   await page.getByLabel(/^Name/).fill('Rotor vibration study');
   await page.getByLabel('Description', { exact: true }).fill('Initial rotor description');
   await page.getByLabel('Domain', { exact: true }).fill('mechanics');
-  await page.getByLabel('Tags', { exact: true }).fill('rotor, vibration');
+  await page.getByLabel(/^Tags/).fill('rotor, vibration');
   await page.getByRole('button', { name: 'Create project', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Rotor vibration study', exact: true })).toBeVisible();
