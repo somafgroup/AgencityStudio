@@ -1,11 +1,20 @@
 import { test, expect } from '@playwright/test';
 
-test('desktop shell navigation, command palette and theme persistence', async ({ page }) => {
+async function signUp(page, email, displayName) {
+  await page.goto('/accounts/signup/');
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Display name', { exact: true }).fill(displayName);
+  await page.getByLabel('Password', { exact: true }).fill('Playwright-Scientific-Password!42');
+  await page.getByLabel('Password confirmation', { exact: true }).fill('Playwright-Scientific-Password!42');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+}
+
+test('authenticated desktop shell navigation, command palette and theme persistence', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
-  await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Welcome to AgencityStudio', exact: true })).toBeVisible();
+  await signUp(page, 'shell-user@example.com', 'Shell User');
+  await expect(page.getByRole('heading', { name: 'Welcome, Shell User', exact: true })).toBeVisible();
   const primaryNav = page.getByRole('navigation', { name: 'Primary navigation' });
   await primaryNav.getByRole('link', { name: 'Projects', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
@@ -15,7 +24,7 @@ test('desktop shell navigation, command palette and theme persistence', async ({
   await expect(commandPalette).toBeVisible();
   await commandPalette.getByRole('textbox', { name: 'Command search' }).fill('Dashboard');
   await commandPalette.getByRole('link', { name: /^Go to Dashboard/ }).click();
-  await expect(page.getByRole('heading', { name: 'Welcome to AgencityStudio', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome, Shell User', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Theme', exact: true }).click();
   await page.getByRole('button', { name: 'Dark', exact: true }).click();
@@ -25,9 +34,12 @@ test('desktop shell navigation, command palette and theme persistence', async ({
   expect(pageErrors).toEqual([]);
 });
 
-test('mobile navigation opens and reaches a workspace', async ({ page }) => {
+test('authenticated mobile navigation opens and reaches reports', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('/accounts/login/');
+  await page.getByLabel('Email', { exact: true }).fill('shell-user@example.com');
+  await page.getByLabel('Password', { exact: true }).fill('Playwright-Scientific-Password!42');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
   const primaryNav = page.getByRole('navigation', { name: 'Primary navigation' });
   await expect(primaryNav).toBeVisible();
