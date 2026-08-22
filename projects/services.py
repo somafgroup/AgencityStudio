@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
+from django.utils.translation import gettext as _
 
 from workspaces.permissions import (
     can_archive_project,
@@ -21,6 +22,18 @@ from .models import Project, ProjectActivity, ProjectActivityEvent, ProjectStatu
 logger = logging.getLogger(__name__)
 
 
+def _validate_project_metadata(name: str, domain: str) -> tuple[str, str]:
+    clean_name = name.strip()
+    clean_domain = domain.strip()
+    if not clean_name:
+        raise ValidationError(_("Project name is required."))
+    if len(clean_name) > 180:
+        raise ValidationError(_("Project name must be 180 characters or fewer."))
+    if len(clean_domain) > 160:
+        raise ValidationError(_("Project domain must be 160 characters or fewer."))
+    return clean_name, clean_domain
+
+
 def _unique_project_slug(workspace, name: str) -> str:
     base = slugify(name)[:150] or "project"
     candidate = base
@@ -29,7 +42,7 @@ def _unique_project_slug(workspace, name: str) -> str:
         candidate = f"{base[:165]}-{suffix}"
         suffix += 1
         if suffix > 1000:
-            raise ValidationError("Could not allocate a unique project slug.")
+            raise ValidationError(_("Could not allocate a unique project slug."))
     return candidate
 
 
@@ -56,15 +69,13 @@ def create_project(
     """Create an active Project inside one explicitly authorised Workspace."""
     if not can_create_project(actor, workspace):
         raise PermissionDenied
-    clean_name = name.strip()
-    if not clean_name:
-        raise ValidationError("Project name is required.")
+    clean_name, clean_domain = _validate_project_metadata(name, domain)
     project = Project.objects.create(
         workspace=workspace,
         name=clean_name,
         slug=_unique_project_slug(workspace, clean_name),
         description=description.strip(),
-        domain=domain.strip(),
+        domain=clean_domain,
         tags=list(tags or []),
         notes=notes.strip(),
         created_by=actor,
@@ -89,14 +100,12 @@ def update_project(
         raise PermissionDenied
     locked = Project.objects.select_for_update().get(pk=project.pk)
     if locked.status == ProjectStatus.ARCHIVED:
-        raise ValidationError("Restore the project before editing its metadata.")
-    clean_name = name.strip()
-    if not clean_name:
-        raise ValidationError("Project name is required.")
+        raise ValidationError(_("Restore the project before editing its metadata."))
+    clean_name, clean_domain = _validate_project_metadata(name, domain)
     values = {
         "name": clean_name,
         "description": description.strip(),
-        "domain": domain.strip(),
+        "domain": clean_domain,
         "tags": list(tags or []),
         "notes": notes.strip(),
     }
@@ -109,7 +118,7 @@ def update_project(
             locked,
             actor=actor,
             event=ProjectActivityEvent.UPDATED,
-            detail=f"Updated: {', '.join(changed)}",
+            detail=_("Updated: %(fields)s") % {"fields": ", ".join(changed)},
         )
     return locked
 
@@ -148,7 +157,7 @@ def duplicate_project(*, actor, project: Project) -> Project:
     if not can_duplicate_project(actor, project):
         raise PermissionDenied
     source = Project.objects.select_for_update().select_related("workspace").get(pk=project.pk)
-    clone_name = f"{source.name} copy"
+    clone_name = (_("Copy of %(name)s") % {"name": source.name})[:180].strip()
     clone = Project.objects.create(
         workspace=source.workspace,
         name=clone_name,
@@ -165,13 +174,13 @@ def duplicate_project(*, actor, project: Project) -> Project:
         source,
         actor=actor,
         event=ProjectActivityEvent.DUPLICATED,
-        detail=f"Duplicated as {clone.name}.",
+        detail=_("Duplicated as %(name)s.") % {"name": clone.name},
     )
     _record_activity(
         clone,
         actor=actor,
         event=ProjectActivityEvent.DUPLICATED,
-        detail=f"Duplicated from {source.name}.",
+        detail=_("Duplicated from %(name)s.") % {"name": source.name},
     )
     return clone
 
