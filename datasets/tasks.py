@@ -186,4 +186,4 @@ def inspect_dataset_version(version_id: str, generation: int) -> str:
 
 
 # Celery autodiscovery imports this module. Importing the preparation task here registers it too.
-from .preparation_tasks import execute_data_preparation  # noqa: E402, F401
+from .preparation_tasks import execute_data_preparation  # noqa: F401
