@@ -31,8 +31,8 @@ async function openSystems(page) {
 }
 
 async function fillDocumentedSystem(page) {
-  await page.getByLabel('Name', { exact: true }).fill('Rotor MTR-04');
-  await page.getByLabel('Description', { exact: true }).fill('Rotor identity used across experiments.');
+  await page.getByLabel('System name', { exact: true }).fill('Rotor MTR-04');
+  await page.getByLabel('Organisational description', { exact: true }).fill('Rotor identity used across experiments.');
   await page.getByLabel('Documentation status', { exact: true }).selectOption('DOCUMENTED');
   await page.getByLabel('Domain', { exact: true }).fill('mechanics');
   await page.getByLabel('System type', { exact: true }).fill('rotating machine');
@@ -81,6 +81,7 @@ async function fillDocumentedSystem(page) {
 async function createSystem(page) {
   await openSystems(page);
   await page.getByRole('link', { name: 'Define System', exact: true }).first().click();
+  await expect(page.getByRole('heading', { name: 'Define System', exact: true })).toBeVisible();
   await fillDocumentedSystem(page);
   await page.getByRole('button', { name: 'Review', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Review scientific context', exact: true })).toBeVisible();
