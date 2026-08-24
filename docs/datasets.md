@@ -32,7 +32,7 @@ Pasted tabular data is encoded and stored as its own original source artifact be
 
 ## Supported formats
 
-Plan 4 supports:
+The Data Workspace supports:
 
 - CSV;
 - TSV;
@@ -40,7 +40,7 @@ Plan 4 supports:
 - XLSX;
 - pasted delimited text.
 
-Legacy `.xls`, JSON, Parquet, HDF5, NPY and NPZ are not part of Plan 4.
+Legacy `.xls`, JSON, Parquet, HDF5, NPY and NPZ are not part of the current import scope.
 
 XLSX inspection uses `openpyxl` in read-only mode. Workbook macros are not executed. Formula cells are preserved as source values and reported as an inspection warning rather than evaluated as code.
 
@@ -81,7 +81,7 @@ At most one column can be the primary Time column for the current tabular workfl
 
 ## Inspection diagnostics
 
-Plan 4 may report:
+The Data Workspace may report:
 
 - row and column counts;
 - source size;
@@ -100,7 +100,7 @@ Plan 4 may report:
 
 These are data-quality diagnostics. They do not define `A_ref`, `tau`, `w` or `P_c`.
 
-Studio never sorts, drops, fills, interpolates, resamples, smooths, filters or normalizes raw DatasetVersions in Plan 4. Those transformations belong to the later Data Preparation and Provenance layer.
+The raw Data Workspace never sorts, drops, fills, interpolates, resamples, smooths, filters or normalizes a `DatasetVersion` in place. Plan 5 adds a separate preparation layer that materializes explicit derived artifacts while leaving this raw contract unchanged. See [Data Preparation, Transformations and Provenance](data-preparation.md).
 
 ## Preview
 
@@ -112,9 +112,9 @@ Any future cache or query artifact used to accelerate preview is an implementati
 
 Datasets inherit existing Project/Workspace permissions; there is no Dataset-specific ACL.
 
-- Owner: read, import, upload versions, edit metadata/annotations, download and delete.
+- Owner: read, import, upload versions, edit metadata/annotations, download and delete when no protected descendants exist.
 - Editor: read, import, upload versions, edit metadata/annotations and download.
-- Analyst: read, preview and download.
+- Analyst: read, preview and download raw data; Plan 5 additionally allows creation of immutable derived preparations without granting raw mutation rights.
 - Viewer: read, preview and download.
 - Non-members: safe 404-style denial.
 
@@ -122,7 +122,9 @@ Raw files are private by default. Download goes through an authorized Django end
 
 ## Deletion and retention
 
-A Project containing Datasets cannot be hard-deleted. The Datasets must first be handled explicitly. Dataset deletion is Owner-only and removes the related metadata and private raw artifacts through the storage service.
+A Project containing Datasets cannot be hard-deleted. The Datasets must first be handled explicitly. Dataset deletion is Owner-only and removes related metadata/private raw artifacts through the storage service when deletion is allowed.
+
+A `DatasetVersion` referenced by a `DataPreparation` is protected by a database foreign-key contract. Derived lineage must be handled explicitly before that exact source version can disappear. This prevents a prepared result from losing the source it claims in provenance.
 
 Database transactions and object/file storage are separate atomicity domains, so cleanup is explicit and conservative rather than pretending both systems share one transaction.
 
