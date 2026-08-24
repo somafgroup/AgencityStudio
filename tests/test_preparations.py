@@ -14,6 +14,7 @@ from datasets.preparation import PreparationError, apply_recipe, load_source_tab
 from datasets.preparation_services import (
     add_preparation_step,
     create_preparation,
+    duplicate_preparation,
     prepared_preview_page,
     rerun_preparation,
     run_preparation,
@@ -263,6 +264,20 @@ def test_source_version_deletion_is_protected_when_preparation_exists(tmp_path):
         create_preparation(actor=owner, source_version=version, name="Pinned lineage")
         with pytest.raises(ProtectedError):
             version.delete()
+
+
+@pytest.mark.django_db
+def test_duplicate_preparation_bounds_generated_name_to_model_limit(tmp_path):
+    owner = make_user("duplicate-name@example.com")
+    workspace = create_organisation_workspace(owner=owner, name="Duplicate Name Lab")
+    with override_settings(DATASET_STORAGE_ROOT=tmp_path):
+        _project, _dataset, version, _raw = make_ready_dataset(owner, workspace, tmp_path)
+        source = create_preparation(actor=owner, source_version=version, name="x" * 180)
+        clone = duplicate_preparation(actor=owner, preparation=source)
+        assert clone.pk != source.pk
+        assert clone.name.startswith("Copy of ")
+        assert len(clone.name) == 180
+        assert clone.source_version_id == source.source_version_id
 
 
 @pytest.mark.django_db
