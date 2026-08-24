@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "workspaces",
     "projects",
     "datasets",
+    "systems",
     "common",
     "labbridge",
 ]
