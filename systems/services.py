@@ -74,8 +74,16 @@ def _unique_slug(project, name: str) -> str:
 def get_system_or_404(*, user, project, system_id, system_slug: str) -> System:
     try:
         system = (
-            System.objects.select_related("project", "project__workspace", "created_by", "current_revision")
-            .prefetch_related("current_revision__observables", "current_revision__references")
+            System.objects.select_related(
+                "project",
+                "project__workspace",
+                "created_by",
+                "current_revision",
+            )
+            .prefetch_related(
+                "current_revision__observables",
+                "current_revision__references",
+            )
             .get(pk=system_id, project=project, slug=system_slug)
         )
     except (System.DoesNotExist, ValueError) as exc:
@@ -142,11 +150,17 @@ def _create_revision(
     observables = _normalise_observables(observables)
     references = _normalise_references(references)
     parsed, issues = validate_revision_context(data, observables)
-    if data.get("documentation_status") == "DOCUMENTED" and not documented_context_is_complete(issues):
-        raise ValidationError([issue.message for issue in issues if issue.code.startswith("MISSING_")])
+    if data.get("documentation_status") == "DOCUMENTED" and not documented_context_is_complete(
+        issues
+    ):
+        raise ValidationError(
+            [issue.message for issue in issues if issue.code.startswith("MISSING_")]
+        )
 
     number = (
-        SystemRevision.objects.filter(system=locked_system).aggregate(value=Max("revision_number"))["value"]
+        SystemRevision.objects.filter(system=locked_system).aggregate(value=Max("revision_number"))[
+            "value"
+        ]
         or 0
     ) + 1
     revision_fields = {
@@ -206,7 +220,10 @@ def _create_revision(
     )
     fingerprint = configuration_fingerprint(revision)
     SystemRevision.objects.filter(pk=revision.pk).update(configuration_fingerprint=fingerprint)
-    System.objects.filter(pk=locked_system.pk).update(current_revision=revision, updated_at=timezone.now())
+    System.objects.filter(pk=locked_system.pk).update(
+        current_revision=revision,
+        updated_at=timezone.now(),
+    )
     revision.configuration_fingerprint = fingerprint
     locked_system.current_revision = revision
     return revision
@@ -251,7 +268,12 @@ def create_system(
 
 @transaction.atomic
 def create_system_revision(
-    *, actor, system: System, revision_data: dict, observables: list[dict], references: list[dict]
+    *,
+    actor,
+    system: System,
+    revision_data: dict,
+    observables: list[dict],
+    references: list[dict],
 ) -> SystemRevision:
     if not can_revise_system(actor, system):
         raise PermissionDenied
@@ -269,7 +291,8 @@ def create_system_revision(
         locked,
         actor=actor,
         event=ProjectActivityEvent.SYS_REVISED,
-        detail=_("Created scientific Revision %(revision)s.") % {"revision": revision.revision_number},
+        detail=_("Created scientific Revision %(revision)s.")
+        % {"revision": revision.revision_number},
     )
     return revision
 
@@ -293,13 +316,15 @@ def duplicate_system(*, actor, system: System) -> System:
         raise PermissionDenied
     source = (
         System.objects.select_for_update()
-        .select_related("project", "current_revision")
-        .prefetch_related("current_revision__observables", "current_revision__references")
+        .select_related("project")
         .get(pk=system.pk)
     )
-    current = source.current_revision
-    if current is None:
+    if source.current_revision_id is None:
         raise ValidationError(_("The source system has no scientific revision to duplicate."))
+    current = (
+        SystemRevision.objects.prefetch_related("observables", "references")
+        .get(pk=source.current_revision_id, system=source)
+    )
     clone_name = _derived_name(_("Copy of %(name)s"), source.name)
     clone = System.objects.create(
         project=source.project,
@@ -312,29 +337,64 @@ def duplicate_system(*, actor, system: System) -> System:
     revision_data = {
         field: getattr(current, field)
         for field in (
-            "documentation_status", "description", "domain", "system_type", "mechanism",
-            "environment", "measurement_context", "scientific_notes", "a_ref_value_text",
-            "a_ref_unit", "a_ref_origin", "a_ref_origin_detail", "a_ref_justification",
-            "tau_value_text", "tau_unit", "tau_origin", "tau_origin_detail", "tau_justification",
-            "w_mode", "w_value_text", "w_unit", "w_origin", "w_origin_detail", "w_justification",
-            "p_c_mode", "p_c_value_text", "p_c_unit", "p_c_origin", "p_c_origin_detail",
+            "documentation_status",
+            "description",
+            "domain",
+            "system_type",
+            "mechanism",
+            "environment",
+            "measurement_context",
+            "scientific_notes",
+            "a_ref_value_text",
+            "a_ref_unit",
+            "a_ref_origin",
+            "a_ref_origin_detail",
+            "a_ref_justification",
+            "tau_value_text",
+            "tau_unit",
+            "tau_origin",
+            "tau_origin_detail",
+            "tau_justification",
+            "w_mode",
+            "w_value_text",
+            "w_unit",
+            "w_origin",
+            "w_origin_detail",
+            "w_justification",
+            "p_c_mode",
+            "p_c_value_text",
+            "p_c_unit",
+            "p_c_origin",
+            "p_c_origin_detail",
             "p_c_justification",
         )
     }
-    revision_data["revision_reason"] = _("Duplicated from %(name)s.") % {"name": source.name}
+    revision_data["revision_reason"] = _("Duplicated from %(name)s.") % {
+        "name": source.name
+    }
     observables = [
         {
-            "name": item.name, "symbol": item.symbol, "description": item.description,
-            "unit": item.unit, "observable_kind": item.observable_kind, "nature": item.nature,
-            "source_description": item.source_description, "is_primary": item.is_primary,
+            "name": item.name,
+            "symbol": item.symbol,
+            "description": item.description,
+            "unit": item.unit,
+            "observable_kind": item.observable_kind,
+            "nature": item.nature,
+            "source_description": item.source_description,
+            "is_primary": item.is_primary,
         }
         for item in current.observables.all()
     ]
     references = [
         {
-            "title": item.title, "citation": item.citation, "doi": item.doi, "url": item.url,
-            "notes": item.notes, "supports_a_ref": item.supports_a_ref,
-            "supports_tau": item.supports_tau, "supports_w": item.supports_w,
+            "title": item.title,
+            "citation": item.citation,
+            "doi": item.doi,
+            "url": item.url,
+            "notes": item.notes,
+            "supports_a_ref": item.supports_a_ref,
+            "supports_tau": item.supports_tau,
+            "supports_w": item.supports_w,
             "supports_p_c": item.supports_p_c,
         }
         for item in current.references.all()
@@ -348,8 +408,18 @@ def duplicate_system(*, actor, system: System) -> System:
         references=references,
     )
     clone.refresh_from_db()
-    _record(source, actor=actor, event=ProjectActivityEvent.SYS_DUPLICATED, detail=_("Duplicated as %(name)s.") % {"name": clone.name})
-    _record(clone, actor=actor, event=ProjectActivityEvent.SYS_DUPLICATED, detail=_("Duplicated from %(name)s.") % {"name": source.name})
+    _record(
+        source,
+        actor=actor,
+        event=ProjectActivityEvent.SYS_DUPLICATED,
+        detail=_("Duplicated as %(name)s.") % {"name": clone.name},
+    )
+    _record(
+        clone,
+        actor=actor,
+        event=ProjectActivityEvent.SYS_DUPLICATED,
+        detail=_("Duplicated from %(name)s.") % {"name": source.name},
+    )
     return clone
 
 
@@ -395,4 +465,9 @@ def delete_system(*, actor, system: System) -> None:
         event=ProjectActivityEvent.SYS_DELETED,
         detail=_("Deleted System %(id)s.") % {"id": system_id},
     )
-    logger.info("system.deleted system_id=%s project_id=%s actor_id=%s", system_id, project.pk, getattr(actor, "pk", None))
+    logger.info(
+        "system.deleted system_id=%s project_id=%s actor_id=%s",
+        system_id,
+        project.pk,
+        getattr(actor, "pk", None),
+    )
