@@ -153,7 +153,7 @@ def restore_project(*, actor, project: Project) -> Project:
 
 @transaction.atomic
 def duplicate_project(*, actor, project: Project) -> Project:
-    """Duplicate only Plan 3 metadata into a new active Project."""
+    """Duplicate only Project metadata, not contained scientific objects."""
     if not can_duplicate_project(actor, project):
         raise PermissionDenied
     source = Project.objects.select_for_update().select_related("workspace").get(pk=project.pk)
@@ -187,13 +187,17 @@ def duplicate_project(*, actor, project: Project) -> Project:
 
 @transaction.atomic
 def delete_project(*, actor, project: Project) -> None:
-    """Permanently delete an empty Project after explicit confirmation by the caller."""
+    """Permanently delete a Project only after contained durable objects are handled."""
     if not can_delete_project(actor, project):
         raise PermissionDenied
     locked = Project.objects.select_for_update().get(pk=project.pk)
     if locked.datasets.exists():
         raise ValidationError(
             _("This project contains datasets and cannot be permanently deleted until they are handled explicitly.")
+        )
+    if locked.systems.exists():
+        raise ValidationError(
+            _("This project contains systems and cannot be permanently deleted until they are handled explicitly.")
         )
     logger.info(
         "project.deleted project_id=%s workspace_id=%s actor_id=%s",
