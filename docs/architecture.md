@@ -14,21 +14,31 @@ Django orchestration and presentation
 Users + Workspaces + explicit memberships
         ↓
 Workspace-owned Projects
-        ↓
-Project-owned Datasets
-        ↓
-Immutable DatasetVersions
-        ↓ explicit ordered preparation only
-Immutable PreparedDataArtifacts
+        ├──────────────────────────────┐
+        ↓                              ↓
+Project-owned Datasets          Project-owned Systems
+        ↓                              ↓
+Immutable DatasetVersions       stable System identity
+        ↓                              ↓
+explicit ordered preparation    immutable SystemRevisions
+        ↓                              ↓
+Immutable PreparedDataArtifacts observable + physical/contextual context
+        └───────────────┬──────────────┘
+                        ↓
+                 future Analysis
 ```
 
 ## Scientific boundary
 
 AgencityLab is the scientific source of computation. Studio must not copy canonical formulas, import private/core implementation modules as shortcuts, or alter scientific parameters to make UI workflows convenient. The `labbridge` package is the only intended integration boundary. The current Studio runtime pins AgencityLab `1.1.3` and exposes an explicit compatibility contract.
 
-Projects are organisational containers only. Datasets describe source data and provenance. The Data Preparation layer may explicitly transform data, but none of these layers contains or infers `A_ref`, `tau`, `w`, `P_c` or Agencity equations. Those belong to future System/Analysis layers.
+Projects are organisational containers only. Datasets describe source data and provenance. The Data Preparation layer may explicitly transform data. Systems document the studied physical/scientific context. None of these layers executes the Agencity pipeline.
 
-Dataset inspection statistics are diagnostics, not physics. Observed sampling interval/frequency, ranges, missingness and quality findings must never silently define canonical physical parameters. Preparation `dt` is a sampling interval only and must not be confused with `tau` or CRM window `w`.
+Dataset inspection statistics are diagnostics, not physics. Observed sampling interval/frequency, ranges, missingness and quality findings must never silently define canonical physical parameters. Preparation `dt` is a sampling interval only and must not be confused with structural `tau` or CRM window `w`.
+
+Plan 6 records `A_ref`, `tau`, `w` and `P_c` as explicit physical/contextual parameters of a SystemRevision. Studio does not infer them from standard deviation, MAD, signal range, extrema, dominant period, autocorrelation, sampling interval or signal power. `w` left unspecified is preserved as such; Studio does not store a fabricated `w=tau` value. A future Analysis may record AgencityLab's documented resolution when the public API is actually executed.
+
+`labbridge.scientific_context` may inspect the public `compute_agencity()` signature and mirror its public scalar input contracts. It does not call the computation. AgencityLab 1.1.3 accepts finite strictly positive explicit `A_ref`, `tau` and `w`, and finite non-negative scalar `P_c`, including `P_c=0`.
 
 ## Identity and ownership boundary
 
@@ -42,13 +52,46 @@ Dataset inspection statistics are diagnostics, not physics. Observed sampling in
 
 `datasets.DataPreparation` pins one exact DatasetVersion and stores an ordered machine-readable recipe. `datasets.PreparedDataArtifact` is the immutable materialization produced by one preparation. Source SHA-256, recipe fingerprint and prepared SHA-256 are deliberately separate identities.
 
-All object-level workspace, Project, Dataset and preparation decisions are centralised through existing permission policies. Private lookup is membership-scoped and intentionally returns 404 to a non-member, while a known member attempting an unauthorised management action receives 403. Hiding a button is never treated as authorisation.
+`systems.System` also belongs to a Project. It represents the durable identity of the studied physical/scientific system and is intentionally independent from any one Dataset. `created_by` records application provenance but does not define ownership.
 
-The Analyst role may create and run derived preparations but still cannot mutate original Dataset metadata/source. This allows scientific experimentation while preserving raw acquisition integrity.
+`systems.SystemRevision` is an immutable snapshot of scientific context. A revision contains contextual metadata, one or more `ObservableDefinition` rows, parameter provenance for `A_ref`, `tau`, `w` and fixed scalar `P_c`, and lightweight `ScientificReference` rows. `System.current_revision` is an UX convenience only; future historical analyses must reference an exact SystemRevision.
 
-Workspace deletion is refused while Projects exist. Project hard deletion is refused while Datasets exist. DatasetVersions referenced by preparation lineage are protected from deletion. The foreign-key graph avoids implicit cascades that could destroy scientific sources or provenance.
+Changing scientific context creates a new revision. Renaming the stable System identity does not. Revision numbers are unique per System and allocated while holding a row lock on the System, with a database uniqueness constraint as the final guard.
+
+All object-level workspace, Project, Dataset, preparation and System decisions are centralised through existing permission policies. Private lookup is membership-scoped and intentionally returns 404 to a non-member, while a known member attempting an unauthorised management action receives 403. Hiding a button is never treated as authorisation.
+
+The Analyst role may create and run derived preparations and may create/revise/duplicate Systems, but still cannot mutate original Dataset metadata/source, administer the Workspace or hard-delete a System. This allows scientific work while preserving raw acquisition and context history.
+
+Workspace deletion is refused while Projects exist. Project hard deletion is refused while Datasets or Systems exist. DatasetVersions referenced by preparation lineage are protected from deletion. The foreign-key graph avoids implicit cascades that could destroy scientific sources or context provenance.
 
 Invitations are durable database records, while the bearer token exists only in the invitation URL/email. Studio stores a SHA-256 digest of a cryptographically random URL-safe token, enforces expiration/status/email binding and consumes accepted invitations transactionally with membership creation.
+
+## Dataset versus System versus Analysis
+
+The three concepts answer different questions:
+
+```text
+Dataset / PreparedDataArtifact
+What measurements or prepared values do I have?
+
+System / SystemRevision
+What system is being studied, what does the observable mean,
+and which physical/contextual parameters justify the future calculation?
+
+future Analysis
+Which exact data source and exact SystemRevision are associated,
+how are columns mapped to observables, and what is executed by AgencityLab?
+```
+
+Plan 6 deliberately persists no Dataset-column-to-System-observable mapping. A System can therefore be reused with multiple acquisitions or prepared artifacts without coupling its scientific identity to a single file. The future Analysis layer will make the association explicitly.
+
+## Units and scientific-context provenance
+
+The shared Pint-backed unit helper is used by both explicit Data Preparation conversion and System dimensional validation; Studio does not maintain a second unit engine. System revisions preserve the value and unit as entered. Known units are checked dimensionally, while unknown labels are preserved and marked as not automatically validated rather than guessed or treated as dimensionless.
+
+The configuration fingerprint is a deterministic SHA-256 over canonical serialized scientific context. It includes relevant observables, units, parameters and metadata, but not timestamps or UI state. It establishes computational configuration identity only; it is not evidence that a context is scientifically correct.
+
+Project Activity and scientific provenance remain separate. Activity records that a user created or revised a System. The SystemRevision records what `tau`, for example, was, its unit, origin and justification.
 
 ## Raw Dataset storage
 
@@ -78,7 +121,7 @@ The current engine materializes deterministic UTF-8 CSV. Execution is bounded by
 
 Each execution records source version/hash, ordered recipe, recipe fingerprint, Studio/Python/engine/dependency versions, timing/warnings and prepared artifact hash. READY artifacts are write-once. A changed recipe or re-run creates a new preparation record instead of rewriting an existing result.
 
-Prepared output is inspected using the same data-quality contract as raw data, but raw findings remain unchanged. A successful preparation is not labelled “ready for Agencity”; the future System/Analysis layer must still provide the relevant physical/contextual contract.
+Prepared output is inspected using the same data-quality contract as raw data, but raw findings remain unchanged. A successful preparation is not labelled “ready for Agencity”; the future Analysis layer must still select an exact SystemRevision and explicit observable mapping.
 
 ## Web runtime
 
@@ -92,11 +135,11 @@ Account theme, locale and timezone preferences are persisted on the user. Browse
 
 Celery is the asynchronous execution boundary and Redis is the broker/result backend. Dataset ingestion inspection and prepared-data materialization use this boundary because parsing/transformation of non-trivial files must not block an HTTP request. `common.health_ping` remains the deterministic infrastructure validation task.
 
-Account, membership and normal Project metadata operations remain synchronous transactional operations. Database rows and file/object storage are separate atomicity domains; task publication occurs after transaction commit and result files are published only after successful materialization.
+Account, membership, Project, System identity and SystemRevision operations remain synchronous transactional operations. Database rows and file/object storage are separate atomicity domains; task publication occurs after transaction commit and result files are published only after successful materialization.
 
 ## Operational health
 
-`/health/` is a liveness endpoint and deliberately does not probe dependencies. `/health/ready/` verifies PostgreSQL connectivity, Redis broker connectivity and the installed AgencityLab compatibility contract. Dataset storage currently adds no remote readiness dependency.
+`/health/` is a liveness endpoint and deliberately does not probe dependencies. `/health/ready/` verifies PostgreSQL connectivity, Redis broker connectivity and the installed AgencityLab compatibility contract. Systems add no infrastructure dependency and do not alter readiness semantics.
 
 ## Deployment settings
 
@@ -104,4 +147,4 @@ Account, membership and normal Project metadata operations remain synchronous tr
 
 Dataset deployment settings include a private storage root, configurable upload/paste limits and a preparation row limit. They are operational safeguards, not scientific limits.
 
-See `docs/accounts-and-workspaces.md` for identity/workspace security, `docs/projects.md` for the Project lifecycle contract, `docs/datasets.md` for raw Data Workspace provenance and `docs/data-preparation.md` for explicit transformations and prepared-data lineage.
+See `docs/accounts-and-workspaces.md` for identity/workspace security, `docs/projects.md` for the Project lifecycle contract, `docs/datasets.md` for raw Data Workspace provenance, `docs/data-preparation.md` for explicit transformations and prepared-data lineage, and `docs/systems.md` for immutable scientific-context versioning.
