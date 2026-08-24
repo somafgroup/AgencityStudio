@@ -5,6 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 from .models import Workspace, WorkspaceMembership, WorkspaceRole
 
 WRITE_ROLES = {WorkspaceRole.OWNER, WorkspaceRole.EDITOR}
+PREPARATION_ROLES = {WorkspaceRole.OWNER, WorkspaceRole.EDITOR, WorkspaceRole.ANALYST}
 
 
 def membership_for(user, workspace: Workspace) -> WorkspaceMembership | None:
@@ -99,4 +100,39 @@ def can_confirm_dataset_version(user, dataset) -> bool:
 
 def can_delete_dataset(user, dataset) -> bool:
     membership = membership_for(user, dataset.project.workspace)
+    return membership is not None and membership.role == WorkspaceRole.OWNER
+
+
+def can_create_preparation(user, dataset) -> bool:
+    """Allow scientific derived work without granting raw-source mutation rights."""
+    if getattr(dataset.project, "status", None) != "ACTIVE":
+        return False
+    membership = membership_for(user, dataset.project.workspace)
+    return membership is not None and membership.role in PREPARATION_ROLES
+
+
+def can_view_preparation(user, preparation) -> bool:
+    return can_view_dataset(user, preparation.source_version.dataset)
+
+
+def can_edit_preparation(user, preparation) -> bool:
+    return preparation.status == "DRAFT" and can_create_preparation(
+        user, preparation.source_version.dataset
+    )
+
+
+def can_run_preparation(user, preparation) -> bool:
+    return can_edit_preparation(user, preparation)
+
+
+def can_duplicate_preparation(user, preparation) -> bool:
+    return can_create_preparation(user, preparation.source_version.dataset)
+
+
+def can_download_prepared_data(user, preparation) -> bool:
+    return can_view_preparation(user, preparation)
+
+
+def can_delete_preparation(user, preparation) -> bool:
+    membership = membership_for(user, preparation.source_version.dataset.project.workspace)
     return membership is not None and membership.role == WorkspaceRole.OWNER

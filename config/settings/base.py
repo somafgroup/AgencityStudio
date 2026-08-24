@@ -122,9 +122,12 @@ DATASET_STORAGE_ROOT = Path(os.getenv("DATASET_STORAGE_ROOT", str(BASE_DIR / "st
 DATASET_MAX_UPLOAD_BYTES = int(os.getenv("DATASET_MAX_UPLOAD_BYTES", str(100 * 1024 * 1024)))
 DATASET_MAX_PASTE_BYTES = int(os.getenv("DATASET_MAX_PASTE_BYTES", str(2 * 1024 * 1024)))
 DATASET_PREVIEW_PAGE_SIZE = int(os.getenv("DATASET_PREVIEW_PAGE_SIZE", "50"))
+DATA_PREPARATION_MAX_ROWS = int(os.getenv("DATA_PREPARATION_MAX_ROWS", "250000"))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(2_621_440)))
 if DATASET_MAX_UPLOAD_BYTES <= 0 or DATASET_MAX_PASTE_BYTES <= 0:
     raise ImproperlyConfigured("Dataset upload limits must be positive integers.")
+if DATA_PREPARATION_MAX_ROWS <= 0:
+    raise ImproperlyConfigured("DATA_PREPARATION_MAX_ROWS must be a positive integer.")
 
 LANGUAGE_CODE = "en"
 LANGUAGES = [("en", "English"), ("fr", "Français")]

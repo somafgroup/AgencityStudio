@@ -1,4 +1,4 @@
-"""Dataset metadata and immutable source-version contracts."""
+"""Dataset metadata, immutable raw versions, and prepared-data provenance contracts."""
 
 import uuid
 
@@ -43,6 +43,14 @@ class DatasetColumnRole(models.TextChoices):
     OBSERVABLE = "OBSERVABLE", _("Observable")
 
 
+class DataPreparationStatus(models.TextChoices):
+    DRAFT = "DRAFT", _("Draft")
+    QUEUED = "QUEUED", _("Queued")
+    PROCESSING = "PROCESSING", _("Processing")
+    READY = "READY", _("Ready")
+    FAILED = "FAILED", _("Failed")
+
+
 class DatasetQuerySet(models.QuerySet):
     def for_workspace(self, workspace):
         return self.filter(project__workspace=workspace)
@@ -52,7 +60,7 @@ class DatasetQuerySet(models.QuerySet):
 
 
 class Dataset(models.Model):
-    """Logical Project-owned dataset whose raw sources are versioned separately."""
+    """Logical Project-owned dataset whose original raw sources are versioned separately."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey(
@@ -109,7 +117,7 @@ class Dataset(models.Model):
 
 
 class DatasetVersion(models.Model):
-    """Immutable raw source snapshot plus reproducible import/inspection metadata."""
+    """Immutable original source snapshot plus reproducible import/inspection metadata."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, related_name="versions")
@@ -180,7 +188,7 @@ class DatasetVersion(models.Model):
 
 
 class DatasetColumn(models.Model):
-    """Position-stable column metadata inferred from one DatasetVersion source."""
+    """Position-stable column metadata inferred from one original DatasetVersion source."""
 
     dataset_version = models.ForeignKey(
         DatasetVersion,
@@ -218,3 +226,97 @@ class DatasetColumn(models.Model):
 
     def __str__(self) -> str:
         return f"{self.dataset_version} · {self.display_name}"
+
+
+class DataPreparation(models.Model):
+    """Ordered, source-version-pinned recipe for one immutable prepared-data result."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    source_version = models.ForeignKey(
+        DatasetVersion,
+        on_delete=models.PROTECT,
+        related_name="preparations",
+    )
+    name = models.CharField(max_length=180)
+    description = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=16,
+        choices=DataPreparationStatus.choices,
+        default=DataPreparationStatus.DRAFT,
+    )
+    recipe = models.JSONField(default=list, blank=True)
+    recipe_hash = models.CharField(max_length=64, blank=True)
+    engine_id = models.CharField(max_length=80, blank=True)
+    engine_version = models.CharField(max_length=32, blank=True)
+    studio_version = models.CharField(max_length=32, blank=True)
+    python_version = models.CharField(max_length=64, blank=True)
+    dependency_versions = models.JSONField(default=dict, blank=True)
+    execution_metadata = models.JSONField(default=dict, blank=True)
+    warnings = models.JSONField(default=list, blank=True)
+    failure_summary = models.CharField(max_length=500, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="data_preparations_created",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    queued_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=("source_version", "status", "-created_at"),
+                name="data_prep_source_status_idx",
+            ),
+        ]
+
+    @property
+    def dataset(self) -> Dataset:
+        return self.source_version.dataset
+
+    def __str__(self) -> str:
+        return f"{self.name} · {self.get_status_display()}"
+
+
+class PreparedDataArtifact(models.Model):
+    """Immutable materialized result produced by exactly one DataPreparation."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    preparation = models.OneToOneField(
+        DataPreparation,
+        on_delete=models.CASCADE,
+        related_name="artifact",
+    )
+    storage_path = models.CharField(max_length=600, unique=True)
+    output_format = models.CharField(max_length=16, default="CSV")
+    media_type = models.CharField(max_length=160, default="text/csv")
+    size_bytes = models.BigIntegerField()
+    prepared_sha256 = models.CharField(max_length=64)
+    row_count = models.BigIntegerField()
+    column_count = models.PositiveIntegerField()
+    column_metadata = models.JSONField(default=list)
+    inspection_summary = models.JSONField(default=dict, blank=True)
+    quality_issues = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(size_bytes__gte=0),
+                name="prepared_artifact_size_nonnegative",
+            ),
+            models.CheckConstraint(
+                condition=Q(row_count__gte=0),
+                name="prepared_artifact_rows_nonnegative",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Prepared · {self.preparation.name}"
