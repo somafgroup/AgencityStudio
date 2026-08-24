@@ -30,7 +30,7 @@ from .forms import (
     SystemIdentityForm,
     SystemRevisionForm,
 )
-from .models import RevisionDocumentationStatus, System, SystemStatus
+from .models import System
 from .services import (
     archive_system,
     create_system,
@@ -216,7 +216,11 @@ def system_list(request, workspace_slug: str, project_id, project_slug: str):
             | Q(current_revision__observables__name__icontains=query)
         ).distinct()
     sort = request.GET.get("sort", "updated")
-    ordering = {"name": ("name",), "created": ("-created_at",), "updated": ("-updated_at",)}.get(sort, ("-updated_at",))
+    ordering = {
+        "name": ("name",),
+        "created": ("-created_at",),
+        "updated": ("-updated_at",),
+    }.get(sort, ("-updated_at",))
     page_obj = Paginator(systems.order_by(*ordering), 20).get_page(request.GET.get("page"))
     return render(
         request,
@@ -237,7 +241,19 @@ def system_list(request, workspace_slug: str, project_id, project_slug: str):
     )
 
 
-def _scientific_form_context(*, membership, project, system, identity_form, revision_form, observable_formset, reference_formset, review_ready=False, issues=None, is_revision=False):
+def _scientific_form_context(
+    *,
+    membership,
+    project,
+    system,
+    identity_form,
+    revision_form,
+    observable_formset,
+    reference_formset,
+    review_ready=False,
+    issues=None,
+    is_revision=False,
+):
     return {
         "workspace": membership.workspace,
         "membership": membership,
@@ -270,7 +286,12 @@ def system_create(request, workspace_slug: str, project_id, project_slug: str):
     issues = []
 
     if request.method == "POST" and all(
-        (identity_form.is_valid(), revision_form.is_valid(), observable_formset.is_valid(), reference_formset.is_valid())
+        (
+            identity_form.is_valid(),
+            revision_form.is_valid(),
+            observable_formset.is_valid(),
+            reference_formset.is_valid(),
+        )
     ):
         observables = _observable_rows(observable_formset)
         references = _reference_rows(reference_formset)
@@ -293,7 +314,14 @@ def system_create(request, workspace_slug: str, project_id, project_slug: str):
                 _add_validation_error(revision_form, exc)
             else:
                 messages.success(request, _("System created with scientific Revision 1."))
-                return redirect("systems:detail", workspace_slug=project.workspace.slug, project_id=project.pk, project_slug=project.slug, system_id=system.pk, system_slug=system.slug)
+                return redirect(
+                    "systems:detail",
+                    workspace_slug=project.workspace.slug,
+                    project_id=project.pk,
+                    project_slug=project.slug,
+                    system_id=system.pk,
+                    system_slug=system.slug,
+                )
         else:
             review_ready = True
 
@@ -315,9 +343,21 @@ def system_create(request, workspace_slug: str, project_id, project_slug: str):
 
 
 @login_required
-def system_detail(request, workspace_slug: str, project_id, project_slug: str, system_id, system_slug: str):
+def system_detail(
+    request,
+    workspace_slug: str,
+    project_id,
+    project_slug: str,
+    system_id,
+    system_slug: str,
+):
     membership, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
-    system = get_system_or_404(user=request.user, project=project, system_id=system_id, system_slug=system_slug)
+    system = get_system_or_404(
+        user=request.user,
+        project=project,
+        system_id=system_id,
+        system_slug=system_slug,
+    )
     revision = system.current_revision
     issues = []
     if revision:
@@ -340,9 +380,21 @@ def system_detail(request, workspace_slug: str, project_id, project_slug: str, s
 
 
 @login_required
-def system_revise(request, workspace_slug: str, project_id, project_slug: str, system_id, system_slug: str):
+def system_revise(
+    request,
+    workspace_slug: str,
+    project_id,
+    project_slug: str,
+    system_id,
+    system_slug: str,
+):
     membership, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
-    system = get_system_or_404(user=request.user, project=project, system_id=system_id, system_slug=system_slug)
+    system = get_system_or_404(
+        user=request.user,
+        project=project,
+        system_id=system_id,
+        system_slug=system_slug,
+    )
     if not can_revise_system(request.user, system):
         raise PermissionDenied
     current = system.current_revision
@@ -357,12 +409,24 @@ def system_revise(request, workspace_slug: str, project_id, project_slug: str, s
         revision_initial = _revision_initial(current)
         revision_initial["revision_reason"] = ""
         revision_form = SystemRevisionForm(initial=revision_initial)
-        observable_formset = ObservableFormSet(initial=_observable_initial(current), prefix="observables")
-        reference_formset = ReferenceFormSet(initial=_reference_initial(current), prefix="references")
+        observable_formset = ObservableFormSet(
+            initial=_observable_initial(current),
+            prefix="observables",
+        )
+        reference_formset = ReferenceFormSet(
+            initial=_reference_initial(current),
+            prefix="references",
+        )
     review_ready = False
     issues = []
 
-    if request.method == "POST" and all((revision_form.is_valid(), observable_formset.is_valid(), reference_formset.is_valid())):
+    if request.method == "POST" and all(
+        (
+            revision_form.is_valid(),
+            observable_formset.is_valid(),
+            reference_formset.is_valid(),
+        )
+    ):
         observables = _observable_rows(observable_formset)
         references = _reference_rows(reference_formset)
         issues = _review_context(revision_form, observables)
@@ -381,8 +445,19 @@ def system_revise(request, workspace_slug: str, project_id, project_slug: str, s
             except ValidationError as exc:
                 _add_validation_error(revision_form, exc)
             else:
-                messages.success(request, _("Scientific Revision %(revision)s created.") % {"revision": revision.revision_number})
-                return redirect("systems:detail", workspace_slug=project.workspace.slug, project_id=project.pk, project_slug=project.slug, system_id=system.pk, system_slug=system.slug)
+                messages.success(
+                    request,
+                    _("Scientific Revision %(revision)s created.")
+                    % {"revision": revision.revision_number},
+                )
+                return redirect(
+                    "systems:detail",
+                    workspace_slug=project.workspace.slug,
+                    project_id=project.pk,
+                    project_slug=project.slug,
+                    system_id=system.pk,
+                    system_slug=system.slug,
+                )
         else:
             review_ready = True
 
@@ -405,11 +480,28 @@ def system_revise(request, workspace_slug: str, project_id, project_slug: str, s
 
 
 @login_required
-def system_revision_detail(request, workspace_slug: str, project_id, project_slug: str, system_id, system_slug: str, revision_number: int):
+def system_revision_detail(
+    request,
+    workspace_slug: str,
+    project_id,
+    project_slug: str,
+    system_id,
+    system_slug: str,
+    revision_number: int,
+):
     membership, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
-    system = get_system_or_404(user=request.user, project=project, system_id=system_id, system_slug=system_slug)
+    system = get_system_or_404(
+        user=request.user,
+        project=project,
+        system_id=system_id,
+        system_slug=system_slug,
+    )
     try:
-        revision = system.revisions.select_related("created_by").prefetch_related("observables", "references").get(revision_number=revision_number)
+        revision = (
+            system.revisions.select_related("created_by")
+            .prefetch_related("observables", "references")
+            .get(revision_number=revision_number)
+        )
     except system.revisions.model.DoesNotExist as exc:
         raise Http404 from exc
     return render(
@@ -429,65 +521,186 @@ def system_revision_detail(request, workspace_slug: str, project_id, project_slu
 
 
 @login_required
-def system_settings(request, workspace_slug: str, project_id, project_slug: str, system_id, system_slug: str):
+def system_settings(
+    request,
+    workspace_slug: str,
+    project_id,
+    project_slug: str,
+    system_id,
+    system_slug: str,
+):
     membership, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
-    system = get_system_or_404(user=request.user, project=project, system_id=system_id, system_slug=system_slug)
+    system = get_system_or_404(
+        user=request.user,
+        project=project,
+        system_id=system_id,
+        system_slug=system_slug,
+    )
     if not can_edit_system_identity(request.user, system):
         raise PermissionDenied
     form = SystemIdentityForm(request.POST or None, instance=system)
     if request.method == "POST" and form.is_valid():
         try:
-            system = update_system_identity(actor=request.user, system=system, name=form.cleaned_data["name"], description=form.cleaned_data["description"])
+            system = update_system_identity(
+                actor=request.user,
+                system=system,
+                name=form.cleaned_data["name"],
+                description=form.cleaned_data["description"],
+            )
         except ValidationError as exc:
             _add_validation_error(form, exc)
         else:
-            messages.success(request, _("System settings updated. Scientific revisions were not changed."))
-            return redirect("systems:settings", workspace_slug=project.workspace.slug, project_id=project.pk, project_slug=project.slug, system_id=system.pk, system_slug=system.slug)
-    return render(request, "systems/settings.html", _system_context(membership, project, system, active_system_section="settings", form=form))
+            messages.success(
+                request,
+                _("System settings updated. Scientific revisions were not changed."),
+            )
+            return redirect(
+                "systems:settings",
+                workspace_slug=project.workspace.slug,
+                project_id=project.pk,
+                project_slug=project.slug,
+                system_id=system.pk,
+                system_slug=system.slug,
+            )
+    return render(
+        request,
+        "systems/settings.html",
+        _system_context(
+            membership,
+            project,
+            system,
+            active_system_section="settings",
+            form=form,
+        ),
+    )
 
 
 @login_required
-def system_duplicate(request, workspace_slug: str, project_id, project_slug: str, system_id, system_slug: str):
+def system_duplicate(
+    request,
+    workspace_slug: str,
+    project_id,
+    project_slug: str,
+    system_id,
+    system_slug: str,
+):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
-    membership, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
-    system = get_system_or_404(user=request.user, project=project, system_id=system_id, system_slug=system_slug)
+    _membership, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
+    system = get_system_or_404(
+        user=request.user,
+        project=project,
+        system_id=system_id,
+        system_slug=system_slug,
+    )
     clone = duplicate_system(actor=request.user, system=system)
     messages.success(request, _("System duplicated."))
-    return redirect("systems:detail", workspace_slug=project.workspace.slug, project_id=project.pk, project_slug=project.slug, system_id=clone.pk, system_slug=clone.slug)
+    return redirect(
+        "systems:detail",
+        workspace_slug=project.workspace.slug,
+        project_id=project.pk,
+        project_slug=project.slug,
+        system_id=clone.pk,
+        system_slug=clone.slug,
+    )
 
 
 @login_required
-def system_archive(request, workspace_slug: str, project_id, project_slug: str, system_id, system_slug: str):
+def system_archive(
+    request,
+    workspace_slug: str,
+    project_id,
+    project_slug: str,
+    system_id,
+    system_slug: str,
+):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
-    membership, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
-    system = get_system_or_404(user=request.user, project=project, system_id=system_id, system_slug=system_slug)
+    _membership, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
+    system = get_system_or_404(
+        user=request.user,
+        project=project,
+        system_id=system_id,
+        system_slug=system_slug,
+    )
     archived = archive_system(actor=request.user, system=system)
     messages.success(request, _("System archived."))
-    return redirect("systems:detail", workspace_slug=project.workspace.slug, project_id=project.pk, project_slug=project.slug, system_id=archived.pk, system_slug=archived.slug)
+    return redirect(
+        "systems:detail",
+        workspace_slug=project.workspace.slug,
+        project_id=project.pk,
+        project_slug=project.slug,
+        system_id=archived.pk,
+        system_slug=archived.slug,
+    )
 
 
 @login_required
-def system_restore(request, workspace_slug: str, project_id, project_slug: str, system_id, system_slug: str):
+def system_restore(
+    request,
+    workspace_slug: str,
+    project_id,
+    project_slug: str,
+    system_id,
+    system_slug: str,
+):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
-    membership, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
-    system = get_system_or_404(user=request.user, project=project, system_id=system_id, system_slug=system_slug)
+    _membership, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
+    system = get_system_or_404(
+        user=request.user,
+        project=project,
+        system_id=system_id,
+        system_slug=system_slug,
+    )
     restored = restore_system(actor=request.user, system=system)
     messages.success(request, _("System restored."))
-    return redirect("systems:detail", workspace_slug=project.workspace.slug, project_id=project.pk, project_slug=project.slug, system_id=restored.pk, system_slug=restored.slug)
+    return redirect(
+        "systems:detail",
+        workspace_slug=project.workspace.slug,
+        project_id=project.pk,
+        project_slug=project.slug,
+        system_id=restored.pk,
+        system_slug=restored.slug,
+    )
 
 
 @login_required
-def system_delete(request, workspace_slug: str, project_id, project_slug: str, system_id, system_slug: str):
+def system_delete(
+    request,
+    workspace_slug: str,
+    project_id,
+    project_slug: str,
+    system_id,
+    system_slug: str,
+):
     membership, project = _membership_and_project(request, workspace_slug, project_id, project_slug)
-    system = get_system_or_404(user=request.user, project=project, system_id=system_id, system_slug=system_slug)
+    system = get_system_or_404(
+        user=request.user,
+        project=project,
+        system_id=system_id,
+        system_slug=system_slug,
+    )
     if not can_delete_system(request.user, system):
         raise PermissionDenied
     form = DeleteSystemForm(request.POST or None, system_name=system.name)
     if request.method == "POST" and form.is_valid():
         delete_system(actor=request.user, system=system)
         messages.success(request, _("System permanently deleted."))
-        return redirect("systems:project-list", workspace_slug=project.workspace.slug, project_id=project.pk, project_slug=project.slug)
-    return render(request, "systems/delete.html", _system_context(membership, project, system, active_system_section="settings", form=form))
+        return redirect(
+            "systems:project-list",
+            workspace_slug=project.workspace.slug,
+            project_id=project.pk,
+            project_slug=project.slug,
+        )
+    return render(
+        request,
+        "systems/delete.html",
+        _system_context(
+            membership,
+            project,
+            system,
+            active_system_section="settings",
+            form=form,
+        ),
+    )
