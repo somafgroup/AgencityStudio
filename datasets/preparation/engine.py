@@ -297,9 +297,8 @@ def _validate_step_shape(step: dict) -> None:
         window = _positive_int(parameters.get("window_samples"), "Window size")
         if window < 3 or window % 2 == 0:
             raise PreparationError("Moving-average window must be an odd integer of at least 3 samples.")
-    elif operation == "unit_conversion":
-        if not str(parameters.get("target_unit", "")).strip():
-            raise PreparationError("Unit conversion requires a target unit.")
+    elif operation == "unit_conversion" and not str(parameters.get("target_unit", "")).strip():
+        raise PreparationError("Unit conversion requires a target unit.")
 
 
 def validate_recipe_metadata(recipe: list[dict], columns: list[dict]) -> list[dict]:
@@ -331,7 +330,7 @@ def validate_recipe_metadata(recipe: list[dict], columns: list[dict]) -> list[di
 
 def recipe_fingerprint(source_sha256: str, recipe: list[dict]) -> str:
     canonical = json.dumps(recipe, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    payload = f"{source_sha256}\n{ENGINE_ID}\n{ENGINE_VERSION}\n{canonical}".encode("utf-8")
+    payload = f"{source_sha256}\n{ENGINE_ID}\n{ENGINE_VERSION}\n{canonical}".encode()
     return hashlib.sha256(payload).hexdigest()
 
 
@@ -546,7 +545,7 @@ def _apply_resample(table: PreparedTable, parameters: dict) -> list[dict]:
     if mode.startswith("datetime") and declared_dt_unit.lower() not in {"", "s", "sec", "second", "seconds"}:
         raise PreparationError("Datetime resampling target dt is expressed in seconds.")
     span = float(x[-1] - x[0])
-    count = int(math.floor(span / dt + 1e-12)) + 1
+    count = math.floor(span / dt + 1e-12) + 1
     if count < 2:
         raise PreparationError("Target dt is too large to produce at least two samples.")
     grid = x[0] + np.arange(count, dtype=float) * dt
@@ -731,7 +730,10 @@ def _csv_value(value: object) -> object:
 
 def csv_chunks(table: PreparedTable):
     """Yield deterministic UTF-8 CSV bytes without altering scientific cell content."""
-    headers = [str(column.get("display_name") or f"Column {index}") for index, column in enumerate(table.columns, 1)]
+    headers = [
+        str(column.get("display_name") or f"Column {index}")
+        for index, column in enumerate(table.columns, 1)
+    ]
     buffer = io.StringIO(newline="")
     writer = csv.writer(buffer, delimiter=",", lineterminator="\n")
     writer.writerow(headers)
