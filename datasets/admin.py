@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from .models import Dataset, DatasetColumn, DatasetVersion
+from .models import (
+    DataPreparation,
+    Dataset,
+    DatasetColumn,
+    DatasetVersion,
+    PreparedDataArtifact,
+)
 
 
 class DatasetVersionInline(admin.TabularInline):
@@ -107,6 +113,69 @@ class DatasetColumnAdmin(admin.ModelAdmin):
         "non_numeric_count",
         "non_finite_count",
         "summary",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(DataPreparation)
+class DataPreparationAdmin(admin.ModelAdmin):
+    list_display = ("name", "source_version", "status", "created_by", "created_at")
+    list_filter = ("status",)
+    search_fields = ("name", "source_version__dataset__name", "recipe_hash")
+    list_select_related = ("source_version", "source_version__dataset", "created_by")
+    readonly_fields = (
+        "id",
+        "source_version",
+        "status",
+        "recipe",
+        "recipe_hash",
+        "engine_id",
+        "engine_version",
+        "studio_version",
+        "python_version",
+        "dependency_versions",
+        "execution_metadata",
+        "warnings",
+        "failure_summary",
+        "created_by",
+        "created_at",
+        "updated_at",
+        "queued_at",
+        "started_at",
+        "finished_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(PreparedDataArtifact)
+class PreparedDataArtifactAdmin(admin.ModelAdmin):
+    list_display = ("preparation", "prepared_sha256", "row_count", "column_count", "created_at")
+    search_fields = ("preparation__name", "prepared_sha256")
+    list_select_related = ("preparation", "preparation__source_version")
+    readonly_fields = (
+        "id",
+        "preparation",
+        "storage_path",
+        "output_format",
+        "media_type",
+        "size_bytes",
+        "prepared_sha256",
+        "row_count",
+        "column_count",
+        "column_metadata",
+        "inspection_summary",
+        "quality_issues",
+        "created_at",
     )
 
     def has_add_permission(self, request):
