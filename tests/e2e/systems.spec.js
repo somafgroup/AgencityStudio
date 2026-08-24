@@ -108,7 +108,7 @@ test('new scientific revision changes tau while Revision 1 remains immutable', a
   await createProject(page);
   await createSystem(page);
 
-  await page.getByRole('link', { name: 'Revise scientific context', exact: true }).click();
+  await page.getByRole('link', { name: 'Create revision', exact: true }).click();
   await page.getByLabel('tau value', { exact: true }).fill('1.1');
   await page.getByLabel('Reason for this revision', { exact: true }).fill('Updated after calibration CAL-2026-022.');
   await page.getByRole('button', { name: 'Review', exact: true }).click();
