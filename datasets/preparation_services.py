@@ -99,6 +99,11 @@ def _clean_name(name: str) -> str:
     return clean
 
 
+def _derived_name(template: str, source_name: str) -> str:
+    """Build a translated derived name without exceeding the model contract."""
+    return _clean_name((template % {"name": source_name})[:180])
+
+
 def _locked_preparation(preparation_id) -> DataPreparation:
     return (
         DataPreparation.objects.select_for_update()
@@ -291,7 +296,7 @@ def duplicate_preparation(*, actor, preparation: DataPreparation) -> DataPrepara
         raise PermissionDenied
     clone = DataPreparation.objects.create(
         source_version=source.source_version,
-        name=_clean_name(_("Copy of %(name)s") % {"name": source.name}),
+        name=_derived_name(_("Copy of %(name)s"), source.name),
         description=source.description,
         recipe=list(source.recipe),
         recipe_hash=recipe_fingerprint(source.source_version.source_sha256, list(source.recipe)),
@@ -309,7 +314,7 @@ def duplicate_preparation(*, actor, preparation: DataPreparation) -> DataPrepara
 def rerun_preparation(*, actor, preparation: DataPreparation) -> DataPreparation:
     """Create a new immutable run record with the same source and ordered recipe."""
     clone = duplicate_preparation(actor=actor, preparation=preparation)
-    clone.name = _clean_name(_("Re-run of %(name)s") % {"name": preparation.name})
+    clone.name = _derived_name(_("Re-run of %(name)s"), preparation.name)
     clone.save(update_fields=("name", "updated_at"))
     return run_preparation(actor=actor, preparation=clone)
 
