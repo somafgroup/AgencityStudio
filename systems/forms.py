@@ -95,7 +95,13 @@ class ScientificReferenceInputForm(forms.Form):
     title = forms.CharField(required=False, max_length=255, label=_("Reference title"), widget=forms.TextInput(attrs=INPUT))
     citation = forms.CharField(required=False, label=_("Citation"), widget=forms.Textarea(attrs={"class": "textarea", "rows": 2}))
     doi = forms.CharField(required=False, max_length=255, label=_("DOI"), widget=forms.TextInput(attrs=INPUT))
-    url = forms.URLField(required=False, max_length=500, label=_("URL"), widget=forms.URLInput(attrs=INPUT))
+    url = forms.URLField(
+        required=False,
+        max_length=500,
+        label=_("URL"),
+        assume_scheme="https",
+        widget=forms.URLInput(attrs=INPUT),
+    )
     notes = forms.CharField(required=False, label=_("Notes"), widget=forms.Textarea(attrs={"class": "textarea", "rows": 2}))
     supports_a_ref = forms.BooleanField(required=False, label=_("Supports A_ref"))
     supports_tau = forms.BooleanField(required=False, label=_("Supports tau"))
