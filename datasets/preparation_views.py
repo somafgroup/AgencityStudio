@@ -19,7 +19,7 @@ from workspaces.permissions import (
 )
 
 from .forms import DeletePreparationForm, PreparationCreateForm, PreparationStepForm
-from .models import DataPreparation, DataPreparationStatus, DatasetImportStatus, DatasetVersion
+from .models import DataPreparation, DataPreparationStatus, DatasetImportStatus
 from .preparation import OPERATION_LABELS
 from .preparation_services import (
     add_preparation_step,
@@ -107,7 +107,7 @@ def preparation_create(request, workspace_slug, project_id, project_slug, datase
     )
     version = _selected_version(request, dataset)
     if version is None or version.import_status != DatasetImportStatus.READY:
-        raise ValidationError(_("Select a successfully inspected source version before preparing data."))
+        raise Http404
     if not can_create_preparation(request.user, dataset):
         raise PermissionDenied
     form = PreparationCreateForm(request.POST or None)
