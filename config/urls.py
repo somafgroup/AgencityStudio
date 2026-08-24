@@ -18,6 +18,7 @@ urlpatterns = [
     # Preserve the Plan 1 global URL name while the Data Workspace also exposes datasets:list.
     path("datasets/", dataset_views.dataset_list, name="datasets"),
     path("", include("datasets.urls")),
+    path("", include("systems.urls")),
     path("", include("projects.urls")),
     path("admin/", admin.site.urls),
     path("analyses/", views.workspace_section, {"section": "analyses"}, name="analyses"),
