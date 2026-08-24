@@ -94,6 +94,12 @@ class ProjectActivityEvent(models.TextChoices):
     PREP_FAILED = "PREP_FAILED", _("Preparation failed")
     PREP_DUPLICATED = "PREP_DUPLICATED", _("Preparation duplicated")
     PREP_DELETED = "PREP_DELETED", _("Preparation deleted")
+    SYS_CREATED = "SYS_CREATED", _("System created")
+    SYS_REVISED = "SYS_REVISED", _("System revised")
+    SYS_DUPLICATED = "SYS_DUPLICATED", _("System duplicated")
+    SYS_ARCHIVED = "SYS_ARCHIVED", _("System archived")
+    SYS_RESTORED = "SYS_RESTORED", _("System restored")
+    SYS_DELETED = "SYS_DELETED", _("System deleted")
 
 
 class ProjectActivity(models.Model):
