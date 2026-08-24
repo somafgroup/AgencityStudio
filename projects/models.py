@@ -26,7 +26,7 @@ class ProjectQuerySet(models.QuerySet):
 
 
 class Project(models.Model):
-    """Workspace-owned container for future scientific datasets and analyses."""
+    """Workspace-owned container for scientific datasets and future analyses."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     workspace = models.ForeignKey(
@@ -88,6 +88,12 @@ class ProjectActivityEvent(models.TextChoices):
     DATASET_VERSION = "DATASET_VERSION", _("Dataset version added")
     DATASET_UPDATED = "DATASET_UPDATED", _("Dataset updated")
     DATASET_DELETED = "DATASET_DELETED", _("Dataset deleted")
+    PREP_CREATED = "PREP_CREATED", _("Preparation created")
+    PREP_STARTED = "PREP_STARTED", _("Preparation started")
+    PREP_READY = "PREP_READY", _("Preparation completed")
+    PREP_FAILED = "PREP_FAILED", _("Preparation failed")
+    PREP_DUPLICATED = "PREP_DUPLICATED", _("Preparation duplicated")
+    PREP_DELETED = "PREP_DELETED", _("Preparation deleted")
 
 
 class ProjectActivity(models.Model):

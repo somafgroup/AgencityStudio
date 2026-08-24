@@ -1,0 +1,12 @@
+{% extends "datasets/base.html" %}{% load i18n %}
+{% block dataset_content %}
+<section class="mx-auto max-w-3xl card">
+  <header><h2 class="section-title">{% translate "New data preparation" %}</h2><p class="muted mt-1 text-sm">{% blocktranslate with version=version.version_number %}This draft is pinned to original Dataset version {{ version }}. Changing the Dataset current version later will not change this preparation.{% endblocktranslate %}</p></header>
+  <dl class="mt-4 grid gap-3 rounded-lg border p-4 text-sm"><div><dt class="muted text-xs uppercase tracking-wide">{% translate "Original SHA-256" %}</dt><dd class="mt-1 break-all font-mono text-xs">{{ version.source_sha256 }}</dd></div><div><dt class="muted text-xs uppercase tracking-wide">{% translate "Rows / columns" %}</dt><dd>{{ version.row_count }} / {{ version.column_count }}</dd></div></dl>
+  <form method="post" class="mt-5 space-y-4" novalidate>{% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}<div class="form-field"><label for="{{ field.id_for_label }}" class="label">{{ field.label }}</label>{{ field }}{% if field.help_text %}<p class="help-text">{{ field.help_text }}</p>{% endif %}{% for error in field.errors %}<p class="validation-error">{{ error }}</p>{% endfor %}</div>{% endfor %}
+    <div class="flex flex-wrap gap-3"><button class="btn btn-primary" type="submit">{% translate "Create preparation" %}</button><a class="btn btn-ghost" href="{% url 'datasets:preparation-list' workspace.slug project.id project.slug dataset.id dataset.slug %}?version={{ version.id }}">{% translate "Cancel" %}</a></div>
+  </form>
+</section>
+{% endblock %}

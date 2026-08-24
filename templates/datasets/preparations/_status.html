@@ -1,0 +1,4 @@
+{% load i18n %}
+<div id="preparation-status" {% if preparation.status == 'QUEUED' or preparation.status == 'PROCESSING' %}hx-get="{% url 'datasets:preparation-status' workspace.slug project.id project.slug dataset.id dataset.slug preparation.id %}" hx-trigger="every 1s" hx-swap="outerHTML"{% endif %}>
+  <div class="flex flex-wrap items-center gap-2"><span class="badge">{{ preparation.get_status_display|upper }}</span>{% if preparation.status == 'QUEUED' %}<span class="muted text-sm">{% translate "Waiting for a worker." %}</span>{% elif preparation.status == 'PROCESSING' %}<span class="muted text-sm">{% translate "Applying the ordered recipe and materializing the result." %}</span>{% elif preparation.status == 'READY' %}<span class="muted text-sm">{% translate "Immutable prepared result is ready." %}</span>{% elif preparation.status == 'FAILED' %}<span class="text-sm">{{ preparation.failure_summary }}</span>{% endif %}</div>
+</div>
