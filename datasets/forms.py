@@ -209,9 +209,12 @@ class PreparationStepForm(forms.Form):
             self._require(name)
         if operation == "missing_values" and cleaned.get("missing_action") == "interpolate_linear":
             self._require("coordinate_column")
-        if operation == "moving_average" and cleaned.get("window_samples"):
-            if cleaned["window_samples"] % 2 == 0:
-                self.add_error("window_samples", _("Use an odd number of samples."))
+        if (
+            operation == "moving_average"
+            and cleaned.get("window_samples")
+            and cleaned["window_samples"] % 2 == 0
+        ):
+            self.add_error("window_samples", _("Use an odd number of samples."))
         if operation == "resample" and cleaned.get("target_dt") == 0:
             self.add_error("target_dt", _("Target dt must be greater than zero."))
         return cleaned
