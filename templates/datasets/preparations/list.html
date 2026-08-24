@@ -1,0 +1,15 @@
+{% extends "datasets/base.html" %}{% load i18n %}
+{% block dataset_content %}
+<section class="card">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div><h2 class="section-title">{% translate "Prepared data" %}</h2><p class="muted mt-1 text-sm">{% translate "Create explicit, reproducible transformations from one pinned original Dataset version. Original source bytes are never modified." %}</p></div>
+    {% if can_create_preparation and version %}<a class="btn btn-primary" href="{% url 'datasets:preparation-create' workspace.slug project.id project.slug dataset.id dataset.slug %}?version={{ version.id }}"><i data-lucide="wand-sparkles"></i>{% translate "New preparation" %}</a>{% endif %}
+  </div>
+  {% if version %}<div class="alert alert-info mt-4"><strong>{% translate "Pinned source for new preparation:" %}</strong> v{{ version.version_number }} · <span class="font-mono text-xs">{{ version.source_sha256 }}</span></div>{% endif %}
+  {% if preparations %}
+  <div class="table-wrap mt-5"><table class="table"><thead><tr><th scope="col">{% translate "Preparation" %}</th><th scope="col">{% translate "Source" %}</th><th scope="col">{% translate "Status" %}</th><th scope="col">{% translate "Created" %}</th></tr></thead><tbody>
+  {% for item in preparations %}<tr><td><a class="font-semibold" href="{% url 'datasets:preparation-detail' workspace.slug project.id project.slug dataset.id dataset.slug item.id %}">{{ item.name }}</a><div class="muted text-xs">{{ item.recipe|length }} {% translate "steps" %}</div></td><td>v{{ item.source_version.version_number }}</td><td><span class="badge">{{ item.get_status_display }}</span></td><td class="muted">{{ item.created_at|date:"SHORT_DATETIME_FORMAT" }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}{% include "components/empty_state.html" with title="No prepared data yet" description="Create a preparation only when you explicitly want to transform this immutable source." %}{% endif %}
+</section>
+{% endblock %}
