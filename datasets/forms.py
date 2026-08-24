@@ -185,7 +185,7 @@ class PreparationStepForm(forms.Form):
 
     def _require(self, name):
         value = self.cleaned_data.get(name)
-        if value in {None, "", []}:
+        if value is None or value == "" or value == []:
             self.add_error(name, _("This value is required for the selected transformation."))
         return value
 
@@ -212,6 +212,8 @@ class PreparationStepForm(forms.Form):
         if operation == "moving_average" and cleaned.get("window_samples"):
             if cleaned["window_samples"] % 2 == 0:
                 self.add_error("window_samples", _("Use an odd number of samples."))
+        if operation == "resample" and cleaned.get("target_dt") == 0:
+            self.add_error("target_dt", _("Target dt must be greater than zero."))
         return cleaned
 
     def step(self) -> dict:
