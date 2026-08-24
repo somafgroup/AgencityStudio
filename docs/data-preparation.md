@@ -18,6 +18,8 @@ A preparation always references one exact `DatasetVersion`. It never references 
 
 The original source path, exact source bytes, import metadata and `source_sha256` are never changed by a preparation.
 
+A PreparedDataArtifact is still data, not a System. Plan 6 does not automatically attach a prepared artifact to a System or infer a System observable from prepared column metadata. Future Analysis configuration will select an exact DatasetVersion or PreparedDataArtifact together with an exact SystemRevision and explicit observable mapping.
+
 ## Recipe contract
 
 Recipes are ordered JSON structures. Order is part of provenance because operations are not generally commutative. The recipe fingerprint is derived from:
@@ -53,11 +55,11 @@ Filtering is deliberately not included in the final Plan 5 scope. A frequency-do
 
 Linear interpolation requires a strictly increasing coordinate without duplicates. Studio does not silently choose which duplicate timestamp to keep. Missing values at the edges are not extrapolated.
 
-Resampling requires a strictly increasing time axis. `target_dt` is a sampling interval only. It is not `tau` and it is not the CRM memory window `w`. Studio never derives either quantity from sampling.
+Resampling requires a strictly increasing time axis. `target_dt` is a sampling interval only. It is not `tau` and it is not the CRM memory window `w`. Studio never derives either quantity from sampling. Plan 6 System revisions document `tau` and `w` independently from the prepared-data acquisition grid.
 
 Moving-average smoothing is never automatic and records its target columns, window length and boundary behaviour.
 
-Unit conversion preserves the original unit in source metadata and changes the unit only on the prepared result. Unknown or dimensionally incompatible units are rejected rather than guessed.
+Unit conversion preserves the original unit in source metadata and changes the unit only on the prepared result. The same Pint dependency is reused by Plan 6 for dimensional validation of known System units, but preparation conversion and System-context validation remain separate operations. Neither layer guesses an unknown unit.
 
 ## Materialization
 
@@ -71,7 +73,7 @@ The current execution engine is intentionally bounded by `DATA_PREPARATION_MAX_R
 
 The prepared result receives a new inspection snapshot including row/column counts, missing/non-finite values and time-axis quality information when applicable. Raw `DatasetVersion` quality findings remain untouched.
 
-A successful preparation does not imply that data are automatically valid for an Agencity analysis. Future System and Analysis contracts must still define the observable and physical/contextual parameters.
+A successful preparation does not imply that data are automatically valid for an Agencity analysis. A SystemRevision must separately document the observable meaning and physical/contextual parameters, and future Analysis configuration must explicitly associate that revision with the selected prepared data.
 
 ## Provenance
 
@@ -91,6 +93,8 @@ A preparation records:
 - prepared column metadata and quality inspection.
 
 AgencityLab version remains part of the overall Studio environment, but the preparation provenance does not claim that AgencityLab executed these generic Studio transformations.
+
+System scientific provenance is separate. For example, a preparation may record resampling to `dt=0.01 s`, while a SystemRevision separately records `tau=0.8 s`, its physical origin and justification. Neither provenance stream overwrites the other.
 
 ## Permissions
 
@@ -127,4 +131,6 @@ beta
 b
 ```
 
-In particular, statistical normalization is not used to imitate the canonical normalization `u* = u / A_ref`. Physical/contextual parameter definition belongs to the future Systems and Scientific Context layer.
+In particular, statistical normalization is not used to imitate canonical normalization. Plan 6 now owns the explicit documentation of `A_ref`, `tau`, `w` and `P_c` through immutable SystemRevisions; preparation still does not calculate, suggest or override them.
+
+The future Analysis layer will be the first place where data and a SystemRevision are deliberately combined for AgencityLab execution. Plan 6 does not create that association or execute the pipeline.
