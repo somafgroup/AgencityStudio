@@ -47,6 +47,28 @@ async function waitForReady(page) {
   await expect(status.getByText('READY', { exact: true })).toBeVisible({ timeout: 15000 });
 }
 
+async function importPreparedFixture(page) {
+  await openProjectDatasets(page);
+  await startDatasetImport(page);
+  await page.getByLabel(/^Name/).fill('Preparation signal');
+  const source = 'time,velocity\n0.00,0.0\n0.01,3.6\n0.02,\n0.03,10.8\n0.04,14.4\n';
+  await page.getByLabel('Dataset file', { exact: true }).setInputFiles({
+    name: 'preparation.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(source),
+  });
+  await page.getByRole('button', { name: 'Store and inspect', exact: true }).click();
+  await waitForReady(page);
+  await openDatasetSection(page, 'Columns');
+  await page.getByLabel('Role for time', { exact: true }).selectOption('TIME');
+  await page.getByLabel('Unit for time', { exact: true }).fill('s');
+  await page.getByLabel('Role for velocity', { exact: true }).selectOption('OBSERVABLE');
+  await page.getByLabel('Unit for velocity', { exact: true }).fill('km/h');
+  await page.getByRole('button', { name: 'Save column annotations', exact: true }).click();
+  await openDatasetSection(page, 'Overview');
+  await waitForReady(page);
+}
+
 test('raw CSV import is inspected annotated confirmed and remains downloadable', async ({ page }, testInfo) => {
   await signUp(page, retrySafeEmail('dataset-owner', testInfo));
   await createProject(page);
@@ -94,6 +116,41 @@ test('raw CSV import is inspected annotated confirmed and remains downloadable',
   await page.getByRole('link', { name: 'Download exact original', exact: true }).click();
   const downloaded = await download;
   expect(downloaded.suggestedFilename()).toBe('rotor.csv');
+});
+
+test('explicit preparation preserves raw source and materializes provenance', async ({ page }, testInfo) => {
+  await signUp(page, retrySafeEmail('preparation-owner', testInfo));
+  await createProject(page);
+  await importPreparedFixture(page);
+
+  await openDatasetSection(page, 'Prepare');
+  await page.getByRole('link', { name: 'New preparation', exact: true }).click();
+  await page.getByLabel('Preparation name', { exact: true }).fill('Analysis-ready view');
+  await page.getByRole('button', { name: 'Create preparation', exact: true }).click();
+
+  await page.getByLabel('Transformation', { exact: true }).selectOption('time_crop');
+  await page.getByLabel('Time column', { exact: true }).selectOption({ label: 'time' });
+  await page.getByLabel('Start', { exact: true }).fill('0.01');
+  await page.getByLabel('End', { exact: true }).fill('0.04');
+  await page.getByRole('button', { name: 'Add transformation', exact: true }).click();
+
+  await page.getByLabel('Transformation', { exact: true }).selectOption('missing_values');
+  await page.getByLabel('Target columns', { exact: true }).selectOption({ label: 'velocity' });
+  await page.getByLabel('Missing-value treatment', { exact: true }).selectOption('interpolate_linear');
+  await page.getByLabel('Interpolation coordinate', { exact: true }).selectOption({ label: 'time' });
+  await page.getByRole('button', { name: 'Add transformation', exact: true }).click();
+
+  await page.getByRole('button', { name: 'Review complete — run preparation', exact: true }).click();
+  const status = page.locator('#preparation-status');
+  await expect(status.getByText('READY', { exact: true })).toBeVisible({ timeout: 20000 });
+  await page.reload();
+  await expect(page.getByText('Prepared SHA-256', { exact: true })).toBeVisible();
+  await expect(page.getByText('Original SHA-256', { exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '4', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Preview result', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Prepared preview', exact: true })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'velocity', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '7.2', exact: true })).toBeVisible();
 });
 
 test('malformed XLSX produces a friendly failed import state', async ({ page }, testInfo) => {
