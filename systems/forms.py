@@ -24,6 +24,10 @@ class SystemIdentityForm(forms.ModelForm):
     class Meta:
         model = System
         fields = ("name", "description")
+        labels = {
+            "name": _("System name"),
+            "description": _("Organisational description"),
+        }
         widgets = {
             "name": forms.TextInput(attrs={**INPUT, "autocomplete": "off"}),
             "description": forms.Textarea(attrs=TEXTAREA),
