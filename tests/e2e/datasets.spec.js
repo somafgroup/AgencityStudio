@@ -150,7 +150,11 @@ test('explicit preparation preserves raw source and materializes provenance', as
   await page.getByRole('link', { name: 'Preview result', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Prepared preview', exact: true })).toBeVisible();
   await expect(page.getByRole('columnheader', { name: 'velocity', exact: true })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '7.2', exact: true })).toBeVisible();
+  const interpolatedRow = page.getByRole('row').filter({
+    has: page.getByRole('cell', { name: '0.02', exact: true }),
+  });
+  const interpolatedValue = await interpolatedRow.getByRole('cell').nth(1).textContent();
+  expect(Number(interpolatedValue)).toBeCloseTo(7.2, 12);
 });
 
 test('malformed XLSX produces a friendly failed import state', async ({ page }, testInfo) => {
