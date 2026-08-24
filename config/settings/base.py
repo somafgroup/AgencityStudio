@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "accounts",
     "workspaces",
     "projects",
+    "datasets",
     "common",
     "labbridge",
 ]
@@ -116,6 +117,14 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+DATASET_STORAGE_ROOT = Path(os.getenv("DATASET_STORAGE_ROOT", str(BASE_DIR / "storage"))).resolve()
+DATASET_MAX_UPLOAD_BYTES = int(os.getenv("DATASET_MAX_UPLOAD_BYTES", str(100 * 1024 * 1024)))
+DATASET_MAX_PASTE_BYTES = int(os.getenv("DATASET_MAX_PASTE_BYTES", str(2 * 1024 * 1024)))
+DATASET_PREVIEW_PAGE_SIZE = int(os.getenv("DATASET_PREVIEW_PAGE_SIZE", "50"))
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(2_621_440)))
+if DATASET_MAX_UPLOAD_BYTES <= 0 or DATASET_MAX_PASTE_BYTES <= 0:
+    raise ImproperlyConfigured("Dataset upload limits must be positive integers.")
 
 LANGUAGE_CODE = "en"
 LANGUAGES = [("en", "English"), ("fr", "Français")]

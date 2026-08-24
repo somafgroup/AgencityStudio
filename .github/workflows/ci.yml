@@ -38,6 +38,7 @@ jobs:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
       REDIS_URL: redis://localhost:6379/0
+      DATASET_STORAGE_ROOT: ${{ github.workspace }}/storage
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -53,9 +54,9 @@ jobs:
       - name: Frontend build
         run: npm run build
       - name: Python quality
-        run: ruff check accounts config common labbridge projects workspaces tests
+        run: ruff check accounts config common datasets labbridge projects workspaces tests
       - name: Compile Python
-        run: python -m compileall accounts config common labbridge projects workspaces tests
+        run: python -m compileall accounts config common datasets labbridge projects workspaces tests
       - name: Django checks
         run: python manage.py check
       - name: Production Django checks
@@ -78,13 +79,15 @@ jobs:
         run: python manage.py collectstatic --noinput
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
-      - name: Start application
+      - name: Start worker and application
         run: |
-          rm -rf .emails
-          mkdir -p .emails
+          rm -rf .emails storage
+          mkdir -p .emails storage
+          celery -A config worker --loglevel=WARNING --concurrency=1 > /tmp/agencitystudio-worker.log 2>&1 &
           uvicorn config.asgi:application --host 127.0.0.1 --port 8000 > /tmp/agencitystudio.log 2>&1 &
           for i in {1..20}; do curl --fail --silent http://127.0.0.1:8000/health/ready/ && exit 0; sleep 1; done
           cat /tmp/agencitystudio.log
+          cat /tmp/agencitystudio-worker.log
           exit 1
       - name: Playwright smoke
         run: npm run test:e2e

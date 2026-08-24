@@ -10,6 +10,8 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
+    volumes:
+      - dataset_storage:/app/storage
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')"]
       interval: 10s
@@ -25,6 +27,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - dataset_storage:/app/storage
 
   postgres:
     image: postgres:17
@@ -50,3 +54,4 @@ services:
 
 volumes:
   postgres_data:
+  dataset_storage:
