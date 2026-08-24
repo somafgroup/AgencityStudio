@@ -2,7 +2,8 @@ import uuid
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.urls import reverse
 
 from labbridge.scientific_context import inspect_public_context_contract
@@ -12,7 +13,6 @@ from systems.models import (
     ObservableDefinition,
     RevisionDocumentationStatus,
     System,
-    SystemRevision,
 )
 from systems.serialization import configuration_fingerprint
 from systems.services import (
@@ -319,7 +319,11 @@ def test_system_permissions_make_analyst_scientific_author_and_viewer_read_only(
     analyst = make_user("analyst@example.com")
     viewer = make_user("viewer@example.com")
     workspace = create_organisation_workspace(owner=owner, name="Permission Lab")
-    for user, role in ((editor, WorkspaceRole.EDITOR), (analyst, WorkspaceRole.ANALYST), (viewer, WorkspaceRole.VIEWER)):
+    for user, role in (
+        (editor, WorkspaceRole.EDITOR),
+        (analyst, WorkspaceRole.ANALYST),
+        (viewer, WorkspaceRole.VIEWER),
+    ):
         WorkspaceMembership.objects.create(user=user, workspace=workspace, role=role)
     project = make_project(owner, workspace)
     system = make_system(owner, project)
@@ -436,7 +440,7 @@ def test_database_prevents_two_primary_observables_in_one_revision():
     system = make_system(owner, project)
     revision = system.current_revision
 
-    with pytest.raises(Exception):
+    with pytest.raises(IntegrityError):
         ObservableDefinition.objects.create(
             revision=revision,
             position=2,
@@ -452,6 +456,13 @@ def test_labbridge_reflects_required_public_context_arguments_without_running_an
     contract = inspect_public_context_contract()
     assert contract.lab_version == "1.1.3"
     assert contract.compatible
-    assert {"A_ref", "tau", "w", "P_c", "unit", "domain", "mechanism", "system_type"}.issubset(
-        contract.available_arguments
-    )
+    assert {
+        "A_ref",
+        "tau",
+        "w",
+        "P_c",
+        "unit",
+        "domain",
+        "mechanism",
+        "system_type",
+    }.issubset(contract.available_arguments)
