@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import platform
-import uuid
-from importlib.metadata import PackageNotFoundError, version as package_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as package_version
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
@@ -40,6 +41,8 @@ from .preparation import (
     validate_recipe_metadata,
 )
 from .storage import dataset_storage
+
+logger = logging.getLogger(__name__)
 
 
 def _distribution_version(name: str) -> str:
@@ -331,7 +334,13 @@ def delete_preparation(*, actor, preparation: DataPreparation) -> None:
     )
     locked.delete()
     if artifact_path:
-        transaction.on_commit(lambda: dataset_storage().delete(artifact_path))
+        def cleanup() -> None:
+            try:
+                dataset_storage().delete(artifact_path)
+            except OSError:
+                logger.exception("preparation.storage_cleanup_failed path=%s", artifact_path)
+
+        transaction.on_commit(cleanup)
 
 
 def prepared_preview_page(
