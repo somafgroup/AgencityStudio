@@ -43,32 +43,32 @@ async function fillDocumentedSystem(page) {
   await page.getByLabel('Symbol', { exact: true }).first().fill('theta_rotor');
   await page.getByLabel('Unit', { exact: true }).first().fill('rad');
   await page.getByLabel('Observable kind', { exact: true }).first().fill('angle');
-  await page.getByLabel('Measurement nature', { exact: true }).first().selectOption('MEASUREMENT');
+  await page.getByLabel(/^Measurement nature/).first().selectOption('MEASUREMENT');
   await page.getByLabel('Measurement / simulation source', { exact: true }).first().fill('Encoder ENC-04');
   await page.getByLabel('Primary observable', { exact: true }).first().check();
 
   await page.getByLabel('A_ref value', { exact: true }).fill('1.2');
   await page.getByLabel('A_ref unit', { exact: true }).fill('rad');
-  await page.getByLabel('A_ref origin', { exact: true }).selectOption('CALIBRATION');
+  await page.getByLabel(/^A_ref origin/).selectOption('CALIBRATION');
   await page.getByLabel('A_ref source detail', { exact: true }).fill('CAL-2026-014');
   await page.getByLabel('A_ref justification', { exact: true }).fill('Reference amplitude from calibration.');
 
   await page.getByLabel('tau value', { exact: true }).fill('0.8');
   await page.getByLabel('tau unit', { exact: true }).fill('s');
-  await page.getByLabel('tau origin', { exact: true }).selectOption('CALIBRATION');
+  await page.getByLabel(/^tau origin/).selectOption('CALIBRATION');
   await page.getByLabel('tau source detail / mechanism', { exact: true }).fill('Mechanical relaxation measurement');
   await page.getByLabel('tau justification', { exact: true }).fill('Measured structural relaxation timescale.');
 
-  await page.getByLabel('Memory window w', { exact: true }).selectOption('EXPLICIT');
+  await page.getByLabel(/^Memory window w/).selectOption('EXPLICIT');
   await page.getByLabel('w value', { exact: true }).fill('0.8');
   await page.getByLabel('w unit', { exact: true }).fill('s');
-  await page.getByLabel('w origin', { exact: true }).selectOption('CONVENTION');
+  await page.getByLabel(/^w origin/).selectOption('CONVENTION');
   await page.getByLabel('w source detail', { exact: true }).fill('Explicit baseline');
   await page.getByLabel('w justification', { exact: true }).fill('Explicit CRM memory window for the reference configuration.');
 
   await page.getByLabel('P_c value', { exact: true }).fill('250');
   await page.getByLabel('P_c unit', { exact: true }).fill('W');
-  await page.getByLabel('P_c origin', { exact: true }).selectOption('MANUFACTURER');
+  await page.getByLabel(/^P_c origin/).selectOption('MANUFACTURER');
   await page.getByLabel('P_c source detail', { exact: true }).fill('MTR-04 datasheet');
   await page.getByLabel('P_c justification', { exact: true }).fill('Characteristic motor power from manufacturer specification.');
 
