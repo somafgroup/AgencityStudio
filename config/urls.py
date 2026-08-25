@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.decorators import login_required
 from django.urls import include, path
 
+from analyses import views as analysis_views
 from common import views
 from datasets import views as dataset_views
 
@@ -15,13 +16,13 @@ urlpatterns = [
     path("health/ready/", views.readiness, name="readiness"),
     path("accounts/", include("accounts.urls")),
     path("workspaces/", include("workspaces.urls")),
-    # Preserve the Plan 1 global URL name while the Data Workspace also exposes datasets:list.
     path("datasets/", dataset_views.dataset_list, name="datasets"),
+    path("analyses/", analysis_views.global_analysis_list, name="analyses"),
     path("", include("datasets.urls")),
     path("", include("systems.urls")),
+    path("", include("analyses.urls")),
     path("", include("projects.urls")),
     path("admin/", admin.site.urls),
-    path("analyses/", views.workspace_section, {"section": "analyses"}, name="analyses"),
     path("compare/", views.workspace_section, {"section": "compare"}, name="compare"),
     path("reports/", views.workspace_section, {"section": "reports"}, name="reports"),
     path("examples/", views.workspace_section, {"section": "examples"}, name="examples"),
