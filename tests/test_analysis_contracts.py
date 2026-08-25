@@ -17,10 +17,11 @@ from analyses.services import configure_analysis, create_analysis, queue_analysi
 from analyses.tasks import execute_analysis_run
 from analyses.validation import PreflightError, validate_sample_contract, validate_units
 from labbridge.execution import CanonicalLabError, execute_canonical_analysis
-from projects.services import delete_project
+from projects.services import create_project, delete_project
 from systems.models import MemoryWindowMode, SystemRevision
 from tests.test_analyses import _project_and_system, _raw_source, _user
 from workspaces.models import WorkspaceMembership, WorkspaceRole
+from workspaces.services import create_organisation_workspace
 
 
 def _signal():
@@ -128,7 +129,8 @@ def test_unspecified_w_lab_rejection_marks_run_failed_without_result(tmp_path, m
 @pytest.mark.django_db
 def test_project_with_analysis_is_protected_from_hard_delete():
     owner = _user("project-protection@example.com")
-    _workspace, project, _revision, _observable = _project_and_system(owner)
+    workspace = create_organisation_workspace(owner=owner, name="Analysis retention")
+    project = create_project(actor=owner, workspace=workspace, name="Analysis retention project")
     Analysis.objects.create(project=project, name="Pinned analysis", created_by=owner)
 
     with pytest.raises(ValidationError, match="contains analyses"):
