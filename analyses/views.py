@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models import Prefetch
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils.translation import gettext as _
@@ -80,15 +81,25 @@ def _analysis_context(request, analysis, **extra):
     }
 
 
+def _analysis_list_queryset(queryset):
+    """Load latest-Run provenance without per-row source/System queries."""
+    run_queryset = AnalysisRun.objects.select_related(
+        "source_dataset_version__dataset",
+        "source_prepared_artifact__preparation",
+        "system_revision__system",
+    ).order_by("-run_number")
+    return queryset.select_related("project", "created_by").prefetch_related(
+        Prefetch("runs", queryset=run_queryset)
+    )
+
+
 @login_required
 def global_analysis_list(request):
     membership = _current_membership(request)
     analyses = Analysis.objects.none()
     if membership:
-        analyses = (
+        analyses = _analysis_list_queryset(
             Analysis.objects.for_workspace(membership.workspace)
-            .select_related("project", "created_by")
-            .prefetch_related("runs")
         )
     return render(
         request,
@@ -106,11 +117,7 @@ def global_analysis_list(request):
 @login_required
 def project_analysis_list(request, workspace_slug, project_id, project_slug):
     membership, project = _membership_project(request, workspace_slug, project_id, project_slug)
-    analyses = (
-        Analysis.objects.for_project(project)
-        .select_related("created_by")
-        .prefetch_related("runs")
-    )
+    analyses = _analysis_list_queryset(Analysis.objects.for_project(project))
     return render(
         request,
         "analyses/list.html",
