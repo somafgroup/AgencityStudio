@@ -33,7 +33,7 @@ async function openSystems(page) {
 async function fillDocumentedSystem(page) {
   await page.getByLabel(/^System name/).fill('Rotor MTR-04');
   await page.getByLabel('Organisational description', { exact: true }).fill('Rotor identity used across experiments.');
-  await page.getByLabel('Documentation status', { exact: true }).selectOption('DOCUMENTED');
+  await page.getByLabel(/^Documentation status/).selectOption('DOCUMENTED');
   await page.getByLabel('Domain', { exact: true }).fill('mechanics');
   await page.getByLabel('System type', { exact: true }).fill('rotating machine');
   await page.getByLabel('Physical/scientific mechanism', { exact: true }).fill('Rotational oscillation under load');
