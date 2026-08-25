@@ -21,7 +21,7 @@ from workspaces.permissions import (
 from workspaces.services import get_workspace_membership_or_404, workspace_memberships_for
 
 from .forms import AnalysisConfigurationForm, AnalysisStartForm
-from .models import Analysis, AnalysisRun, RunStatus
+from .models import Analysis, AnalysisResultArtifact, AnalysisRun, RunStatus
 from .services import (
     archive_analysis,
     cancel_analysis_run,
@@ -105,7 +105,11 @@ def global_analysis_list(request):
 @login_required
 def project_analysis_list(request, workspace_slug, project_id, project_slug):
     membership, project = _membership_project(request, workspace_slug, project_id, project_slug)
-    analyses = Analysis.objects.for_project(project).select_related("created_by").prefetch_related("runs")
+    analyses = (
+        Analysis.objects.for_project(project)
+        .select_related("created_by")
+        .prefetch_related("runs")
+    )
     return render(
         request,
         "analyses/list.html",
@@ -145,7 +149,14 @@ def analysis_create(request, workspace_slug, project_id, project_slug):
     return render(
         request,
         "analyses/start.html",
-        {"form": form, "project": project, "workspace": project.workspace, "active_nav": "projects", "active_project_section": "analyses", "page_title": _("New Analysis")},
+        {
+            "form": form,
+            "project": project,
+            "workspace": project.workspace,
+            "active_nav": "projects",
+            "active_project_section": "analyses",
+            "page_title": _("New Analysis"),
+        },
     )
 
 
@@ -160,7 +171,10 @@ def analysis_configure(request, analysis_id):
         messages.error(request, str(exc))
         return redirect("analysis:detail", analysis_id=analysis.pk)
     if request.method == "POST" and form.is_valid():
-        options = {key: form.cleaned_data[key] for key in ("domain", "mechanism", "system_type", "environment", "geometry")}
+        options = {
+            key: form.cleaned_data[key]
+            for key in ("domain", "mechanism", "system_type", "environment", "geometry")
+        }
         try:
             configure_analysis(
                 actor=request.user,
@@ -175,7 +189,11 @@ def analysis_configure(request, analysis_id):
             form.add_error(None, str(exc))
         else:
             return redirect("analysis:review", analysis_id=analysis.pk)
-    return render(request, "analyses/configure.html", _analysis_context(request, analysis, form=form))
+    return render(
+        request,
+        "analyses/configure.html",
+        _analysis_context(request, analysis, form=form),
+    )
 
 
 @login_required
@@ -194,23 +212,42 @@ def analysis_review(request, analysis_id):
         except (ValidationError, SourceContractError) as exc:
             messages.error(request, str(exc))
         else:
-            return redirect("analysis:run-detail", analysis_id=analysis.pk, run_id=run.pk)
-    return render(request, "analyses/review.html", _analysis_context(request, analysis, snapshot=snapshot))
+            return redirect(
+                "analysis:run-detail", analysis_id=analysis.pk, run_id=run.pk
+            )
+    return render(
+        request,
+        "analyses/review.html",
+        _analysis_context(request, analysis, snapshot=snapshot),
+    )
 
 
 @login_required
 def analysis_detail(request, analysis_id):
     analysis = get_analysis_or_404(user=request.user, analysis_id=analysis_id)
-    runs = analysis.runs.select_related("source_dataset_version__dataset", "source_prepared_artifact__preparation", "system_revision__system").order_by("-run_number")
-    return render(request, "analyses/detail.html", _analysis_context(request, analysis, runs=runs))
+    runs = analysis.runs.select_related(
+        "source_dataset_version__dataset",
+        "source_prepared_artifact__preparation",
+        "system_revision__system",
+    ).order_by("-run_number")
+    return render(
+        request,
+        "analyses/detail.html",
+        _analysis_context(request, analysis, runs=runs),
+    )
 
 
 def _run_or_404(user, analysis_id, run_id):
     analysis = get_analysis_or_404(user=user, analysis_id=analysis_id)
     try:
         run = AnalysisRun.objects.select_related(
-            "analysis", "analysis__project", "analysis__project__workspace", "system_revision__system", "system_observable",
-            "source_dataset_version__dataset", "source_prepared_artifact__preparation",
+            "analysis",
+            "analysis__project",
+            "analysis__project__workspace",
+            "system_revision__system",
+            "system_observable",
+            "source_dataset_version__dataset",
+            "source_prepared_artifact__preparation",
         ).get(pk=run_id, analysis=analysis)
     except AnalysisRun.DoesNotExist as exc:
         raise Http404 from exc
@@ -223,15 +260,19 @@ def run_detail(request, analysis_id, run_id):
     artifact = None
     artifact_available = False
     if run.status == RunStatus.COMPLETED:
-        try:
-            artifact = run.result_artifact
+        artifact = AnalysisResultArtifact.objects.filter(run=run).first()
+        if artifact is not None:
             artifact_available = analysis_storage().exists(artifact.storage_path)
-        except Exception:
-            artifact_available = False
     return render(
         request,
         "analyses/run_detail.html",
-        _analysis_context(request, analysis, run=run, artifact=artifact, artifact_available=artifact_available),
+        _analysis_context(
+            request,
+            analysis,
+            run=run,
+            artifact=artifact,
+            artifact_available=artifact_available,
+        ),
     )
 
 
@@ -285,4 +326,9 @@ def analysis_delete(request, analysis_id):
     project = analysis.project
     delete_analysis(actor=request.user, analysis=analysis)
     messages.success(request, _("Analysis deleted."))
-    return redirect("analysis:project-list", workspace_slug=project.workspace.slug, project_id=project.pk, project_slug=project.slug)
+    return redirect(
+        "analysis:project-list",
+        workspace_slug=project.workspace.slug,
+        project_id=project.pk,
+        project_slug=project.slug,
+    )
