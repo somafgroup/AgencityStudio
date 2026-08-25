@@ -23,15 +23,12 @@ logger = logging.getLogger(__name__)
 
 
 def _locked(run_id) -> AnalysisRun:
+    """Lock the Run row without outer-joining its mutually exclusive nullable sources."""
     return (
         AnalysisRun.objects.select_for_update()
         .select_related(
             "analysis",
             "analysis__project",
-            "source_dataset_version",
-            "source_dataset_version__dataset",
-            "source_prepared_artifact",
-            "source_prepared_artifact__preparation",
             "system_revision",
             "system_observable",
         )
