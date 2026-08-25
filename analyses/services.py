@@ -75,6 +75,19 @@ def _fingerprint(payload: dict) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def _next_run_number(analysis: Analysis) -> int:
+    latest = AnalysisRun.objects.filter(analysis=analysis).aggregate(value=Max("run_number"))[
+        "value"
+    ]
+    return (latest or 0) + 1
+
+
+def _enqueue(run_id) -> None:
+    from .tasks import execute_analysis_run
+
+    execute_analysis_run.delay(str(run_id))
+
+
 def get_analysis_or_404(*, user, analysis_id) -> Analysis:
     try:
         analysis = Analysis.objects.select_related(
@@ -230,10 +243,8 @@ def configure_analysis(
 def review_snapshot(analysis: Analysis) -> dict:
     config = dict(analysis.draft_configuration or {})
     raw, prepared, descriptor = _resolve_source(analysis, config)
-    revision = (
-        SystemRevision.objects.select_related("system")
-        .prefetch_related("observables")
-        .get(pk=config.get("system_revision_id"), system__project=analysis.project)
+    revision = SystemRevision.objects.select_related("system").get(
+        pk=config.get("system_revision_id"), system__project=analysis.project
     )
     observable_def = ObservableDefinition.objects.get(
         pk=config.get("system_observable_id"), revision=revision
@@ -259,9 +270,7 @@ def review_snapshot(analysis: Analysis) -> dict:
     }
 
 
-def _mapping_snapshot(
-    *, descriptor, coordinate: dict, observable: dict, system_observable
-) -> dict:
+def _mapping_snapshot(*, coordinate: dict, observable: dict, system_observable) -> dict:
     return {
         "time": {**coordinate},
         "observable": {
@@ -281,12 +290,6 @@ def _source_snapshot(descriptor) -> dict:
         "columns": descriptor.columns,
         "lineage": descriptor.lineage,
     }
-
-
-def _enqueue(run_id) -> None:
-    from .tasks import execute_analysis_run
-
-    execute_analysis_run.delay(str(run_id))
 
 
 @transaction.atomic
@@ -317,7 +320,6 @@ def queue_analysis_run(*, actor, analysis: Analysis) -> AnalysisRun:
             _("AgencityLab 1.1.3 is required for this Analysis contract.")
         )
     mapping = _mapping_snapshot(
-        descriptor=snapshot["descriptor"],
         coordinate=snapshot["coordinate"],
         observable=snapshot["observable"],
         system_observable=snapshot["system_observable"],
@@ -336,15 +338,9 @@ def queue_analysis_run(*, actor, analysis: Analysis) -> AnalysisRun:
         "agencitylab_version": context["agencitylab_version"],
         "result_schema_version": RESULT_SCHEMA_VERSION,
     }
-    run_number = (
-        AnalysisRun.objects.filter(analysis=locked).aggregate(value=Max("run_number"))[
-            "value"
-        ]
-        or 0
-    ) + 1
     run = AnalysisRun.objects.create(
         analysis=locked,
-        run_number=run_number,
+        run_number=_next_run_number(locked),
         status=RunStatus.QUEUED,
         source_type=snapshot["descriptor"].source_type,
         source_dataset_version=raw,
@@ -375,6 +371,83 @@ def queue_analysis_run(*, actor, analysis: Analysis) -> AnalysisRun:
     )
     transaction.on_commit(lambda: _enqueue(run.pk))
     return run
+
+
+@transaction.atomic
+def rerun_analysis_run(*, actor, run: AnalysisRun) -> AnalysisRun:
+    """Queue a new Run from an immutable historical Run, not the mutable Analysis draft."""
+    locked_analysis = (
+        Analysis.objects.select_for_update()
+        .select_related("project")
+        .get(pk=run.analysis_id)
+    )
+    if not can_run_analysis(actor, locked_analysis):
+        raise PermissionDenied
+    if locked_analysis.status != AnalysisStatus.ACTIVE:
+        raise ValidationError(_("Restore the Analysis before running it again."))
+    source_run = AnalysisRun.objects.select_related(
+        "source_dataset_version",
+        "source_prepared_artifact",
+        "system_revision",
+        "system_observable",
+    ).get(pk=run.pk, analysis=locked_analysis)
+    raw = source_run.source_dataset_version
+    prepared = source_run.source_prepared_artifact
+    descriptor = descriptor_for(dataset_version=raw) if raw else descriptor_for(prepared_artifact=prepared)
+    if descriptor.sha256 != source_run.source_sha256:
+        raise ValidationError(_("The pinned source hash no longer matches the historical Run."))
+    time_mapping = source_run.mapping_snapshot["time"]
+    observable_mapping = source_run.mapping_snapshot["observable"]
+    xi, u = materialize_vectors(
+        dataset_version=raw,
+        prepared_artifact=prepared,
+        coordinate_position=int(time_mapping["position"]),
+        observable_position=int(observable_mapping["position"]),
+    )
+    params = source_run.parameter_snapshot
+    validate_sample_contract(
+        xi,
+        u,
+        requested_w=params["w"].get("requested_value"),
+        tau=float(params["tau"]["value"]),
+    )
+    context = software_context()
+    if context["agencitylab_version"] != source_run.agencitylab_version:
+        raise ValidationError(
+            _("Exact rerun requires the same AgencityLab version as the historical Run."))
+        )
+    rerun = AnalysisRun.objects.create(
+        analysis=locked_analysis,
+        run_number=_next_run_number(locked_analysis),
+        status=RunStatus.QUEUED,
+        source_type=source_run.source_type,
+        source_dataset_version=raw,
+        source_prepared_artifact=prepared,
+        source_sha256=source_run.source_sha256,
+        source_snapshot=source_run.source_snapshot,
+        mapping_snapshot=source_run.mapping_snapshot,
+        system_revision=source_run.system_revision,
+        system_observable=source_run.system_observable,
+        system_configuration_fingerprint=source_run.system_configuration_fingerprint,
+        parameter_snapshot=source_run.parameter_snapshot,
+        analysis_options=source_run.analysis_options,
+        agencitylab_version=context["agencitylab_version"],
+        studio_version=context["studio_version"],
+        python_version=context["python_version"],
+        execution_fingerprint=source_run.execution_fingerprint,
+        warnings=[],
+        created_by=actor,
+        queued_at=timezone.now(),
+    )
+    _record(
+        locked_analysis,
+        actor=actor,
+        event="ANALYSIS_RUN_QUEUED",
+        detail=_("Queued exact rerun %(number)s from Run %(source)s.")
+        % {"number": rerun.run_number, "source": source_run.run_number},
+    )
+    transaction.on_commit(lambda: _enqueue(rerun.pk))
+    return rerun
 
 
 @transaction.atomic
