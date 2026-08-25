@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import os
+import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
@@ -21,6 +23,14 @@ class Storage(ABC):
     def save_chunks(self, name: str, chunks: Iterable[bytes]) -> tuple[str, int, str]:
         """Persist immutable chunks and return object id, byte size and exact-source SHA-256."""
         raise NotImplementedError
+
+    def save_atomic(self, name: str, data: bytes) -> tuple[str, int, str]:
+        """Publish one private immutable object without exposing partial bytes.
+
+        Backends should override this when they can provide atomic publication.
+        The fallback retains the existing immutable chunk contract.
+        """
+        return self.save_chunks(name, (data,))
 
     @abstractmethod
     def open(self, name: str, mode: str = "rb") -> BinaryIO:
@@ -83,9 +93,30 @@ class LocalStorage(Storage):
             raise
         return name, size, digest.hexdigest()
 
+    def save_atomic(self, name: str, data: bytes) -> tuple[str, int, str]:
+        """Write a sibling temporary file, fsync it, then atomically publish the final path."""
+        target = self._target(name)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            raise FileExistsError(str(target))
+        temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")
+        digest = hashlib.sha256(data).hexdigest()
+        try:
+            with temporary.open("xb") as handle:
+                handle.write(data)
+                handle.flush()
+                os.fsync(handle.fileno())
+            if target.exists():
+                raise FileExistsError(str(target))
+            os.replace(temporary, target)
+        except Exception:
+            temporary.unlink(missing_ok=True)
+            raise
+        return name, len(data), digest
+
     def open(self, name: str, mode: str = "rb") -> BinaryIO:
         if mode not in {"rb", "r"}:
-            raise ValueError("Dataset artifact storage is read-only after creation.")
+            raise ValueError("Private artifact storage is read-only after creation.")
         return self._target(name).open(mode)
 
     def delete(self, name: str) -> None:
