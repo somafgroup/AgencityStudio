@@ -414,7 +414,7 @@ def rerun_analysis_run(*, actor, run: AnalysisRun) -> AnalysisRun:
     context = software_context()
     if context["agencitylab_version"] != source_run.agencitylab_version:
         raise ValidationError(
-            _("Exact rerun requires the same AgencityLab version as the historical Run."))
+            _("Exact rerun requires the same AgencityLab version as the historical Run.")
         )
     rerun = AnalysisRun.objects.create(
         analysis=locked_analysis,
