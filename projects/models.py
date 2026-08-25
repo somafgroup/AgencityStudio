@@ -88,6 +88,9 @@ class ProjectActivityEvent(models.TextChoices):
     ANALYSIS_RUN_FAILED = "ANALYSIS_RUN_FAILED", _("Analysis run failed")
     ANALYSIS_ARCHIVED = "ANALYSIS_ARCHIVED", _("Analysis archived")
     ANALYSIS_DELETED = "ANALYSIS_DELETED", _("Analysis deleted")
+    DIAGNOSTIC_RUN_QUEUED = "DIAGNOSTIC_RUN_QUEUED", _("Diagnostic run queued")
+    DIAGNOSTIC_RUN_COMPLETED = "DIAGNOSTIC_RUN_COMPLETED", _("Diagnostic run completed")
+    DIAGNOSTIC_RUN_FAILED = "DIAGNOSTIC_RUN_FAILED", _("Diagnostic run failed")
 
 
 class ProjectActivity(models.Model):
