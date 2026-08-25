@@ -9,7 +9,12 @@ from analyses.models import AnalysisResultArtifact, RunStatus, SourceType
 from analyses.services import configure_analysis, create_analysis, queue_analysis_run
 from analyses.storage import analysis_storage, open_analysis_result_reader, read_analysis_result
 from analyses.tasks import execute_analysis_run
-from analyses.visualization import display_indices, exact_table_payload, sample_payload, series_payload
+from analyses.visualization import (
+    display_indices,
+    exact_table_payload,
+    sample_payload,
+    series_payload,
+)
 from tests.test_analyses import _arrays, _project_and_system, _raw_source, _user
 from workspaces.models import WorkspaceMembership, WorkspaceRole
 
