@@ -193,11 +193,24 @@ def delete_project(*, actor, project: Project) -> None:
     locked = Project.objects.select_for_update().get(pk=project.pk)
     if locked.datasets.exists():
         raise ValidationError(
-            _("This project contains datasets and cannot be permanently deleted until they are handled explicitly.")
+            _(
+                "This project contains datasets and cannot be permanently deleted until they "
+                "are handled explicitly."
+            )
         )
     if locked.systems.exists():
         raise ValidationError(
-            _("This project contains systems and cannot be permanently deleted until they are handled explicitly.")
+            _(
+                "This project contains systems and cannot be permanently deleted until they "
+                "are handled explicitly."
+            )
+        )
+    if locked.analyses.exists():
+        raise ValidationError(
+            _(
+                "This project contains analyses and cannot be permanently deleted until they "
+                "are handled explicitly."
+            )
         )
     logger.info(
         "project.deleted project_id=%s workspace_id=%s actor_id=%s",

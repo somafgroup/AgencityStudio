@@ -13,8 +13,6 @@ class ProjectStatus(models.TextChoices):
 
 
 class ProjectQuerySet(models.QuerySet):
-    """Small query helpers for the two supported Project lifecycle states."""
-
     def active(self):
         return self.filter(status=ProjectStatus.ACTIVE)
 
@@ -26,31 +24,19 @@ class ProjectQuerySet(models.QuerySet):
 
 
 class Project(models.Model):
-    """Workspace-owned container for scientific datasets and future analyses."""
+    """Workspace-owned container for durable scientific work."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    workspace = models.ForeignKey(
-        "workspaces.Workspace",
-        on_delete=models.PROTECT,
-        related_name="projects",
-    )
+    workspace = models.ForeignKey("workspaces.Workspace", on_delete=models.PROTECT, related_name="projects")
     name = models.CharField(max_length=180)
     slug = models.SlugField(max_length=180)
     description = models.TextField(blank=True)
     domain = models.CharField(max_length=160, blank=True)
     tags = models.JSONField(default=list, blank=True)
     notes = models.TextField(blank=True)
-    status = models.CharField(
-        max_length=16,
-        choices=ProjectStatus.choices,
-        default=ProjectStatus.ACTIVE,
-    )
+    status = models.CharField(max_length=16, choices=ProjectStatus.choices, default=ProjectStatus.ACTIVE)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="projects_created",
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="projects_created"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -60,12 +46,7 @@ class Project(models.Model):
 
     class Meta:
         ordering = ["-updated_at", "name"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=("workspace", "slug"),
-                name="project_workspace_slug_unique",
-            ),
-        ]
+        constraints = [models.UniqueConstraint(fields=("workspace", "slug"), name="project_workspace_slug_unique")]
         indexes = [
             models.Index(fields=("workspace", "status"), name="project_ws_status_idx"),
             models.Index(fields=("workspace", "-updated_at"), name="project_ws_updated_idx"),
@@ -100,6 +81,13 @@ class ProjectActivityEvent(models.TextChoices):
     SYS_ARCHIVED = "SYS_ARCHIVED", _("System archived")
     SYS_RESTORED = "SYS_RESTORED", _("System restored")
     SYS_DELETED = "SYS_DELETED", _("System deleted")
+    ANALYSIS_CREATED = "ANALYSIS_CREATED", _("Analysis created")
+    ANALYSIS_UPDATED = "ANALYSIS_UPDATED", _("Analysis updated")
+    ANALYSIS_RUN_QUEUED = "ANALYSIS_RUN_QUEUED", _("Analysis run queued")
+    ANALYSIS_RUN_COMPLETED = "ANALYSIS_RUN_COMPLETED", _("Analysis run completed")
+    ANALYSIS_RUN_FAILED = "ANALYSIS_RUN_FAILED", _("Analysis run failed")
+    ANALYSIS_ARCHIVED = "ANALYSIS_ARCHIVED", _("Analysis archived")
+    ANALYSIS_DELETED = "ANALYSIS_DELETED", _("Analysis deleted")
 
 
 class ProjectActivity(models.Model):
@@ -113,15 +101,13 @@ class ProjectActivity(models.Model):
         on_delete=models.SET_NULL,
         related_name="project_activity_events",
     )
-    event = models.CharField(max_length=16, choices=ProjectActivityEvent.choices)
+    event = models.CharField(max_length=32, choices=ProjectActivityEvent.choices)
     detail = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at", "-id"]
-        indexes = [
-            models.Index(fields=("project", "-created_at"), name="project_activity_time_idx"),
-        ]
+        indexes = [models.Index(fields=("project", "-created_at"), name="project_activity_time_idx")]
 
     def __str__(self) -> str:
         return f"{self.project} · {self.event}"

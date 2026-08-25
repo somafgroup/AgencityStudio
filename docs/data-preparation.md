@@ -18,7 +18,7 @@ A preparation always references one exact `DatasetVersion`. It never references 
 
 The original source path, exact source bytes, import metadata and `source_sha256` are never changed by a preparation.
 
-A PreparedDataArtifact is still data, not a System. Plan 6 does not automatically attach a prepared artifact to a System or infer a System observable from prepared column metadata. Future Analysis configuration will select an exact DatasetVersion or PreparedDataArtifact together with an exact SystemRevision and explicit observable mapping.
+A PreparedDataArtifact is still data, not a System. Plan 7 may select the artifact as one exact canonical Analysis source together with an exact SystemRevision and explicit observable mapping. That association exists on AnalysisRun; it is never written back into preparation metadata.
 
 ## Recipe contract
 
@@ -49,17 +49,19 @@ Plan 5 implements these explicit operations:
 - explicit column selection;
 - explicit stable ascending time sort.
 
-Filtering is deliberately not included in the final Plan 5 scope. A frequency-domain filter requires a clearly defined sampling contract, cutoff/order/phase behaviour and, for downsampling, an explicit anti-alias policy. Studio does not introduce SciPy and hidden filter defaults merely to add a checkbox. Filtering can be added later as another registered, explicit transformation when that contract is specified.
+Filtering is deliberately not included in the final Plan 5/7 scope. A frequency-domain filter requires a clearly defined sampling contract, cutoff/order/phase behaviour and, for downsampling, an explicit anti-alias policy. Studio does not introduce SciPy and hidden filter defaults merely to add a checkbox.
 
 ## Important numerical behaviour
 
 Linear interpolation requires a strictly increasing coordinate without duplicates. Studio does not silently choose which duplicate timestamp to keep. Missing values at the edges are not extrapolated.
 
-Resampling requires a strictly increasing time axis. `target_dt` is a sampling interval only. It is not `tau` and it is not the CRM memory window `w`. Studio never derives either quantity from sampling. Plan 6 System revisions document `tau` and `w` independently from the prepared-data acquisition grid.
+Resampling requires a strictly increasing time axis. `target_dt` is a sampling interval only. It is not `tau` and it is not the CRM memory window `w`. Studio never derives either quantity from sampling. System revisions document `tau` and `w` independently from the prepared-data acquisition grid.
 
 Moving-average smoothing is never automatic and records its target columns, window length and boundary behaviour.
 
-Unit conversion preserves the original unit in source metadata and changes the unit only on the prepared result. The same Pint dependency is reused by Plan 6 for dimensional validation of known System units, but preparation conversion and System-context validation remain separate operations. Neither layer guesses an unknown unit.
+Unit conversion preserves the original unit in source metadata and changes the unit only on the prepared result. The same Pint dependency is reused by Systems and Analysis for dimensional validation of known units, but preparation conversion and scientific-context validation remain separate operations. Neither layer guesses an unknown unit.
+
+This explicit conversion path is also the required remedy when canonical Analysis sees dimensionally compatible but differently scaled units. Analysis itself never converts `km/h` to `m/s`, `ms` to `s`, or any other source values before calling Lab.
 
 ## Materialization
 
@@ -67,13 +69,15 @@ Plan 5 materializes prepared tabular results as deterministic UTF-8 CSV with com
 
 The worker first applies the entire recipe, inspects the resulting table, writes the artifact and calculates its SHA-256. The database record is marked READY only after the immutable artifact is complete. Failed executions keep the source and recipe but do not publish a partial READY artifact.
 
-The current execution engine is intentionally bounded by `DATA_PREPARATION_MAX_ROWS`. This is an operator-configurable memory-safety limit for the current in-memory implementation; it is not a scientific restriction. Studio does not claim arbitrary hundred-gigabyte preparation support.
+The current execution engine is intentionally bounded by `DATA_PREPARATION_MAX_ROWS`. This is an operator-configurable memory-safety limit for the current in-memory implementation; it is not a scientific restriction.
 
 ## Prepared inspection
 
 The prepared result receives a new inspection snapshot including row/column counts, missing/non-finite values and time-axis quality information when applicable. Raw `DatasetVersion` quality findings remain untouched.
 
-A successful preparation does not imply that data are automatically valid for an Agencity analysis. A SystemRevision must separately document the observable meaning and physical/contextual parameters, and future Analysis configuration must explicitly associate that revision with the selected prepared data.
+A successful preparation does not imply that data are automatically valid for an Agencity analysis. Analysis still requires an exact SystemRevision, explicit mapping and structural compatibility with the public canonical scalar input contract.
+
+Analysis execution does **not** perform a second preparation pass. It reads the selected prepared bytes and column positions as they exist. There is no hidden sorting, filling, interpolation, resampling, smoothing, filtering, normalization or unit conversion between PreparedDataArtifact and AgencityLab.
 
 ## Provenance
 
@@ -92,7 +96,9 @@ A preparation records:
 - immutable artifact path, size and prepared SHA-256;
 - prepared column metadata and quality inspection.
 
-AgencityLab version remains part of the overall Studio environment, but the preparation provenance does not claim that AgencityLab executed these generic Studio transformations.
+AgencityLab version remains part of the overall Studio environment, but preparation provenance does not claim that AgencityLab executed these generic Studio transformations.
+
+When a PreparedDataArtifact is used by an AnalysisRun, the Run additionally snapshots its artifact UUID, `prepared_sha256`, column mapping and complete preparation lineage back to the original DatasetVersion. The PreparedDataArtifact foreign key is protected from deletion while referenced.
 
 System scientific provenance is separate. For example, a preparation may record resampling to `dt=0.01 s`, while a SystemRevision separately records `tau=0.8 s`, its physical origin and justification. Neither provenance stream overwrites the other.
 
@@ -106,7 +112,7 @@ Preparation reuses Workspace/Project permissions rather than creating another AC
 - Viewer: view and download existing prepared results but cannot mutate or run preparations;
 - non-member: safe 404-style denial.
 
-This makes the Analyst role useful for scientific experimentation while preserving the immutable original source.
+This makes the Analyst role useful for scientific experimentation while preserving the immutable original source. Analyst can also select an existing READY prepared result in a canonical Analysis.
 
 Prepared artifacts remain private and are downloaded only through authorized endpoints. No hash, UUID or storage path is an authorization mechanism.
 
@@ -131,6 +137,6 @@ beta
 b
 ```
 
-In particular, statistical normalization is not used to imitate canonical normalization. Plan 6 now owns the explicit documentation of `A_ref`, `tau`, `w` and `P_c` through immutable SystemRevisions; preparation still does not calculate, suggest or override them.
+In particular, statistical normalization is not used to imitate canonical normalization. Systems own explicit documentation of `A_ref`, `tau`, `w` and `P_c`; preparation does not calculate, suggest or override them.
 
-The future Analysis layer will be the first place where data and a SystemRevision are deliberately combined for AgencityLab execution. Plan 6 does not create that association or execute the pipeline.
+Plan 7 is the first layer that deliberately combines an exact data artifact and SystemRevision for AgencityLab execution, but it still does not transform the selected data. See [Canonical Analyses](analyses.md).

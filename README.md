@@ -23,8 +23,13 @@ AgencityStudio is the Web interface and orchestration layer for AgencityLab. It 
 - Explicit crop, row exclusion, missing-value treatment, linear interpolation, resampling, moving-average smoothing, compatible unit conversion, column selection and time sorting.
 - Project-owned Systems with stable UUID identities and immutable scientific revisions.
 - Explicit observable definitions, units, `A_ref`, `tau`, `w`, `P_c`, parameter origins, justifications and scientific references.
+- Project-owned canonical Analyses with immutable numbered AnalysisRuns.
+- Exact DatasetVersion or PreparedDataArtifact source pinning, exact SystemRevision pinning and explicit coordinate/observable mapping.
+- Real Celery execution through the public `agencitylab.compute_agencity` API only.
+- Private immutable canonical result artifacts preserving real and complex NumPy dtypes, with schema version and SHA-256.
+- Per-Run source, parameter, software-version, execution-fingerprint and result-hash provenance.
 - Light, dark and system themes.
-- Chromium Playwright coverage for shell, account, workspace, invitation, Project, Dataset, preparation, System and permission workflows.
+- Chromium Playwright coverage for shell, account, workspace, invitation, Project, Dataset, preparation, System, Analysis and permission workflows.
 - Docker Compose development/runtime stack.
 - Liveness at `/health/` and dependency readiness at `/health/ready/`.
 
@@ -38,6 +43,8 @@ Plan 5 adds a separate explicit preparation layer. A user may request defined tr
 
 Plan 6 adds a separate scientific-context layer. A SystemRevision documents observables and physical/contextual `A_ref`, `tau`, `w` and `P_c` with units, origins and justifications. Studio does not derive these values from signal statistics, acquisition `dt`, a spectrum, autocorrelation or any other signal-derived heuristic. `w` left unspecified remains distinct from explicitly setting `w = tau`. No Agencity computation occurs in the Systems workspace.
 
+Plan 7 adds canonical scalar execution without creating a second scientific implementation. An AnalysisRun pins the exact source artifact and SHA-256, stable column mapping, immutable SystemRevision and observable, physical/contextual parameter snapshot, AgencityLab/Studio/Python versions and execution fingerprint before the worker calls `agencitylab.compute_agencity`. Analysis execution never sorts, resamples, interpolates, filters, fills, normalizes or converts units. If preparation is required, it must already exist as an explicit PreparedDataArtifact. An unspecified `w` is passed to Lab as `None`; Studio never substitutes `w = tau` before the public API call. A successful Run means the canonical software computation and immutable result storage completed, not that coherent or “real” agencity was detected.
+
 Frequency filtering remains deliberately deferred until a precise sampling/cutoff/order/phase/anti-alias contract is implemented. Studio does not introduce hidden filter defaults merely to expose another preprocessing option.
 
 ## Quick start with Docker Compose
@@ -50,7 +57,7 @@ docker compose run --rm web python manage.py migrate --noinput
 docker compose up -d web worker
 ```
 
-Open `http://localhost:8000/`, create a local account and AgencityStudio will create its private personal workspace. Projects organise the scientific work. The Data Workspace can import immutable raw sources, the Prepare tab can materialize explicit derived views, and the Systems tab documents versioned scientific context independently from those data artifacts.
+Open `http://localhost:8000/`, create a local account and AgencityStudio will create its private personal workspace. Projects organise the scientific work. The Data Workspace can import immutable raw sources, the Prepare tab can materialize explicit derived views, the Systems tab documents versioned scientific context independently from those data artifacts, and the Analyses tab can pin those exact inputs and queue canonical AgencityLab execution.
 
 The readiness endpoint should return HTTP 200 once PostgreSQL, Redis and the compatible AgencityLab runtime are available:
 
@@ -68,18 +75,19 @@ AGENCITYSTUDIO_SIGNUP_MODE=invitation_only
 AGENCITYSTUDIO_SIGNUP_MODE=disabled
 ```
 
-Dataset/preparation storage is protected by configurable instance limits:
+Dataset/preparation/analysis storage is protected by configurable instance limits:
 
 ```text
 DATASET_MAX_UPLOAD_BYTES=<bytes>
 DATASET_MAX_PASTE_BYTES=<bytes>
 DATASET_STORAGE_ROOT=<private path>
 DATA_PREPARATION_MAX_ROWS=<rows>
+ANALYSIS_MAX_ROWS=<rows>
 ```
 
-`DATA_PREPARATION_MAX_ROWS` is an implementation memory-safety bound for the current in-memory transformation engine. It is not a scientific threshold.
+`DATA_PREPARATION_MAX_ROWS` and `ANALYSIS_MAX_ROWS` are implementation memory-safety bounds for the current in-memory preparation/execution adapters. They are not scientific thresholds.
 
-See `docs/accounts-and-workspaces.md` for identity/workspace semantics, `docs/datasets.md` for raw Dataset contracts, `docs/data-preparation.md` for prepared-data lineage and transformations, and `docs/systems.md` for scientific System revisions and physical/contextual parameter provenance.
+See `docs/accounts-and-workspaces.md` for identity/workspace semantics, `docs/datasets.md` for raw Dataset contracts, `docs/data-preparation.md` for prepared-data lineage and transformations, `docs/systems.md` for scientific System revisions and physical/contextual parameter provenance, and `docs/analyses.md` for canonical execution and reproducibility.
 
 To verify the asynchronous worker path end to end through Studio's configured Celery application:
 
@@ -111,6 +119,6 @@ celery -A config worker --loglevel=INFO
 
 ## Validation
 
-The CI pipeline checks Python quality, Django configuration, production settings, migration consistency, PostgreSQL migrations, backend identity/workspace/Project/Dataset/preparation/System permission and provenance tests, frontend build, critical Playwright flows, Docker image construction, Compose readiness and an actual Celery task round trip.
+The CI pipeline checks Python quality, Django configuration, production settings, migration consistency, PostgreSQL migrations, backend identity/workspace/Project/Dataset/preparation/System/Analysis permission and provenance tests, direct AgencityLab-versus-labbridge numerical equivalence, frontend build, critical Playwright flows including a real canonical worker Run, Docker image construction, Compose readiness and an actual Celery task round trip.
 
-Additional documentation lives under `docs/`, especially `docs/architecture.md`, `docs/accounts-and-workspaces.md`, `docs/projects.md`, `docs/datasets.md`, `docs/data-preparation.md`, `docs/systems.md`, `docs/development.md`, `docs/testing.md` and `docs/ui.md`.
+Additional documentation lives under `docs/`, especially `docs/architecture.md`, `docs/accounts-and-workspaces.md`, `docs/projects.md`, `docs/datasets.md`, `docs/data-preparation.md`, `docs/systems.md`, `docs/analyses.md`, `docs/development.md`, `docs/testing.md` and `docs/ui.md`.
