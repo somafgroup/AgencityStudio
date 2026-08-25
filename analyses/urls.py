@@ -16,4 +16,5 @@ urlpatterns = [
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/", views.run_detail, name="run-detail"),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/status/", views.run_status, name="run-status"),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/cancel/", views.run_cancel, name="run-cancel"),
+    path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/rerun/", views.run_rerun, name="run-rerun"),
 ]
