@@ -1,7 +1,5 @@
 """Server-rendered diagnostic workflow and private scientific data endpoints."""
 
-from __future__ import annotations
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -29,7 +27,6 @@ from .diagnostic_visualization import (
 from .models import AnalysisRun, DiagnosticResultArtifact, DiagnosticRun, RunStatus
 from .services import get_analysis_or_404
 from .storage import analysis_storage, open_analysis_result_reader
-
 
 DIAGNOSTIC_SECTIONS = {
     "overview",
