@@ -4,13 +4,10 @@ Values are validated against the public Lab argument contracts only. This module
 contains no diagnostic equations, classifications, or scientific thresholds.
 """
 
-from __future__ import annotations
-
 import math
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
-
 
 _REQUIRED_REGIME = (
     "sigma_theta_low_max",
