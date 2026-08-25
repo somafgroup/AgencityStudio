@@ -8,6 +8,7 @@ from django.db.utils import DatabaseError
 from django.http import Http404, JsonResponse
 from django.shortcuts import render
 
+from analyses.models import Analysis, AnalysisRun, RunStatus
 from datasets.models import Dataset
 from labbridge.service import get_lab_version, lab_is_compatible
 from projects.models import Project
@@ -15,8 +16,7 @@ from workspaces.permissions import can_create_project
 from workspaces.services import workspace_memberships_for
 
 SECTIONS = {
-    "analyses": ("Analyses", "Launch and inspect AgencityLab analyses in a later development phase."),
-    "compare": ("Compare", "Compare systems and analyses when scientific workflows are available."),
+    "compare": ("Compare", "Compare systems and analyses in a later development phase."),
     "reports": ("Reports", "Build reproducible scientific reports in a later development phase."),
     "examples": ("Examples", "Explore curated examples when the example library is introduced."),
     "advanced": (
@@ -61,6 +61,21 @@ def _system_status_context() -> dict[str, str]:
     }
 
 
+def _empty_dashboard_context() -> dict:
+    return {
+        "recent_projects": (),
+        "active_project_count": 0,
+        "archived_project_count": 0,
+        "recent_datasets": (),
+        "dataset_count": 0,
+        "recent_analyses": (),
+        "analysis_count": 0,
+        "running_analysis_count": 0,
+        "failed_analysis_count": 0,
+        "can_create_project": False,
+    }
+
+
 def _dashboard_project_context(request) -> dict:
     memberships = list(workspace_memberships_for(request.user))
     preferred_slug = request.session.get("current_workspace_slug")
@@ -73,17 +88,12 @@ def _dashboard_project_context(request) -> dict:
     if current is None and memberships:
         current = memberships[0]
     if current is None:
-        return {
-            "recent_projects": (),
-            "active_project_count": 0,
-            "archived_project_count": 0,
-            "recent_datasets": (),
-            "dataset_count": 0,
-            "can_create_project": False,
-        }
+        return _empty_dashboard_context()
     request.session["current_workspace_slug"] = current.workspace.slug
     projects = Project.objects.for_workspace(current.workspace)
     datasets = Dataset.objects.for_workspace(current.workspace)
+    analyses = Analysis.objects.for_workspace(current.workspace)
+    runs = AnalysisRun.objects.filter(analysis__project__workspace=current.workspace)
     return {
         "recent_projects": list(
             projects.active().select_related("workspace", "created_by").order_by("-updated_at")[:5]
@@ -95,6 +105,14 @@ def _dashboard_project_context(request) -> dict:
             .order_by("-updated_at")[:5]
         ),
         "dataset_count": datasets.count(),
+        "recent_analyses": list(
+            analyses.select_related("project").prefetch_related("runs").order_by("-updated_at")[:5]
+        ),
+        "analysis_count": analyses.count(),
+        "running_analysis_count": runs.filter(
+            status__in=(RunStatus.QUEUED, RunStatus.RUNNING)
+        ).count(),
+        "failed_analysis_count": runs.filter(status=RunStatus.FAILED).count(),
         "can_create_project": can_create_project(request.user, current.workspace),
     }
 
@@ -126,7 +144,7 @@ def readiness(request):
 
 @login_required
 def dashboard(request):
-    """Render the authenticated dashboard with real Project and Dataset summaries only."""
+    """Render the authenticated dashboard with real Project, Dataset and Analysis summaries."""
     return render(
         request,
         "studio/dashboard.html",
