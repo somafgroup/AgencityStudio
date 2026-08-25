@@ -7,7 +7,7 @@ import json
 import zipfile
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import BinaryIO
+from typing import BinaryIO, Self
 
 import numpy as np
 
@@ -67,7 +67,7 @@ class AnalysisResultReader:
                 raise
             raise ResultArtifactError("Stored result manifest is invalid.") from exc
 
-    def __enter__(self) -> AnalysisResultReader:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, exc_type, exc, traceback) -> None:
