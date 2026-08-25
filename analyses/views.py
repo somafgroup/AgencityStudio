@@ -30,6 +30,7 @@ from .services import (
     delete_analysis,
     get_analysis_or_404,
     queue_analysis_run,
+    rerun_analysis_run,
     restore_analysis,
     review_snapshot,
 )
@@ -298,6 +299,21 @@ def run_cancel(request, analysis_id, run_id):
     except ValidationError as exc:
         messages.error(request, str(exc))
     return redirect("analysis:run-detail", analysis_id=analysis.pk, run_id=run.pk)
+
+
+@login_required
+def run_rerun(request, analysis_id, run_id):
+    analysis, run = _run_or_404(request.user, analysis_id, run_id)
+    if request.method != "POST":
+        raise Http404
+    try:
+        new_run = rerun_analysis_run(actor=request.user, run=run)
+    except (ValidationError, SourceContractError) as exc:
+        messages.error(request, str(exc))
+        return redirect("analysis:run-detail", analysis_id=analysis.pk, run_id=run.pk)
+    return redirect(
+        "analysis:run-detail", analysis_id=analysis.pk, run_id=new_run.pk
+    )
 
 
 @login_required
