@@ -3,7 +3,7 @@ import hashlib
 import numpy as np
 import pytest
 from agencitylab import analyze_agencity
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ValidationError
 from django.test import Client, override_settings
 from django.urls import reverse
 
@@ -293,7 +293,7 @@ def test_viewer_can_inspect_but_cannot_run_and_outsider_gets_404(tmp_path, monke
 @pytest.mark.django_db(transaction=True)
 def test_analyst_can_queue_diagnostics(tmp_path, monkeypatch):
     with override_settings(DATASET_STORAGE_ROOT=tmp_path, ANALYSIS_MAX_ROWS=1000):
-        owner, workspace, _analysis, run, _artifact = _completed_run(
+        _owner, workspace, _analysis, run, _artifact = _completed_run(
             tmp_path, monkeypatch, owner_email="diagnostic-analyst-owner@example.com"
         )
         analyst = _user("diagnostic-analyst@example.com")
