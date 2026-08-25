@@ -5,16 +5,12 @@ stored canonical arrays and delegates every scientific diagnostic to the public
 AgencityLab analysis API. It never recomputes canonical or diagnostic equations.
 """
 
-from __future__ import annotations
-
 import warnings
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-
 from agencitylab import AgencityError, AgencityResult, analyze_agencity
-
 
 DIAGNOSTIC_PUBLIC_API = "agencitylab.analyze_agencity"
 DIAGNOSTIC_ANALYSIS_SCHEMA = "0.5"
