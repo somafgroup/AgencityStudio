@@ -15,10 +15,11 @@ Important variables:
 - `WORKSPACE_INVITATION_TTL`: invitation lifetime in seconds
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`
 - `REDIS_URL`
-- `DATASET_STORAGE_ROOT`: private raw/prepared Dataset artifact root
+- `DATASET_STORAGE_ROOT`: private raw/prepared/result artifact root shared by web and worker
 - `DATASET_MAX_UPLOAD_BYTES`: maximum uploaded source bytes accepted by this Studio instance
 - `DATASET_MAX_PASTE_BYTES`: maximum pasted source bytes accepted by this Studio instance
 - `DATA_PREPARATION_MAX_ROWS`: maximum rows loaded by the current in-memory preparation engine
+- `ANALYSIS_MAX_ROWS`: maximum rows materialized by the current canonical execution adapter
 - `DJANGO_EMAIL_BACKEND`, `DJANGO_EMAIL_FILE_PATH`, `DJANGO_DEFAULT_FROM_EMAIL`
 - SMTP variables `DJANGO_EMAIL_HOST`, `DJANGO_EMAIL_PORT`, credentials and TLS/SSL flags
 
@@ -26,7 +27,7 @@ Development defaults to Django's file email backend under `.emails/` so reset/in
 
 Production additionally supports `DJANGO_CSRF_TRUSTED_ORIGINS`, `DJANGO_SECURE_SSL_REDIRECT` and the `DJANGO_SECURE_HSTS_*` settings.
 
-Dataset/preparation size settings are operational protections, not limits of the Theory of Agencity. Do not turn Dataset statistics or preparation defaults into implicit physical parameters.
+Dataset/preparation/analysis size settings are operational protections, not limits of the Theory of Agencity. Do not turn Dataset statistics or preparation defaults into implicit physical parameters.
 
 ## Python
 
@@ -36,7 +37,7 @@ python -m venv .venv
 pip install -e . pytest pytest-django ruff
 python manage.py migrate
 pytest
-ruff check accounts config common datasets labbridge projects systems workspaces tests
+ruff check accounts analyses config common datasets labbridge projects systems workspaces tests
 ```
 
 After model work, always verify migration consistency:
@@ -51,7 +52,7 @@ AgencityLab is installed through Studio's pinned runtime dependency. Do not inst
 
 Local accounts use email as the login identifier. `User.objects.create_user()` creates the personal workspace transactionally. Organisation workspaces, memberships, invitation acceptance, role changes and removal use explicit workspace services; views and future APIs should reuse those invariants instead of duplicating them.
 
-Projects are Workspace-owned containers. Project deletion remains conservative because Datasets and Systems sit below the Project boundary: a Project with either retained Datasets or Systems cannot be hard-deleted until those scientific resources have been handled explicitly.
+Projects are Workspace-owned containers. Project deletion remains conservative because Datasets, Systems and Analyses sit below the Project boundary: a Project with retained scientific resources cannot be hard-deleted until those resources have been handled explicitly.
 
 The development admin remains available at `/admin/` to instance staff. Workspace Owner is a separate application role and never grants Django Admin access.
 
@@ -111,13 +112,48 @@ System code lives under `systems/`. A `System` is a stable Project-owned identit
 
 Use `systems.services` for create/revise/duplicate/archive/restore/delete workflows. Revision numbering is allocated while holding a row lock on the owning System and is also protected by the database unique constraint. Do not mass-assign `project`, `created_by`, `revision_number` or `current_revision` from browser input.
 
-`ObservableDefinition` describes scientific meaning and is intentionally separate from `DatasetColumn`. Plan 6 does not persist a Dataset-column-to-observable mapping; future Analysis configuration will make that association explicitly.
+`ObservableDefinition` describes scientific meaning and is intentionally separate from `DatasetColumn`. Analysis configuration makes that association explicitly by pinning a stable source column position and an exact ObservableDefinition.
 
-`A_ref`, `tau`, `w` and `P_c` are explicit physical/contextual fields with original value text, unit, origin and justification. `w=UNSPECIFIED` is a real provenance state and must not be stored as an invented numeric value. The future analysis layer may record AgencityLab's documented `w=tau` resolution when it actually executes Lab.
+`A_ref`, `tau`, `w` and `P_c` are explicit physical/contextual fields with original value text, unit, origin and justification. `w=UNSPECIFIED` is a real provenance state and must not be stored as an invented numeric value. Analysis passes that state to Lab as `w=None` and may record the effective public result `memory_window` after Lab actually executes.
 
 Unit checking reuses the shared Pint-backed helper in `common.units`. Known units receive dimensional checks; unknown labels are preserved and reported as not automatically validated. Do not silently convert the stored representation or treat unknown units as dimensionless.
 
-`labbridge.scientific_context` may inspect the public AgencityLab 1.1.3 signature and mirror public scalar input validation. It must not call `compute_agencity()` or import `agencitylab.core`.
+`labbridge.scientific_context` may inspect the public AgencityLab 1.1.3 signature and mirror public scalar input validation. It must not import `agencitylab.core`.
+
+## Canonical Analysis development
+
+Analysis code lives under `analyses/`. Keep the execution path explicit:
+
+```text
+views/forms
+    ↓
+analyses.services
+    ↓ immutable AnalysisRun snapshot
+transaction.on_commit()
+    ↓
+Celery task with Run UUID only
+    ↓
+source adapter + structural preflight
+    ↓
+labbridge.execute_canonical_analysis
+    ↓ public agencitylab.compute_agencity
+    ↓
+private versioned result artifact
+```
+
+`Analysis` is a mutable named workspace. `AnalysisRun` is the immutable reproducibility boundary. Never resolve `Dataset.current_version` or `System.current_revision` inside a historical Run. Source, mapping, SystemRevision, parameters, versions and execution fingerprint must already be pinned.
+
+The source adapter may convert stored tabular representations to finite NumPy vectors, but it must not sort, drop, fill, interpolate, resample, smooth, filter, standardize, normalize or convert units. If data require those operations, direct the user to explicit Data Preparation.
+
+The execution unit policy is deliberately strict: source and System unit labels used by the numeric execution must match exactly. Pint may establish that different labels are dimensionally compatible, but Analysis must not silently scale values. Put unit conversion in a PreparedData recipe so the transformed bytes and provenance are explicit.
+
+Preflight may explain public input conditions already known from AgencityLab 1.1.3, such as finite one-dimensional samples, increasing/uniform numeric coordinate and compatibility of an explicit `w` with observed `dt`. When `w` is unspecified, Studio must not substitute `tau` to imitate Lab. Pass `w=None` and let Lab be authoritative.
+
+Only `labbridge.execution` calls `compute_agencity`. It must pass Studio-validated representation values and public metadata through unchanged, capture public Lab warnings and normalize public Lab exceptions. It must never recalculate, repair or reinterpret canonical quantities.
+
+Canonical result serialization uses a schema-versioned ZIP with a JSON manifest and `.npy` arrays written with `allow_pickle=False`. Preserve dtypes and complex components exactly; do not downcast `float64`/`complex128`. The writer publishes atomically, and a Run becomes `COMPLETED` only after the one-to-one result artifact is stored.
+
+A duplicate Celery delivery must stop at the Run status guard. Deterministic scientific validation failures are not retryable infrastructure events. Queued cancellation is supported; a synchronous running Lab call is not falsely marked cancelled.
 
 ## Frontend
 
@@ -128,9 +164,9 @@ npm run build
 
 Use the watch scripts from `package.json` while editing Tailwind or JavaScript. Generated `static/css/app.css` and `static/js/app.js` files are build artifacts and remain ignored.
 
-Dataset/preparation preview and status refresh use server-rendered HTMX endpoints. Alpine may manage local form visibility/reordering affordances only. Business rules and permission checks must work without JavaScript.
+Dataset/preparation/Analysis status refresh uses server-rendered HTMX endpoints. Alpine may manage local form visibility/reordering affordances only. Business rules and permission checks must work without JavaScript. No browser code calculates `J`, `beta`, `b` or any other canonical quantity.
 
-System forms remain server-authoritative. Client-side help or progressive-disclosure controls may improve the guided experience, but scientific validation, permissions, revision creation and unit contracts must remain on the server.
+System and Analysis forms remain server-authoritative. Client-side help or progressive-disclosure controls may improve the guided experience, but scientific validation, permissions, snapshots and unit contracts remain on the server.
 
 ## Worker
 
@@ -146,27 +182,27 @@ The deterministic infrastructure task can verify the actual broker/worker/result
 python -c "from config import celery_app; result = celery_app.send_task('common.health_ping'); print(result.get(timeout=10))"
 ```
 
-Dataset import inspection and prepared-data materialization are real worker workloads. Web and worker processes must share access to `DATASET_STORAGE_ROOT` for the current local filesystem backend; Docker Compose mounts the same private volume into both services.
+Dataset import inspection, prepared-data materialization and canonical Analysis execution are real worker workloads. Web and worker processes must share access to `DATASET_STORAGE_ROOT` for the current local filesystem backend; Docker Compose mounts the same private volume into both services.
 
 System identity and revision creation remain synchronous database transactions. Do not introduce Celery for these fast metadata operations.
 
 ## Scientific implementation rule
 
-Studio may import documented AgencityLab public APIs through `labbridge`. Raw Dataset import/inspection, generic Data Preparation and Plan 6 System documentation do not execute the Agencity pipeline.
+Studio may import documented AgencityLab public APIs through `labbridge`. Plan 7 canonical execution calls the package-root `compute_agencity` and stores what Lab returns.
 
-Do not copy formulas, reach into AgencityLab private/core modules, infer `A_ref`, `tau`, `w` or `P_c`, or silently preprocess raw DatasetVersions. In Plan 5, crop, row exclusion, interpolation, resampling, smoothing, unit conversion, column selection and sorting happen only when the user adds a defined transformation to a recipe.
-
-`dt` used by a resampling operation is a sampling interval. It is not `tau` and not CRM window `w`. A System revision documents `tau` and `w` independently from acquisition properties.
+Do not copy formulas, reach into AgencityLab private/core modules, infer `A_ref`, `tau`, `w` or `P_c`, or silently preprocess selected DatasetVersion/PreparedDataArtifact values. `dt` is a sampling interval, not `tau` and not CRM window `w`.
 
 The architecture is deliberately:
 
 ```text
 DatasetVersion / PreparedDataArtifact   SystemRevision
                 \                         /
-                 \   future Analysis    /
-                  -----------------------
+                 \      Analysis         /
+                  ------ AnalysisRun -----
+                           ↓
+                  public AgencityLab
 ```
 
-Plan 6 must not create `AnalysisRun`, execute `compute_agencity`, or persist `beta`, `b` or any other Agencity result.
+Plan 7 also does not add diagnostic interpretation. A successful canonical result must not be labelled coherent, stable, chaotic or “real agencity” without the separate future diagnostic layer.
 
-See `docs/datasets.md` for immutable raw-data contracts, `docs/data-preparation.md` for preparation/provenance contracts and `docs/systems.md` for scientific-context versioning and parameter provenance.
+See `docs/datasets.md` for immutable raw-data contracts, `docs/data-preparation.md` for preparation/provenance contracts, `docs/systems.md` for scientific-context versioning and parameter provenance, and `docs/analyses.md` for the complete canonical execution contract.
