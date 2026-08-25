@@ -195,7 +195,7 @@ def configure_analysis(
         raise ValidationError(
             _("The selected System observable does not belong to that revision.")
         )
-    _, _, descriptor = _resolve_source(locked, locked.draft_configuration)
+    descriptor = _resolve_source(locked, locked.draft_configuration)[2]
     coordinate, observable = validate_mapping(
         descriptor,
         coordinate_position=int(coordinate_position),
