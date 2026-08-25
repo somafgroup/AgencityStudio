@@ -587,7 +587,7 @@ class ScientificWorkspaceController {
   }
 
   updateSampleLinks(index) {
-    this.root.querySelectorAll('[data-sample-link]').forEach((link) => {
+    this.root.ownerDocument.querySelectorAll('[data-sample-link]').forEach((link) => {
       const url = new URL(link.href, window.location.origin);
       url.searchParams.set('sample', String(index));
       link.href = `${url.pathname}${url.search}${url.hash}`;
