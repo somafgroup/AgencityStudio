@@ -182,7 +182,13 @@ def validate_sample_contract(
     requested_w: float | None,
     tau: float,
 ) -> None:
-    """Explain public Lab/CRM coordinate constraints without altering the vectors."""
+    """Explain public Lab/CRM coordinate constraints without altering the vectors.
+
+    ``tau`` is deliberately not substituted for an unspecified ``w`` here. When
+    ``requested_w`` is ``None``, Studio preserves that public API request and lets
+    AgencityLab resolve and validate its implementation convention authoritatively.
+    """
+    del tau
     if xi.ndim != 1 or u.ndim != 1 or len(xi) != len(u):
         raise PreflightError(
             "Coordinate and observable must be one-dimensional arrays of equal length."
@@ -206,7 +212,9 @@ def validate_sample_contract(
             "The selected coordinate is irregularly sampled. Create explicit Prepared Data with "
             "resampling before canonical analysis."
         )
-    window = float(tau) if requested_w is None else float(requested_w)
+    if requested_w is None:
+        return
+    window = float(requested_w)
     samples = round(window / step)
     if samples < 1:
         raise PreflightError("The requested CRM window is smaller than one sampling interval.")
