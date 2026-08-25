@@ -288,7 +288,7 @@ def run_detail(request, analysis_id, run_id):
 def run_status(request, analysis_id, run_id):
     _analysis, run = _run_or_404(request.user, analysis_id, run_id)
     response = HttpResponse(
-        f'<span class="badge">{run.get_status_display()}</span>',
+        f'<span class="badge">{run.get_status_display().upper()}</span>',
         content_type="text/html",
     )
     if run.status in {RunStatus.QUEUED, RunStatus.RUNNING}:
