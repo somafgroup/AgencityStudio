@@ -31,7 +31,11 @@ def test_dashboard_and_primary_sections_require_identity_and_render(client):
     assert b"Datasets" in datasets_response.content
     assert b"No datasets yet" in datasets_response.content
 
-    for name in ("analyses", "compare", "reports", "examples", "advanced"):
+    analyses_response = client.get(reverse("analyses"))
+    assert analyses_response.status_code == 200
+    assert b"Analyses" in analyses_response.content
+
+    for name in ("compare", "reports", "examples", "advanced"):
         response = client.get(reverse(name))
         assert response.status_code == 200
         assert b"No placeholder scientific data has been fabricated" in response.content
