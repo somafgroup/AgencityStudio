@@ -1,0 +1,5 @@
+{% extends "projects/base.html" %}{% load i18n %}
+{% block project_content %}
+<div class="max-w-3xl"><div class="mb-4"><span class="badge">1 · {% translate "Data Source" %}</span><h2 class="text-xl font-semibold mt-2">{% translate "New canonical Analysis" %}</h2><p class="muted mt-2">{% translate "Choose one exact READY original DatasetVersion or PreparedDataArtifact. The selected UUID and SHA-256 will be pinned in every Run." %}</p></div>
+<form method="post" class="card space-y-5">{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}<div><label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}</div>{% endfor %}<div class="flex justify-end"><button class="btn btn-primary" type="submit">{% translate "Continue to mapping" %}</button></div></form></div>
+{% endblock %}
