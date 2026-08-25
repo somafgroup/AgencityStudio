@@ -6,7 +6,13 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import override_settings
 from django.urls import reverse
 
-from analyses.models import Analysis, AnalysisResultArtifact, RunErrorCategory, RunStatus, SourceType
+from analyses.models import (
+    Analysis,
+    AnalysisResultArtifact,
+    RunErrorCategory,
+    RunStatus,
+    SourceType,
+)
 from analyses.services import configure_analysis, create_analysis, queue_analysis_run
 from analyses.tasks import execute_analysis_run
 from analyses.validation import PreflightError, validate_sample_contract, validate_units
