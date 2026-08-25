@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import views, visualization_views
 
 app_name = "analysis"
 
@@ -17,4 +17,30 @@ urlpatterns = [
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/status/", views.run_status, name="run-status"),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/cancel/", views.run_cancel, name="run-cancel"),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/rerun/", views.run_rerun, name="run-rerun"),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/results/",
+        visualization_views.result_workspace,
+        {"section": "overview"},
+        name="results",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/results/<slug:section>/",
+        visualization_views.result_workspace,
+        name="results-section",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/visualization/manifest/",
+        visualization_views.visualization_manifest,
+        name="visualization-manifest",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/visualization/series/",
+        visualization_views.visualization_series,
+        name="visualization-series",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/visualization/sample/",
+        visualization_views.visualization_sample,
+        name="visualization-sample",
+    ),
 ]

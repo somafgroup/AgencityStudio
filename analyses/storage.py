@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import uuid
+from contextlib import contextmanager
 
 from django.conf import settings
 
 from common.storage import LocalStorage
 
-from .results import load_analysis_result_bytes, serialize_analysis_result
+from .result_reader import AnalysisResultReader
+from .results import StoredAnalysisResult, serialize_analysis_result
 
 
 def analysis_storage():
@@ -32,14 +34,32 @@ def write_analysis_result(*, result, run, artifact_id: uuid.UUID):
     return stored_path, serialized
 
 
-def read_analysis_result(run, *, verify_hash: bool = False):
-    """Read a completed result through the storage abstraction, never from a public media URL."""
+@contextmanager
+def open_analysis_result_reader(run, *, verify_hash: bool = False):
+    """Open the immutable result through the private storage abstraction.
+
+    ``verify_hash`` is intentionally optional because computing SHA-256 requires a
+    full artifact pass. The reader itself validates schema, run identity, series
+    inventory, and each requested NumPy payload.
+    """
     artifact = run.result_artifact
     storage = analysis_storage()
     if not storage.exists(artifact.storage_path):
         raise OSError("Stored analysis result artifact is missing.")
     with storage.open(artifact.storage_path, "rb") as handle:
-        data = handle.read()
-    if verify_hash and hashlib.sha256(data).hexdigest() != artifact.sha256:
-        raise OSError("Stored analysis result artifact failed SHA-256 verification.")
-    return load_analysis_result_bytes(data, expected_run_id=str(run.pk))
+        if verify_hash:
+            digest = hashlib.sha256()
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+            if digest.hexdigest() != artifact.sha256:
+                raise OSError("Stored analysis result artifact failed SHA-256 verification.")
+            handle.seek(0)
+        with AnalysisResultReader(handle, expected_run_id=str(run.pk)) as reader:
+            yield reader
+
+
+def read_analysis_result(run, *, verify_hash: bool = False) -> StoredAnalysisResult:
+    """Read all stored public result series for compatibility and scientific tests."""
+    with open_analysis_result_reader(run, verify_hash=verify_hash) as reader:
+        arrays = {name: reader.read_series(name) for name in reader.available_series}
+        return StoredAnalysisResult(manifest=reader.read_manifest(), arrays=arrays)

@@ -20,6 +20,8 @@ Important variables:
 - `DATASET_MAX_PASTE_BYTES`: maximum pasted source bytes accepted by this Studio instance
 - `DATA_PREPARATION_MAX_ROWS`: maximum rows loaded by the current in-memory preparation engine
 - `ANALYSIS_MAX_ROWS`: maximum rows materialized by the current canonical execution adapter
+- `VISUALIZATION_MAX_POINTS`: maximum original result samples sent to one chart representation
+- `VISUALIZATION_TABLE_PAGE_SIZE`: exact canonical table rows rendered per server page
 - `DJANGO_EMAIL_BACKEND`, `DJANGO_EMAIL_FILE_PATH`, `DJANGO_DEFAULT_FROM_EMAIL`
 - SMTP variables `DJANGO_EMAIL_HOST`, `DJANGO_EMAIL_PORT`, credentials and TLS/SSL flags
 
@@ -27,7 +29,7 @@ Development defaults to Django's file email backend under `.emails/` so reset/in
 
 Production additionally supports `DJANGO_CSRF_TRUSTED_ORIGINS`, `DJANGO_SECURE_SSL_REDIRECT` and the `DJANGO_SECURE_HSTS_*` settings.
 
-Dataset/preparation/analysis size settings are operational protections, not limits of the Theory of Agencity. Do not turn Dataset statistics or preparation defaults into implicit physical parameters.
+Dataset/preparation/analysis size settings and visualization point/page limits are operational protections, not limits of the Theory of Agencity. Do not turn Dataset statistics, preparation defaults or visualization density into implicit physical parameters or scientific thresholds.
 
 ## Python
 
@@ -155,6 +157,36 @@ Canonical result serialization uses a schema-versioned ZIP with a JSON manifest 
 
 A duplicate Celery delivery must stop at the Run status guard. Deterministic scientific validation failures are not retryable infrastructure events. Queued cancellation is supported; a synchronous running Lab call is not falsely marked cancelled.
 
+## Canonical visualization development
+
+Visualization remains downstream of a completed immutable Run:
+
+```text
+AnalysisResultArtifact
+    ↓
+AnalysisResultReader
+    ↓
+analyses.visualization
+    ↓
+visualization_views
+    ↓
+ScientificWorkspaceController
+```
+
+`AnalysisResultReader` is the only visualization layer that knows ZIP member paths. Extend it with read-only schema-aware operations rather than opening ZIP files in multiple views. Schema changes must keep readers for supported historical versions; never rewrite old result artifacts in place.
+
+`analyses.visualization` may select exact ranges, select display indices, serialize values safely and expose presentation metadata. It must not call Lab or reproduce `J`, `Theta`, `U`, `beta`, `b`, CRM, or any other canonical computation. Real/imaginary/magnitude/phase of an already stored complex value are display transformations only.
+
+Structural orientation uses stored `theta`. Never implement a fallback based on `np.angle(beta)`, a browser phase, or reconstructed M/O. A missing `theta` means the orientation chart is unavailable for that artifact.
+
+Display decimation must preserve original result indices. It cannot feed Analysis execution, diagnostics, scientific exports or exact selected-sample values. The exact inspector must fetch `sample(index)` from the full-resolution result.
+
+Visualization endpoints must reuse Run Workspace permission lookup, return 404 to a non-member, use private/no-store cache headers, and never serialize `storage_path`, absolute filesystem roots or backend implementation details.
+
+The exact table stays in original sample order. Do not add sorting by D, beta, b, magnitude, or any other scientific value because that would break the coordinate/sample relation.
+
+Do not add coherence, angular variance, curvature, winding, zero/event/transition detection, regime classification or real-agencity inference to visualization code. Those belong to a separate diagnostic layer.
+
 ## Frontend
 
 ```bash
@@ -162,9 +194,15 @@ npm install
 npm run build
 ```
 
-Use the watch scripts from `package.json` while editing Tailwind or JavaScript. Generated `static/css/app.css` and `static/js/app.js` files are build artifacts and remain ignored.
+Use the watch scripts from `package.json` while editing Tailwind or JavaScript. `npm run watch:science` rebuilds the dedicated Results bundle. Generated `static/css/app.css`, `static/js/app.js` and `static/js/scientific-workspace.js` files are build artifacts and remain ignored.
 
 Dataset/preparation/Analysis status refresh uses server-rendered HTMX endpoints. Alpine may manage local form visibility/reordering affordances only. Business rules and permission checks must work without JavaScript. No browser code calculates `J`, `beta`, `b` or any other canonical quantity.
+
+Apache ECharts 6.1.0 is imported modularly by `frontend/scripts/scientific-workspace.js`. Keep it out of the global app bundle and do not add a CDN fallback. The controller must stay scoped to one Results workspace and must not become a global scientific-data store.
+
+Chart clicks and sample controls carry original sample indices. A chart may use display-decimated points, but the inspector must request the exact sample endpoint. Avoid interpolated scientific tooltips between samples.
+
+Chart theme changes use the existing `agencity:theme-changed` event and CSS variables. Preserve Light/Dark/System behavior and `prefers-reduced-motion`; playback never starts automatically.
 
 System and Analysis forms remain server-authoritative. Client-side help or progressive-disclosure controls may improve the guided experience, but scientific validation, permissions, snapshots and unit contracts remain on the server.
 
@@ -184,13 +222,15 @@ python -c "from config import celery_app; result = celery_app.send_task('common.
 
 Dataset import inspection, prepared-data materialization and canonical Analysis execution are real worker workloads. Web and worker processes must share access to `DATASET_STORAGE_ROOT` for the current local filesystem backend; Docker Compose mounts the same private volume into both services.
 
+Displaying a completed result is not a Celery workload. Do not turn each chart request into a task unless future profiling demonstrates a genuinely expensive, regenerable technical cache requirement.
+
 System identity and revision creation remain synchronous database transactions. Do not introduce Celery for these fast metadata operations.
 
 ## Scientific implementation rule
 
-Studio may import documented AgencityLab public APIs through `labbridge`. Plan 7 canonical execution calls the package-root `compute_agencity` and stores what Lab returns.
+Studio may import documented AgencityLab public APIs through `labbridge`. Plan 7 canonical execution calls the package-root `compute_agencity` and stores what Lab returns. Plan 8 only reads that stored result.
 
-Do not copy formulas, reach into AgencityLab private/core modules, infer `A_ref`, `tau`, `w` or `P_c`, or silently preprocess selected DatasetVersion/PreparedDataArtifact values. `dt` is a sampling interval, not `tau` and not CRM window `w`.
+Do not copy formulas, reach into AgencityLab private/core modules, infer `A_ref`, `tau`, `w` or `P_c`, silently preprocess selected DatasetVersion/PreparedDataArtifact values, or silently derive missing result series. `dt` is a sampling interval, not `tau` and not CRM window `w`.
 
 The architecture is deliberately:
 
@@ -201,8 +241,12 @@ DatasetVersion / PreparedDataArtifact   SystemRevision
                   ------ AnalysisRun -----
                            ↓
                   public AgencityLab
+                           ↓
+                  immutable result
+                           ↓
+                  read-only visualization
 ```
 
-Plan 7 also does not add diagnostic interpretation. A successful canonical result must not be labelled coherent, stable, chaotic or “real agencity” without the separate future diagnostic layer.
+A successful canonical result must not be labelled coherent, stable, chaotic or “real agencity” without the separate future diagnostic layer.
 
-See `docs/datasets.md` for immutable raw-data contracts, `docs/data-preparation.md` for preparation/provenance contracts, `docs/systems.md` for scientific-context versioning and parameter provenance, and `docs/analyses.md` for the complete canonical execution contract.
+See `docs/datasets.md` for immutable raw-data contracts, `docs/data-preparation.md` for preparation/provenance contracts, `docs/systems.md` for scientific-context versioning and parameter provenance, `docs/analyses.md` for the complete canonical execution contract, and `docs/visualization.md` for Plan 8 development constraints.

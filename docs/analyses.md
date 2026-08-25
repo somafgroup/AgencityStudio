@@ -1,6 +1,6 @@
 # Canonical Analyses
 
-Plan 7 introduces the first AgencityStudio workflow that actually executes the canonical scalar pipeline through **AgencityLab 1.1.3**.
+Plan 7 introduces the first AgencityStudio workflow that actually executes the canonical scalar pipeline through **AgencityLab 1.1.3**. Plan 8 adds a read-only exploration workspace over the immutable result produced by that execution.
 
 ## Scientific boundary
 
@@ -10,7 +10,7 @@ All canonical Agencity quantities are computed by AgencityLab through the public
 
 Analysis execution never sorts, resamples, interpolates, filters, fills, smooths, normalizes, standardizes, or otherwise repairs the selected data. If such preparation is required, it must already exist as an explicit `PreparedDataArtifact` created through the Data Preparation workflow.
 
-Plan 7 also does not calculate or interpret coherence, angular variance, curvature, winding, events, transitions, regimes, or “real agencity”. A `COMPLETED` Run only means that the canonical software execution and immutable result publication completed successfully.
+Neither canonical execution nor Plan 8 visualization calculates or interprets coherence, angular variance, curvature, winding, events, transitions, regimes, or “real agencity”. A `COMPLETED` Run only means that the canonical software execution and immutable result publication completed successfully.
 
 ## Analysis vs AnalysisRun
 
@@ -119,17 +119,45 @@ Publication uses a sibling temporary file followed by an atomic filesystem repla
 
 `execution_fingerprint` identifies the frozen execution contract. `result_sha256` identifies the serialized result bytes. They are intentionally different concepts.
 
+## Plan 8 read-only Results workspace
+
+A completed Run with a readable result artifact exposes a deep-linkable Results workspace. The visualization path is:
+
+```text
+AnalysisResultArtifact
+  -> AnalysisResultReader
+  -> visualization service
+  -> private Workspace-scoped endpoints
+  -> scoped scientific chart controller
+```
+
+Displaying an existing result does not call AgencityLab. The reader validates and selects stored arrays; it does not normalize, repair, infer, or recompute canonical quantities. If a historical artifact lacks a quantity, the corresponding view is unavailable rather than reconstructed.
+
+The workspace exposes Overview, Observable, Dynamics, Structure, Contrast & Orientation, Agencity State, Agencity Flux, Exact table, and Reproducibility. A persistent original sample index links the coordinate plots, complex planes and exact full-resolution sample inspector.
+
+**Structural orientation Theta is read from the AgencityLab result and is never reconstructed from beta.** The orientation chart uses stored `theta`; display phase of a complex quantity is a different presentation concept and is never relabelled as Theta.
+
+`U`, `beta`, and `b` retain their stored complex dtype in the result artifact. Real, imaginary, magnitude, and phase values may be serialized for browser presentation only. They do not become persisted canonical quantities.
+
+Long ranges may be represented by display-only original sample indices bounded by `VISUALIZATION_MAX_POINTS`. Every display point retains its original sample index, and selecting it causes the inspector to fetch the exact full-resolution stored sample.
+
+> Display decimation never alters the canonical result or the data used for scientific calculations.
+
+The Exact table is server-paginated, preserves original sample order, and provides a non-chart accessibility path to exact values.
+
+See `docs/visualization.md` and ADR `docs/decisions/0004-canonical-visualization.md` for the complete Plan 8 contract.
+
 ## Permissions
 
 Analysis access reuses Workspace/Project membership; there is no additional ACL.
 
-- Owner: view, create, configure, run, inspect results, archive/restore, hard-delete an Analysis when no Run is queued/running.
-- Editor: view, create, configure, run, inspect results, archive/restore; no hard delete.
-- Analyst: view, create, configure, run, inspect results; no destructive Analysis lifecycle operations.
-- Viewer: view Analysis and completed Run/result metadata only.
+- Owner: view, create, configure, run, inspect results and visualizations, archive/restore, hard-delete an Analysis when no Run is queued/running.
+- Editor: view, create, configure, run, inspect results and visualizations, archive/restore; no hard delete.
+- Analyst: view, create, configure, run, inspect results and visualizations; no destructive Analysis lifecycle operations.
+- Viewer: view Analysis and completed Run/result metadata and visualizations only.
 - Non-member: object endpoints resolve as 404.
 
-Result files never have a public media URL. Views expose result metadata only after normal object permission resolution.
+Result files never have a public media URL. Visualization endpoints apply normal object permission resolution, return private/no-store numerical responses, and never expose storage paths.
 
 ## Scientific equivalence
 
@@ -149,14 +177,17 @@ Public result arrays are compared directly using strict floating-point tolerance
 
 The end-to-end worker integration additionally reloads the private stored result and compares its canonical arrays to a direct AgencityLab computation for the same pinned source and parameters.
 
+Plan 8 adds regressions for exact reader/range/sample behavior, complex dtype preservation, display-decimation index preservation, result-artifact immutability, Workspace isolation, missing artifacts, and stored `theta` versus `arg(beta)` separation. Browser tests select samples through accessible controls rather than fragile canvas coordinates.
+
 ## Deliberately deferred
 
-Plan 7 does not implement:
+After Plan 8, the following remain deliberately outside canonical execution/visualization:
 
-- interactive synchronized scientific plots or complex-plane workspaces (Plan 8);
-- coherence, angular variance, curvature, winding, events, transitions, regime classification, or real-agencity diagnostics;
+- coherence, angular variance, Theta stability, curvature, winding, zeros, events, transitions, regime classification, and real-agencity diagnostics;
+- multi-Run comparison overlays and the Comparison Workbench;
+- persistent scientific figure/annotation models;
+- full reproducible scientific result export;
 - multivariate, field, batch, spectrum, thermodynamic, quantum, gravitational, or cosmological workflows;
-- full user-facing result export;
 - automatic parameter inference;
 - Analysis-level physical parameter overrides;
 - automatic preprocessing or unit conversion during canonical execution.

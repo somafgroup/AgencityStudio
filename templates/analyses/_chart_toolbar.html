@@ -1,0 +1,9 @@
+{% load i18n %}
+<div class="chart-toolbar" aria-label="{% translate 'Chart controls' %}">
+  <button class="btn btn-secondary" type="button" data-chart-action="reset">{% translate "Reset view" %}</button>
+  <button class="btn btn-secondary" type="button" data-chart-action="fullscreen">{% translate "Fullscreen" %}</button>
+  <button class="btn btn-secondary" type="button" data-chart-action="export">{% translate "Export PNG" %}</button>
+  <a class="btn btn-secondary" data-sample-link href="{% url 'analysis:results-section' analysis.id run.id 'table' %}?sample={{ selected_sample }}">{% translate "Exact data table" %}</a>
+</div>
+<p class="chart-note">{% translate "Zoom and range selection affect only the current display. They do not crop, preprocess, or recalculate the Analysis." %}</p>
+<p class="chart-note" data-decimation-note hidden>{% translate "This chart uses display-only decimation for responsiveness. Original sample indices are preserved, and the selected-sample inspector always fetches exact full-resolution values." %}</p>

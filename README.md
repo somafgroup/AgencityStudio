@@ -28,8 +28,11 @@ AgencityStudio is the Web interface and orchestration layer for AgencityLab. It 
 - Real Celery execution through the public `agencitylab.compute_agencity` API only.
 - Private immutable canonical result artifacts preserving real and complex NumPy dtypes, with schema version and SHA-256.
 - Per-Run source, parameter, software-version, execution-fingerprint and result-hash provenance.
-- Light, dark and system themes.
-- Chromium Playwright coverage for shell, account, workspace, invitation, Project, Dataset, preparation, System, Analysis and permission workflows.
+- Read-only canonical Results workspace backed only by the immutable Run result artifact.
+- Apache ECharts scientific visualization with linked coordinate views and complex planes for stored `U`, `beta` and `b`.
+- Exact selected-sample inspector, server-paginated canonical table and display-only large-series decimation with original-index preservation.
+- Light, dark and system themes, including live chart re-theming.
+- Chromium Playwright coverage for shell, account, workspace, invitation, Project, Dataset, preparation, System, Analysis, Results visualization and permission workflows.
 - Docker Compose development/runtime stack.
 - Liveness at `/health/` and dependency readiness at `/health/ready/`.
 
@@ -45,6 +48,8 @@ Plan 6 adds a separate scientific-context layer. A SystemRevision documents obse
 
 Plan 7 adds canonical scalar execution without creating a second scientific implementation. An AnalysisRun pins the exact source artifact and SHA-256, stable column mapping, immutable SystemRevision and observable, physical/contextual parameter snapshot, AgencityLab/Studio/Python versions and execution fingerprint before the worker calls `agencitylab.compute_agencity`. Analysis execution never sorts, resamples, interpolates, filters, fills, normalizes or converts units. If preparation is required, it must already exist as an explicit PreparedDataArtifact. An unspecified `w` is passed to Lab as `None`; Studio never substitutes `w = tau` before the public API call. A successful Run means the canonical software computation and immutable result storage completed, not that coherent or “real” agencity was detected.
 
+Plan 8 adds a read-only scientific visualization layer over that immutable Plan 7 result. Results pages do **not** call AgencityLab again. They read stored canonical arrays through a schema-aware ResultReader, expose private Workspace-scoped visualization endpoints, and render the stored values with a locally bundled Apache ECharts controller. `theta` is read from the stored AgencityLab result and is never reconstructed from `beta`. Real/imaginary/magnitude/phase representations of complex `U`, `beta` and `b` are display-only and are not persisted as new scientific results. Display decimation never changes the result artifact and exact selected-sample inspection always uses full-resolution stored values. Plan 8 performs no coherence, curvature, winding, transition, regime or real-agencity diagnostic.
+
 Frequency filtering remains deliberately deferred until a precise sampling/cutoff/order/phase/anti-alias contract is implemented. Studio does not introduce hidden filter defaults merely to expose another preprocessing option.
 
 ## Quick start with Docker Compose
@@ -57,7 +62,7 @@ docker compose run --rm web python manage.py migrate --noinput
 docker compose up -d web worker
 ```
 
-Open `http://localhost:8000/`, create a local account and AgencityStudio will create its private personal workspace. Projects organise the scientific work. The Data Workspace can import immutable raw sources, the Prepare tab can materialize explicit derived views, the Systems tab documents versioned scientific context independently from those data artifacts, and the Analyses tab can pin those exact inputs and queue canonical AgencityLab execution.
+Open `http://localhost:8000/`, create a local account and AgencityStudio will create its private personal workspace. Projects organise the scientific work. The Data Workspace can import immutable raw sources, the Prepare tab can materialize explicit derived views, the Systems tab documents versioned scientific context independently from those data artifacts, the Analyses tab can pin those exact inputs and queue canonical AgencityLab execution, and a completed Run can then be explored through its read-only canonical Results workspace.
 
 The readiness endpoint should return HTTP 200 once PostgreSQL, Redis and the compatible AgencityLab runtime are available:
 
@@ -75,7 +80,7 @@ AGENCITYSTUDIO_SIGNUP_MODE=invitation_only
 AGENCITYSTUDIO_SIGNUP_MODE=disabled
 ```
 
-Dataset/preparation/analysis storage is protected by configurable instance limits:
+Dataset/preparation/analysis storage and visualization payloads are protected by configurable instance limits:
 
 ```text
 DATASET_MAX_UPLOAD_BYTES=<bytes>
@@ -83,11 +88,13 @@ DATASET_MAX_PASTE_BYTES=<bytes>
 DATASET_STORAGE_ROOT=<private path>
 DATA_PREPARATION_MAX_ROWS=<rows>
 ANALYSIS_MAX_ROWS=<rows>
+VISUALIZATION_MAX_POINTS=<display points>
+VISUALIZATION_TABLE_PAGE_SIZE=<rows per page>
 ```
 
-`DATA_PREPARATION_MAX_ROWS` and `ANALYSIS_MAX_ROWS` are implementation memory-safety bounds for the current in-memory preparation/execution adapters. They are not scientific thresholds.
+`DATA_PREPARATION_MAX_ROWS` and `ANALYSIS_MAX_ROWS` are implementation memory-safety bounds for the current in-memory preparation/execution adapters. `VISUALIZATION_MAX_POINTS` and `VISUALIZATION_TABLE_PAGE_SIZE` are UI/performance settings. None of these values are scientific thresholds.
 
-See `docs/accounts-and-workspaces.md` for identity/workspace semantics, `docs/datasets.md` for raw Dataset contracts, `docs/data-preparation.md` for prepared-data lineage and transformations, `docs/systems.md` for scientific System revisions and physical/contextual parameter provenance, and `docs/analyses.md` for canonical execution and reproducibility.
+See `docs/accounts-and-workspaces.md` for identity/workspace semantics, `docs/datasets.md` for raw Dataset contracts, `docs/data-preparation.md` for prepared-data lineage and transformations, `docs/systems.md` for scientific System revisions and physical/contextual parameter provenance, `docs/analyses.md` for canonical execution and reproducibility, and `docs/visualization.md` for the Results workspace and complex-value visualization contract.
 
 To verify the asynchronous worker path end to end through Studio's configured Celery application:
 
@@ -119,6 +126,6 @@ celery -A config worker --loglevel=INFO
 
 ## Validation
 
-The CI pipeline checks Python quality, Django configuration, production settings, migration consistency, PostgreSQL migrations, backend identity/workspace/Project/Dataset/preparation/System/Analysis permission and provenance tests, direct AgencityLab-versus-labbridge numerical equivalence, frontend build, critical Playwright flows including a real canonical worker Run, Docker image construction, Compose readiness and an actual Celery task round trip.
+The CI pipeline checks Python quality, Django configuration, production settings, migration consistency, PostgreSQL migrations, backend identity/workspace/Project/Dataset/preparation/System/Analysis/visualization permission and provenance tests, direct AgencityLab-versus-labbridge numerical equivalence, exact result-reader and complex-value preservation, the stored-Theta regression, frontend build, critical Playwright flows including a real canonical worker Run and Results exploration, Docker image construction, Compose readiness and an actual Celery task round trip.
 
-Additional documentation lives under `docs/`, especially `docs/architecture.md`, `docs/accounts-and-workspaces.md`, `docs/projects.md`, `docs/datasets.md`, `docs/data-preparation.md`, `docs/systems.md`, `docs/analyses.md`, `docs/development.md`, `docs/testing.md` and `docs/ui.md`.
+Additional documentation lives under `docs/`, especially `docs/architecture.md`, `docs/accounts-and-workspaces.md`, `docs/projects.md`, `docs/datasets.md`, `docs/data-preparation.md`, `docs/systems.md`, `docs/analyses.md`, `docs/visualization.md`, `docs/development.md`, `docs/testing.md` and `docs/ui.md`.
