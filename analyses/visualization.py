@@ -267,12 +267,19 @@ def exact_table_payload(
     rows: list[dict] = []
     for offset in range(stop - start):
         index = start + offset
-        row: dict[str, object] = {"index": index, "display_index": index + 1, "values": {}}
+        cells: list[dict] = []
         for name in names:
             value = arrays[name][offset]
             is_complex = bool(np.iscomplexobj(value))
-            row["values"][name] = _encode_complex(value) if is_complex else _encode_real(value)
-        rows.append(row)
+            cells.append(
+                {
+                    "key": name,
+                    "symbol": registry[name]["symbol"],
+                    "complex": is_complex,
+                    "value": _encode_complex(value) if is_complex else _encode_real(value),
+                }
+            )
+        rows.append({"index": index, "display_index": index + 1, "cells": cells})
     return {
         "result_sha256": result_sha256,
         "sample_count": reader.sample_count,
