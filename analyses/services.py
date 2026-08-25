@@ -32,7 +32,12 @@ from workspaces.permissions import (
 from .models import Analysis, AnalysisKind, AnalysisRun, AnalysisStatus, RunStatus, SourceType
 from .results import RESULT_SCHEMA_VERSION
 from .sources import SourceContractError, descriptor_for, materialize_vectors
-from .validation import validate_mapping, validate_parameter_contract, validate_sample_contract, validate_units
+from .validation import (
+    validate_mapping,
+    validate_parameter_contract,
+    validate_sample_contract,
+    validate_units,
+)
 
 
 def _version(name: str) -> str:
@@ -60,16 +65,21 @@ def _record(analysis: Analysis, *, actor, event: str, detail: str = "") -> None:
 
 
 def _fingerprint(payload: dict) -> str:
-    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
 
 def get_analysis_or_404(*, user, analysis_id) -> Analysis:
     try:
-        analysis = (
-            Analysis.objects.select_related("project", "project__workspace", "created_by")
-            .get(pk=analysis_id)
-        )
+        analysis = Analysis.objects.select_related(
+            "project", "project__workspace", "created_by"
+        ).get(pk=analysis_id)
     except (Analysis.DoesNotExist, ValueError) as exc:
         raise Http404 from exc
     if not can_view_analysis(user, analysis):
@@ -78,7 +88,15 @@ def get_analysis_or_404(*, user, analysis_id) -> Analysis:
 
 
 @transaction.atomic
-def create_analysis(*, actor, project, name: str, description: str = "", source_type: str, source_id: str) -> Analysis:
+def create_analysis(
+    *,
+    actor,
+    project,
+    name: str,
+    description: str = "",
+    source_type: str,
+    source_id: str,
+) -> Analysis:
     if not can_create_analysis(actor, project):
         raise PermissionDenied
     clean_name = str(name).strip()
@@ -87,12 +105,16 @@ def create_analysis(*, actor, project, name: str, description: str = "", source_
     if len(clean_name) > 180:
         raise ValidationError(_("Analysis name must be 180 characters or fewer."))
     if source_type == SourceType.RAW_DATASET_VERSION:
-        source = DatasetVersion.objects.select_related("dataset", "dataset__project").get(pk=source_id, dataset__project=project)
+        source = DatasetVersion.objects.select_related("dataset", "dataset__project").get(
+            pk=source_id, dataset__project=project
+        )
         descriptor = descriptor_for(dataset_version=source)
     elif source_type == SourceType.PREPARED_DATA:
-        source = PreparedDataArtifact.objects.select_related("preparation", "preparation__source_version", "preparation__source_version__dataset").get(
-            pk=source_id, preparation__source_version__dataset__project=project
-        )
+        source = PreparedDataArtifact.objects.select_related(
+            "preparation",
+            "preparation__source_version",
+            "preparation__source_version__dataset",
+        ).get(pk=source_id, preparation__source_version__dataset__project=project)
         descriptor = descriptor_for(prepared_artifact=source)
     else:
         raise ValidationError(_("Select a supported analysis source."))
@@ -102,9 +124,17 @@ def create_analysis(*, actor, project, name: str, description: str = "", source_
         description=str(description).strip(),
         analysis_kind=AnalysisKind.CANONICAL_SCALAR,
         created_by=actor,
-        draft_configuration={"source_type": descriptor.source_type, "source_id": descriptor.source_id},
+        draft_configuration={
+            "source_type": descriptor.source_type,
+            "source_id": descriptor.source_id,
+        },
     )
-    _record(analysis, actor=actor, event="ANALYSIS_CREATED", detail=_("Created canonical Analysis %(name)s.") % {"name": analysis.name})
+    _record(
+        analysis,
+        actor=actor,
+        event="ANALYSIS_CREATED",
+        detail=_("Created canonical Analysis %(name)s.") % {"name": analysis.name},
+    )
     return analysis
 
 
@@ -112,22 +142,33 @@ def _resolve_source(analysis: Analysis, config: dict):
     source_type = config.get("source_type")
     source_id = config.get("source_id")
     if source_type == SourceType.RAW_DATASET_VERSION:
-        source = DatasetVersion.objects.select_related("dataset", "dataset__project").prefetch_related("columns").get(
-            pk=source_id, dataset__project=analysis.project
+        source = (
+            DatasetVersion.objects.select_related("dataset", "dataset__project")
+            .prefetch_related("columns")
+            .get(pk=source_id, dataset__project=analysis.project)
         )
         return source, None, descriptor_for(dataset_version=source)
     if source_type == SourceType.PREPARED_DATA:
         source = PreparedDataArtifact.objects.select_related(
-            "preparation", "preparation__source_version", "preparation__source_version__dataset"
+            "preparation",
+            "preparation__source_version",
+            "preparation__source_version__dataset",
         ).get(pk=source_id, preparation__source_version__dataset__project=analysis.project)
         return None, source, descriptor_for(prepared_artifact=source)
-    raise SourceContractError("The Analysis draft does not identify a supported pinned source.")
+    raise SourceContractError(
+        "The Analysis draft does not identify a supported pinned source."
+    )
 
 
 @transaction.atomic
 def configure_analysis(
-    *, actor, analysis: Analysis, coordinate_position: int, observable_position: int,
-    system_revision: SystemRevision, system_observable: ObservableDefinition,
+    *,
+    actor,
+    analysis: Analysis,
+    coordinate_position: int,
+    observable_position: int,
+    system_revision: SystemRevision,
+    system_observable: ObservableDefinition,
     options: dict | None = None,
 ) -> Analysis:
     if not can_edit_analysis(actor, analysis):
@@ -138,8 +179,10 @@ def configure_analysis(
     if system_revision.system.project_id != locked.project_id:
         raise ValidationError(_("The selected System Revision belongs to another Project."))
     if system_observable.revision_id != system_revision.pk:
-        raise ValidationError(_("The selected System observable does not belong to that revision."))
-    raw, prepared, descriptor = _resolve_source(locked, locked.draft_configuration)
+        raise ValidationError(
+            _("The selected System observable does not belong to that revision.")
+        )
+    _, _, descriptor = _resolve_source(locked, locked.draft_configuration)
     coordinate, observable = validate_mapping(
         descriptor,
         coordinate_position=int(coordinate_position),
@@ -175,17 +218,26 @@ def configure_analysis(
         "preflight_warnings": unit_warnings,
     }
     locked.save(update_fields=("draft_configuration", "updated_at"))
-    _record(locked, actor=actor, event="ANALYSIS_UPDATED", detail=_("Updated Analysis configuration."))
+    _record(
+        locked,
+        actor=actor,
+        event="ANALYSIS_UPDATED",
+        detail=_("Updated Analysis configuration."),
+    )
     return locked
 
 
 def review_snapshot(analysis: Analysis) -> dict:
     config = dict(analysis.draft_configuration or {})
     raw, prepared, descriptor = _resolve_source(analysis, config)
-    revision = SystemRevision.objects.select_related("system").prefetch_related("observables").get(
-        pk=config.get("system_revision_id"), system__project=analysis.project
+    revision = (
+        SystemRevision.objects.select_related("system")
+        .prefetch_related("observables")
+        .get(pk=config.get("system_revision_id"), system__project=analysis.project)
     )
-    observable_def = ObservableDefinition.objects.get(pk=config.get("system_observable_id"), revision=revision)
+    observable_def = ObservableDefinition.objects.get(
+        pk=config.get("system_observable_id"), revision=revision
+    )
     coordinate, observable = validate_mapping(
         descriptor,
         coordinate_position=int(config["coordinate_position"]),
@@ -207,10 +259,16 @@ def review_snapshot(analysis: Analysis) -> dict:
     }
 
 
-def _mapping_snapshot(*, descriptor, coordinate: dict, observable: dict, system_observable) -> dict:
+def _mapping_snapshot(
+    *, descriptor, coordinate: dict, observable: dict, system_observable
+) -> dict:
     return {
         "time": {**coordinate},
-        "observable": {**observable, "system_observable_id": str(system_observable.pk), "system_observable_name": system_observable.name},
+        "observable": {
+            **observable,
+            "system_observable_id": str(system_observable.pk),
+            "system_observable_name": system_observable.name,
+        },
     }
 
 
@@ -227,6 +285,7 @@ def _source_snapshot(descriptor) -> dict:
 
 def _enqueue(run_id) -> None:
     from .tasks import execute_analysis_run
+
     execute_analysis_run.delay(str(run_id))
 
 
@@ -254,7 +313,9 @@ def queue_analysis_run(*, actor, analysis: Analysis) -> AnalysisRun:
     )
     context = software_context()
     if context["agencitylab_version"] != "1.1.3":
-        raise ValidationError(_("AgencityLab 1.1.3 is required for this Analysis contract."))
+        raise ValidationError(
+            _("AgencityLab 1.1.3 is required for this Analysis contract.")
+        )
     mapping = _mapping_snapshot(
         descriptor=snapshot["descriptor"],
         coordinate=snapshot["coordinate"],
@@ -267,13 +328,20 @@ def queue_analysis_run(*, actor, analysis: Analysis) -> AnalysisRun:
         "source_type": snapshot["descriptor"].source_type,
         "mapping": mapping,
         "system_revision_id": str(snapshot["revision"].pk),
-        "system_configuration_fingerprint": snapshot["revision"].configuration_fingerprint,
+        "system_configuration_fingerprint": snapshot[
+            "revision"
+        ].configuration_fingerprint,
         "parameters": params,
         "options": snapshot["options"],
         "agencitylab_version": context["agencitylab_version"],
         "result_schema_version": RESULT_SCHEMA_VERSION,
     }
-    run_number = (AnalysisRun.objects.filter(analysis=locked).aggregate(value=Max("run_number"))["value"] or 0) + 1
+    run_number = (
+        AnalysisRun.objects.filter(analysis=locked).aggregate(value=Max("run_number"))[
+            "value"
+        ]
+        or 0
+    ) + 1
     run = AnalysisRun.objects.create(
         analysis=locked,
         run_number=run_number,
@@ -286,7 +354,9 @@ def queue_analysis_run(*, actor, analysis: Analysis) -> AnalysisRun:
         mapping_snapshot=mapping,
         system_revision=snapshot["revision"],
         system_observable=snapshot["system_observable"],
-        system_configuration_fingerprint=snapshot["revision"].configuration_fingerprint,
+        system_configuration_fingerprint=snapshot[
+            "revision"
+        ].configuration_fingerprint,
         parameter_snapshot=params,
         analysis_options=snapshot["options"],
         agencitylab_version=context["agencitylab_version"],
@@ -297,18 +367,29 @@ def queue_analysis_run(*, actor, analysis: Analysis) -> AnalysisRun:
         created_by=actor,
         queued_at=timezone.now(),
     )
-    _record(locked, actor=actor, event="ANALYSIS_RUN_QUEUED", detail=_("Queued Analysis Run %(number)s.") % {"number": run.run_number})
+    _record(
+        locked,
+        actor=actor,
+        event="ANALYSIS_RUN_QUEUED",
+        detail=_("Queued Analysis Run %(number)s.") % {"number": run.run_number},
+    )
     transaction.on_commit(lambda: _enqueue(run.pk))
     return run
 
 
 @transaction.atomic
 def cancel_analysis_run(*, actor, run: AnalysisRun) -> AnalysisRun:
-    locked = AnalysisRun.objects.select_for_update().select_related("analysis", "analysis__project").get(pk=run.pk)
+    locked = (
+        AnalysisRun.objects.select_for_update()
+        .select_related("analysis", "analysis__project")
+        .get(pk=run.pk)
+    )
     if not can_run_analysis(actor, locked.analysis):
         raise PermissionDenied
     if locked.status == RunStatus.RUNNING:
-        raise ValidationError(_("A running AgencityLab call cannot be safely cancelled cooperatively."))
+        raise ValidationError(
+            _("A running AgencityLab call cannot be safely cancelled cooperatively.")
+        )
     if locked.status != RunStatus.QUEUED:
         raise ValidationError(_("Only a queued Run can be cancelled."))
     locked.status = RunStatus.CANCELLED
@@ -347,9 +428,19 @@ def delete_analysis(*, actor, analysis: Analysis) -> None:
     locked = Analysis.objects.select_for_update().get(pk=analysis.pk)
     if locked.runs.filter(status__in=(RunStatus.QUEUED, RunStatus.RUNNING)).exists():
         raise ValidationError(_("Queued or running Analyses cannot be deleted."))
-    paths = list(locked.runs.filter(result_artifact__isnull=False).values_list("result_artifact__storage_path", flat=True))
-    _record(locked, actor=actor, event="ANALYSIS_DELETED", detail=_("Deleted Analysis %(name)s.") % {"name": locked.name})
+    paths = list(
+        locked.runs.filter(result_artifact__isnull=False).values_list(
+            "result_artifact__storage_path", flat=True
+        )
+    )
+    _record(
+        locked,
+        actor=actor,
+        event="ANALYSIS_DELETED",
+        detail=_("Deleted Analysis %(name)s.") % {"name": locked.name},
+    )
     locked.delete()
     if paths:
         from .storage import analysis_storage
+
         transaction.on_commit(lambda: [analysis_storage().delete(path) for path in paths])
