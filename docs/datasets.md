@@ -22,6 +22,14 @@ DatasetVersion
 
 A successful inspection does not silently replace the current version. The user confirms a READY version before `Dataset.current_version` is updated. A FAILED new version never makes the previous current version unusable.
 
+## Dataset is not System
+
+A Dataset answers: **what measurements/data do I have?** A Plan 6 `System` answers: **what physical/scientific system do those measurements represent, and what contextual parameters are justified for future analysis?**
+
+The two objects share a Project but are intentionally independent. A System may later be used with several DatasetVersions or PreparedDataArtifacts, and a Dataset does not automatically create or select a System.
+
+`DatasetColumn` is therefore not an `ObservableDefinition`. A source column may have a technical header such as `col_07`, while the System observable may be scientifically named “Rotor angular position”. Plan 6 persists no mapping between them; future Analysis configuration will choose the exact data source and map its columns to an exact SystemRevision explicitly.
+
 ## Raw-source immutability
 
 Every source artifact is stored under a generated private path derived from Project, Dataset and DatasetVersion UUIDs. The original client filename is metadata only and is never used as a storage path.
@@ -79,6 +87,8 @@ OTHER
 
 At most one column can be the primary Time column for the current tabular workflow. Multiple columns may be marked Observable. Units are stored as user-declared metadata and are not silently converted.
 
+The `OBSERVABLE` Dataset role is an acquisition/data annotation only. It does not bind the column to a System observable and does not define `A_ref`, `tau`, `w` or `P_c`.
+
 ## Inspection diagnostics
 
 The Data Workspace may report:
@@ -99,6 +109,8 @@ The Data Workspace may report:
 - potential sampling gaps using an explicitly documented inspection heuristic.
 
 These are data-quality diagnostics. They do not define `A_ref`, `tau`, `w` or `P_c`.
+
+In particular, observed sampling interval `dt` remains an acquisition property. It is never copied into a System as `tau` or `w`. Dataset standard deviation, MAD, range, extrema and similar signal statistics never populate `A_ref` or `P_c`.
 
 The raw Data Workspace never sorts, drops, fills, interpolates, resamples, smooths, filters or normalizes a `DatasetVersion` in place. Plan 5 adds a separate preparation layer that materializes explicit derived artifacts while leaving this raw contract unchanged. See [Data Preparation, Transformations and Provenance](data-preparation.md).
 
@@ -122,7 +134,9 @@ Raw files are private by default. Download goes through an authorized Django end
 
 ## Deletion and retention
 
-A Project containing Datasets cannot be hard-deleted. The Datasets must first be handled explicitly. Dataset deletion is Owner-only and removes related metadata/private raw artifacts through the storage service when deletion is allowed.
+A Project containing Datasets cannot be hard-deleted. The Datasets must first be handled explicitly. Plan 6 extends the same conservative Project boundary to Systems: the presence of either retained Datasets or Systems blocks Project hard deletion.
+
+Dataset deletion is Owner-only and removes related metadata/private raw artifacts through the storage service when deletion is allowed.
 
 A `DatasetVersion` referenced by a `DataPreparation` is protected by a database foreign-key contract. Derived lineage must be handled explicitly before that exact source version can disappear. This prevents a prepared result from losing the source it claims in provenance.
 
@@ -133,3 +147,5 @@ Database transactions and object/file storage are separate atomicity domains, so
 The Data Workspace answers questions such as what source was imported, what its exact hash is, which columns exist and whether the observed time axis has quality issues.
 
 It does not answer what `A_ref`, `tau`, `w`, `P_c`, `beta` or `b` are. No canonical Agencity pipeline equation belongs in `datasets/`.
+
+Plan 6 Systems hold the documented physical/contextual side of future analysis, independently from data. See [Systems & Scientific Context](systems.md). The future Analysis layer—not Dataset and not System—will associate one exact DatasetVersion or PreparedDataArtifact with one exact SystemRevision and observable mapping.

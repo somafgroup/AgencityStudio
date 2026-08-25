@@ -6,6 +6,7 @@ from .models import Workspace, WorkspaceMembership, WorkspaceRole
 
 WRITE_ROLES = {WorkspaceRole.OWNER, WorkspaceRole.EDITOR}
 PREPARATION_ROLES = {WorkspaceRole.OWNER, WorkspaceRole.EDITOR, WorkspaceRole.ANALYST}
+SYSTEM_AUTHOR_ROLES = {WorkspaceRole.OWNER, WorkspaceRole.EDITOR, WorkspaceRole.ANALYST}
 
 
 def membership_for(user, workspace: Workspace) -> WorkspaceMembership | None:
@@ -135,4 +136,44 @@ def can_download_prepared_data(user, preparation) -> bool:
 
 def can_delete_preparation(user, preparation) -> bool:
     membership = membership_for(user, preparation.source_version.dataset.project.workspace)
+    return membership is not None and membership.role == WorkspaceRole.OWNER
+
+
+def can_create_system(user, project) -> bool:
+    """Owners, Editors and Analysts may author scientific context on active Projects."""
+    if getattr(project, "status", None) != "ACTIVE":
+        return False
+    membership = membership_for(user, project.workspace)
+    return membership is not None and membership.role in SYSTEM_AUTHOR_ROLES
+
+
+def can_view_system(user, system) -> bool:
+    return can_view_project(user, system.project)
+
+
+def can_revise_system(user, system) -> bool:
+    return getattr(system, "status", None) == "ACTIVE" and can_create_system(user, system.project)
+
+
+def can_duplicate_system(user, system) -> bool:
+    return can_create_system(user, system.project)
+
+
+def can_edit_system_identity(user, system) -> bool:
+    """Organisational identity edits remain Owner/Editor work, separate from science."""
+    return getattr(system.project, "status", None) == "ACTIVE" and can_edit_project(
+        user, system.project
+    )
+
+
+def can_archive_system(user, system) -> bool:
+    return can_edit_system_identity(user, system)
+
+
+def can_restore_system(user, system) -> bool:
+    return can_edit_project(user, system.project)
+
+
+def can_delete_system(user, system) -> bool:
+    membership = membership_for(user, system.project.workspace)
     return membership is not None and membership.role == WorkspaceRole.OWNER
