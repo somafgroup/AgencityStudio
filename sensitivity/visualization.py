@@ -65,12 +65,20 @@ def chart_payload(study, stored, *, metric: str | None = None) -> dict:
     scale_name = "tau" if study.study_type == StudyType.TAU_MULTISCALE else "candidate_w"
     scales = np.asarray(stored.arrays[scale_name])
     values = np.asarray(stored.arrays[selected])
+    complex_values = np.iscomplexobj(values)
+    display_values = np.abs(values) if complex_values else values
     points = [
-        {"index": index, "scale": _safe(scales[index]), "value": _safe(values[index])}
+        {
+            "index": index,
+            "scale": _safe(scales[index]),
+            "value": _safe(display_values[index]),
+        }
         for index in range(len(scales))
     ]
     return {
-        "metric": selected,
+        "metric": f"|{selected}|" if complex_values else selected,
+        "source_metric": selected,
+        "representation": "magnitude" if complex_values else "direct",
         "points": points,
         "grid_unit": study.grid_unit,
         "scale_symbol": "tau" if study.study_type == StudyType.TAU_MULTISCALE else "w",
