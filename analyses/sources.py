@@ -187,3 +187,82 @@ def materialize_vectors(*, dataset_version=None, prepared_artifact=None, coordin
     if dataset_version is not None:
         return _read_raw(dataset_version, coordinate_position, observable_position)
     return _read_prepared(prepared_artifact, coordinate_position, observable_position)
+
+
+def _read_raw_matrix(
+    version,
+    coordinate_position: int,
+    component_positions: tuple[int, ...],
+) -> tuple[np.ndarray, np.ndarray]:
+    importer = get_importer(version.source_format)
+    decimal = str((version.import_options or {}).get("decimal_separator", "."))
+    xi: list[float] = []
+    components: list[list[float]] = [[] for _ in component_positions]
+    required_width = max((coordinate_position, *component_positions))
+    try:
+        with dataset_storage().open(version.source_path, "rb") as handle:
+            table = importer.open_table(
+                handle,
+                filename=version.original_filename,
+                options=dict(version.import_options or {}),
+            )
+            for row in table.rows:
+                if len(row) < required_width:
+                    raise SourceContractError(
+                        "Stored source width no longer matches its inspected schema."
+                    )
+                xi.append(_number(row[coordinate_position - 1], decimal))
+                for target, position in zip(components, component_positions, strict=True):
+                    target.append(_number(row[position - 1], decimal))
+                _bounded(xi)
+    except ImporterError as exc:
+        raise SourceContractError(str(exc)) from exc
+    matrix = np.column_stack([np.asarray(values, dtype=float) for values in components])
+    return np.asarray(xi, dtype=float), matrix
+
+
+def _read_prepared_matrix(
+    artifact,
+    coordinate_position: int,
+    component_positions: tuple[int, ...],
+) -> tuple[np.ndarray, np.ndarray]:
+    xi: list[float] = []
+    components: list[list[float]] = [[] for _ in component_positions]
+    required_width = max((coordinate_position, *component_positions))
+    with dataset_storage().open(artifact.storage_path, "r") as handle:
+        reader = csv.reader(handle)
+        next(reader, None)
+        for row in reader:
+            if len(row) < required_width:
+                raise SourceContractError(
+                    "Prepared artifact width no longer matches its immutable schema."
+                )
+            xi.append(_number(row[coordinate_position - 1]))
+            for target, position in zip(components, component_positions, strict=True):
+                target.append(_number(row[position - 1]))
+            _bounded(xi)
+    matrix = np.column_stack([np.asarray(values, dtype=float) for values in components])
+    return np.asarray(xi, dtype=float), matrix
+
+
+def materialize_matrix(
+    *,
+    dataset_version=None,
+    prepared_artifact=None,
+    coordinate_position: int,
+    component_positions,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Read one coordinate and ordered components exactly as stored.
+
+    No sorting, joining, interpolation, resampling, normalization, row dropping,
+    truncation, padding, or missing-value repair occurs here. The returned matrix
+    is sample-major because that is the public AgencityLab 1.1.3 default contract.
+    """
+    if (dataset_version is None) == (prepared_artifact is None):
+        raise SourceContractError("Exactly one analysis source must be selected.")
+    positions = tuple(int(value) for value in component_positions)
+    if not positions:
+        raise SourceContractError("At least one multivariate component column is required.")
+    if dataset_version is not None:
+        return _read_raw_matrix(dataset_version, int(coordinate_position), positions)
+    return _read_prepared_matrix(prepared_artifact, int(coordinate_position), positions)
