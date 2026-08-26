@@ -1,4 +1,4 @@
-"""Project-owned Analysis containers and immutable canonical execution records."""
+"""Project-owned Analysis containers and immutable scientific execution records."""
 
 from __future__ import annotations
 
@@ -38,6 +38,20 @@ class RunErrorCategory(models.TextChoices):
     LAB_EXECUTION_ERROR = "LAB_EXECUTION_ERROR", _("AgencityLab execution error")
     SOURCE_ERROR = "SOURCE_ERROR", _("Source data error")
     STORAGE_ERROR = "STORAGE_ERROR", _("Result storage error")
+    STUDIO_INTERNAL_ERROR = "STUDIO_INTERNAL_ERROR", _("Studio internal error")
+
+
+class DiagnosticErrorCategory(models.TextChoices):
+    LAB_DIAGNOSTIC_VALIDATION_ERROR = (
+        "LAB_DIAGNOSTIC_VALIDATION_ERROR",
+        _("AgencityLab diagnostic validation error"),
+    )
+    LAB_DIAGNOSTIC_EXECUTION_ERROR = (
+        "LAB_DIAGNOSTIC_EXECUTION_ERROR",
+        _("AgencityLab diagnostic execution error"),
+    )
+    RESULT_INPUT_ERROR = "RESULT_INPUT_ERROR", _("Canonical result input error")
+    STORAGE_ERROR = "STORAGE_ERROR", _("Diagnostic result storage error")
     STUDIO_INTERNAL_ERROR = "STUDIO_INTERNAL_ERROR", _("Studio internal error")
 
 
@@ -218,3 +232,122 @@ class AnalysisResultArtifact(models.Model):
 
     def __str__(self) -> str:
         return f"{self.run} · canonical result"
+
+
+class DiagnosticRun(models.Model):
+    """Immutable diagnostic execution derived from one exact canonical AnalysisRun."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    analysis_run = models.ForeignKey(
+        AnalysisRun,
+        on_delete=models.CASCADE,
+        related_name="diagnostic_runs",
+    )
+    run_number = models.PositiveIntegerField()
+    status = models.CharField(max_length=16, choices=RunStatus.choices, default=RunStatus.QUEUED)
+    canonical_result_sha256 = models.CharField(max_length=64)
+    diagnostic_configuration = models.JSONField(default=dict)
+    diagnostic_api_identifiers = models.JSONField(default=list)
+    diagnostic_schema_version = models.CharField(max_length=16, default="1")
+    agencitylab_version = models.CharField(max_length=32)
+    studio_version = models.CharField(max_length=32)
+    python_version = models.CharField(max_length=64)
+    execution_fingerprint = models.CharField(max_length=64)
+    result_sha256 = models.CharField(max_length=64, blank=True)
+    warnings = models.JSONField(default=list, blank=True)
+    error_category = models.CharField(
+        max_length=48,
+        choices=DiagnosticErrorCategory.choices,
+        blank=True,
+    )
+    error_message = models.CharField(max_length=500, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="diagnostic_runs_created",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    queued_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-run_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("analysis_run", "run_number"),
+                name="diagnostic_run_number_unique",
+            ),
+            models.CheckConstraint(
+                condition=Q(run_number__gt=0),
+                name="diagnostic_run_number_positive",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=("analysis_run", "-run_number"),
+                name="diagnostic_run_order_idx",
+            ),
+            models.Index(
+                fields=("status", "-created_at"),
+                name="diagnostic_run_status_idx",
+            ),
+            models.Index(
+                fields=("execution_fingerprint",),
+                name="diagnostic_run_fp_idx",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            previous = DiagnosticRun.objects.filter(pk=self.pk).values("status").first()
+            if previous and previous["status"] in {
+                RunStatus.COMPLETED,
+                RunStatus.FAILED,
+                RunStatus.CANCELLED,
+            }:
+                raise ValidationError(_("Finished DiagnosticRuns are immutable."))
+        return super().save(*args, **kwargs)
+
+    @property
+    def is_finished(self) -> bool:
+        return self.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}
+
+    def __str__(self) -> str:
+        return f"{self.analysis_run} · Diagnostic {self.run_number}"
+
+
+class DiagnosticResultArtifact(models.Model):
+    """Private immutable serialization of one completed AgencityLab diagnostic report."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    diagnostic_run = models.OneToOneField(
+        DiagnosticRun,
+        on_delete=models.CASCADE,
+        related_name="result_artifact",
+    )
+    storage_path = models.CharField(max_length=600, unique=True)
+    format = models.CharField(max_length=32, default="ZIP_JSON")
+    schema_version = models.CharField(max_length=16, default="1")
+    sha256 = models.CharField(max_length=64)
+    size_bytes = models.BigIntegerField()
+    manifest = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(size_bytes__gte=0),
+                name="diagnostic_result_size_nonnegative",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.pk and DiagnosticResultArtifact.objects.filter(pk=self.pk).exists():
+            raise ValidationError(_("Diagnostic result artifacts are immutable."))
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.diagnostic_run} · diagnostic result"

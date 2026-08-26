@@ -1,6 +1,6 @@
 [project]
 name = "agencitystudio"
-version = "0.8.0"
+version = "0.9.0"
 description = "Web interface and orchestration layer for AgencityLab"
 requires-python = ">=3.12"
 dependencies = [

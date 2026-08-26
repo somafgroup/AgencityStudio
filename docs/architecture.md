@@ -5,196 +5,159 @@ AgencityStudio follows a strict dependency direction:
 ```text
 Theory of Agencity
         ↓
-AgencityLab scientific implementation
-        ↓ public API only
+AgencityLab accepted implementation
+        ↓ public APIs only
 AgencityStudio labbridge
         ↓
-Django orchestration and presentation
-        ↓
-Users + Workspaces + explicit memberships
-        ↓
-Workspace-owned Projects
-        ├──────────────────────────────┐
-        ↓                              ↓
-Project-owned Datasets          Project-owned Systems
-        ↓                              ↓
-Immutable DatasetVersions       stable System identity
-        ↓                              ↓
-explicit ordered preparation    immutable SystemRevisions
-        ↓                              ↓
-Immutable PreparedDataArtifacts observable + physical/contextual context
-        └───────────────┬──────────────┘
-                        ↓
-              Project-owned Analysis
-                        ↓
-             immutable AnalysisRun
-                        ↓
-          labbridge → compute_agencity
-                        ↓
-       private immutable result artifact
-                        ↓ read-only
-              AnalysisResultReader
-                        ↓
-             visualization service
-                        ↓
-       private Workspace-scoped endpoints
-                        ↓
-       canonical Results workspace
+Django orchestration, provenance, storage and presentation
 ```
 
-## Scientific boundary
+Studio is not a second scientific implementation. Canonical equations and diagnostic equations remain owned by AgencityLab.
 
-AgencityLab is the scientific source of computation. Studio must not copy canonical formulas, import private/core implementation modules as shortcuts, or alter scientific parameters to make UI workflows convenient. The `labbridge` package is the only intended integration boundary. The current Studio runtime pins AgencityLab `1.1.3` and exposes an explicit compatibility contract.
-
-Projects are organisational containers only. Datasets describe source data and provenance. The Data Preparation layer may explicitly transform data. Systems document the studied physical/scientific context. Only the Analysis execution layer invokes the canonical AgencityLab public API.
-
-Dataset inspection statistics are diagnostics, not physics. Observed sampling interval/frequency, ranges, missingness and quality findings must never silently define canonical physical parameters. Preparation `dt` is a sampling interval only and must not be confused with structural `tau` or CRM window `w`.
-
-Plan 6 records `A_ref`, `tau`, `w` and `P_c` as explicit physical/contextual parameters of a SystemRevision. Studio does not infer them from standard deviation, MAD, signal range, extrema, dominant period, autocorrelation, sampling interval or signal power. `w` left unspecified is preserved as such; Studio does not store a fabricated `w=tau` value.
-
-Plan 7 pins those exact inputs in an immutable AnalysisRun. An unspecified `w` is passed to `compute_agencity` as `None`. Studio may preflight structural source contracts, but it does not substitute `tau` for `w`; AgencityLab remains authoritative for the public omitted-window convention and exposes the effective `memory_window` in the returned result metadata.
-
-`labbridge.scientific_context` may inspect the public `compute_agencity()` signature and mirror its public scalar input contracts. `labbridge.execution.execute_canonical_analysis` is the single execution adapter and calls only the package-root `agencitylab.compute_agencity`. No Studio module calculates `u_star`, `X_star`, `A_star`, `M`, `O`, `D`, `S`, `J`, `Theta`, `U`, `beta` or `b`.
-
-Plan 8 is downstream of canonical execution. Its `AnalysisResultReader`, visualization service, private endpoints and JavaScript chart controller can only read the immutable result artifact. They do not call `labbridge` or AgencityLab. Missing stored series remain unavailable. Elementary real/imaginary/magnitude/phase representations are allowed only for display of an already stored complex value and do not become canonical scientific outputs.
-
-## Identity and ownership boundary
-
-`accounts.User` is the swappable Django user model and uses normalized email as the login identifier. It deliberately contains only identity and cross-session preferences; scientific metadata does not belong on the user record.
-
-`workspaces.Workspace` is the logical ownership/security boundary. Personal workspaces are private and have one personal owner. Organisation workspaces use explicit `WorkspaceMembership` rows. Roles are `OWNER`, `EDITOR`, `ANALYST` and `VIEWER`; instance `is_staff`/`is_superuser` flags are separate Django administration privileges and do not grant workspace membership.
-
-`projects.Project` belongs to a Workspace, never directly to a user. Its UUID is the durable technical identity, its slug is readable and stable after creation, and `created_by` records provenance with `SET_NULL`. Project permissions inherit workspace membership. Studio does not introduce per-project ACLs.
-
-`datasets.Dataset` belongs to a Project and represents a logical data identity. `datasets.DatasetVersion` is one immutable raw-source snapshot with a UUID, per-Dataset version number, generated private storage path, exact-source SHA-256 and importer provenance. `datasets.DatasetColumn` identifies columns by position plus preserved source name so duplicate headers cannot collapse into one logical column.
-
-`datasets.DataPreparation` pins one exact DatasetVersion and stores an ordered machine-readable recipe. `datasets.PreparedDataArtifact` is the immutable materialization produced by one preparation. Source SHA-256, recipe fingerprint and prepared SHA-256 are deliberately separate identities.
-
-`systems.System` also belongs to a Project. It represents the durable identity of the studied physical/scientific system and is intentionally independent from any one Dataset. `created_by` records application provenance but does not define ownership.
-
-`systems.SystemRevision` is an immutable snapshot of scientific context. A revision contains contextual metadata, one or more `ObservableDefinition` rows, parameter provenance for `A_ref`, `tau`, `w` and fixed scalar `P_c`, and lightweight `ScientificReference` rows. `System.current_revision` is an UX convenience only; historical analyses reference an exact SystemRevision.
-
-`analyses.Analysis` is a mutable Project-owned user workspace for a named canonical configuration. `analyses.AnalysisRun` is the immutable reproducibility boundary for one execution. Each Run pins exactly one DatasetVersion or PreparedDataArtifact, source SHA-256 and lineage, stable coordinate/observable mapping, exact SystemRevision/ObservableDefinition, parameter and option snapshots, software versions and an execution fingerprint. Run numbers are unique per Analysis and allocated while the Analysis row is locked.
-
-`analyses.AnalysisResultArtifact` is a private one-to-one immutable result object. PostgreSQL stores metadata and the manifest; canonical arrays are stored in a versioned ZIP containing JSON plus `.npy` arrays with `allow_pickle=False`. Complex dtypes are preserved. The source hash, execution fingerprint and result artifact SHA-256 remain distinct identities.
-
-All object-level workspace, Project, Dataset, preparation, System and Analysis decisions are centralised through existing permission policies. Private lookup is membership-scoped and intentionally returns 404 to a non-member, while a known member attempting an unauthorised management action receives 403. Hiding a button is never treated as authorisation.
-
-The Analyst role may create and run derived preparations, create/revise/duplicate Systems and create/configure/run Analyses, but still cannot mutate original Dataset metadata/source, administer the Workspace or perform Owner-only hard deletion. Viewer is read-only for Analysis and completed canonical results, including the Plan 8 Results workspace.
-
-Workspace deletion is refused while Projects exist. Project hard deletion is refused while Datasets, Systems or Analyses exist. DatasetVersions, PreparedDataArtifacts and SystemRevisions referenced by AnalysisRuns are protected from deletion. The foreign-key graph avoids implicit cascades that could destroy reproducibility inputs.
-
-Invitations are durable database records, while the bearer token exists only in the invitation URL/email. Studio stores a SHA-256 digest of a cryptographically random URL-safe token, enforces expiration/status/email binding and consumes accepted invitations transactionally with membership creation.
-
-## Dataset versus System versus Analysis
-
-The three concepts answer different questions:
+## Ownership graph
 
 ```text
-Dataset / PreparedDataArtifact
-What measurements or prepared values do I have?
-
-System / SystemRevision
-What system is being studied, what does the observable mean,
-and which physical/contextual parameters justify the calculation?
-
-Analysis / AnalysisRun
-Which exact source and exact SystemRevision are associated,
-how are columns mapped, and what exact canonical computation was requested?
+User
+  ↓ membership
+Workspace
+  ↓
+Project
+  ├── Dataset
+  │     └── DatasetVersion
+  │            └── PreparedDataArtifact
+  ├── System
+  │     └── immutable SystemRevision
+  └── Analysis
+        └── immutable AnalysisRun
+              ├── AnalysisResultArtifact
+              └── DiagnosticRun 1..n
+                    └── DiagnosticResultArtifact
 ```
 
-The Analysis layer does not mutate either side of that association. Creating a new DatasetVersion or SystemRevision after a completed Run never changes the historical Run.
+A `DatasetVersion`, `PreparedDataArtifact`, `SystemRevision`, `AnalysisRun` and completed `DiagnosticRun` are reproducibility boundaries. Historical scientific artifacts are not edited in place.
 
-## Units and scientific-context provenance
+## Scientific execution boundaries
 
-The shared Pint-backed unit helper is used by both explicit Data Preparation conversion and Analysis/System dimensional validation; Studio does not maintain a second unit engine. System revisions preserve the value and unit as entered. Known units are checked dimensionally, while unknown labels are preserved and marked as not automatically validated rather than guessed or treated as dimensionless.
+### Canonical execution
 
-Canonical Analysis execution uses the strict no-conversion policy. The selected source coordinate and observable must already use the exact unit representation expected by the selected System context. Dimensionally compatible but differently scaled labels such as `ms` versus `s`, or `km/h` versus `m/s`, are not converted during Analysis execution; such conversion must be an explicit PreparedData recipe.
+```text
+exact DatasetVersion / PreparedDataArtifact
+        +
+exact SystemRevision and ObservableDefinition
+        ↓
+AnalysisRun snapshot
+        ↓ Celery
+labbridge.execution
+        ↓
+public agencitylab.compute_agencity
+        ↓
+AnalysisResultArtifact (ZIP_NPY_JSON)
+```
 
-The System configuration fingerprint and Analysis execution fingerprint are deterministic SHA-256 identifiers of different contracts. The result SHA-256 identifies exact stored result bytes. None of these fingerprints is evidence that a context or result is scientifically meaningful.
+The canonical result contains the AgencityLab outputs such as `xi`, `u`, `u_star`, `X_star`, `A_star`, `M`, `O`, `D`, `S`, `J`, canonical `theta`, `U`, `beta` and `b` when present. Studio preserves their numeric representation; it does not reproduce their equations.
 
-Project Activity and scientific provenance remain separate. Activity records that a user created, queued, completed or failed an Analysis Run. The AnalysisRun and result manifest record the reproducibility contract.
+### Diagnostic execution — Plan 9
 
-## Raw Dataset storage
+```text
+completed AnalysisRun
+        ↓
+exact AnalysisResultArtifact + canonical result SHA-256
+        ↓
+DiagnosticRun snapshot
+        ↓ Celery
+labbridge.diagnostics
+        ↓
+public AgencityResult container rehydrated from stored canonical arrays
+        ↓
+public agencitylab.analyze_agencity
+        ↓
+DiagnosticResultArtifact (private ZIP_JSON)
+```
 
-Large scientific arrays do not live as one PostgreSQL row per sample. PostgreSQL stores ownership, metadata, provenance, column contracts, inspection summaries and references to artifacts. Raw source bytes, prepared materializations and canonical result artifacts live behind the private storage abstraction.
+This path does **not** rerun `compute_agencity`. The public `AgencityResult` container is populated from the immutable stored canonical arrays and the stored canonical `theta` is passed explicitly. An artifact without the required stored `theta` is not repaired with `arg(beta)`.
 
-Local storage confines generated relative identifiers to `DATASET_STORAGE_ROOT`, writes artifacts once, hashes exact bytes while streaming them to storage and refuses public-media exposure. Analysis result publication uses a temporary file and atomic rename so a completed artifact is never partially visible.
+A DiagnosticRun never mutates its parent AnalysisRun, canonical artifact, canonical result SHA-256 or canonical execution fingerprint.
 
-The local filesystem backend is the current concrete implementation, but Dataset and Analysis services depend on a storage contract rather than a public-media URL. This keeps a future S3-compatible or institutional object-store backend possible without changing scientific models.
+## Canonical vs diagnostic science
 
-## Import and inspection
+Canonical quantities remain exactly the quantities produced by AgencityLab's canonical pipeline. Diagnostics consume those quantities but do not redefine them.
 
-The import layer is split into lightweight importers for delimited text and XLSX. Importers expose source parsing/preview behavior without mixing it into Django views. Import configuration and importer schema version are persisted on DatasetVersion.
+Plan 9 therefore treats coherence, angular variance, orientation stability evidence, curvature, winding-related output, zeros, events, transitions, regime signatures/classification and real-agencity assessment as a separate layer. Their exact availability and status follow AgencityLab 1.1.3 public output.
 
-The HTTP path stores the original source and creates database metadata. Celery inspection is submitted only after transaction commit. The worker inspects the immutable artifact and writes derived metadata/findings; it never rewrites the raw source.
+Studio never infers:
 
-A monotonically increasing inspection generation protects reprocessing against stale task results. Import lifecycle and quality severity remain separate taxonomies.
+```text
+beta != 0  => real agencity
+high D     => real agencity
+```
 
-Preview is server-side paginated. It may reread the raw source; any acceleration artifact is an implementation cache, never a scientific replacement source.
+Diagnostic thresholds are either part of the public Lab diagnostic contract or explicit user configuration. Studio does not silently introduce universal constants. Missing criteria may legitimately produce `undetermined`, empty or no-detection results.
 
-## Data preparation
+## Diagnostic provenance
 
-Preparation is a separate Studio-owned layer upstream of AgencityLab. It uses a controlled transformation registry rather than user-provided code. No `eval`, `exec`, arbitrary Python expression, shell path or SQL fragment is accepted from the browser.
+A `DiagnosticRun` pins at least:
 
-The currently implemented operations are explicit time/row crop, explicit row exclusion, missing-row removal, linear interpolation without extrapolation, uniform resampling with explicit `dt`, moving-average smoothing, compatible unit conversion through Pint, column selection and explicit stable time sorting. Frequency filtering is deliberately deferred until its sampling, cutoff/order, phase and anti-alias contracts are specified rather than hidden behind defaults.
+- exact `AnalysisRun`;
+- canonical result SHA-256;
+- AgencityLab version;
+- Studio/Python versions;
+- diagnostic public API identifiers;
+- normalized diagnostic configuration;
+- threshold values or explicit absence/default state;
+- deterministic diagnostic execution fingerprint;
+- warnings and lifecycle status.
 
-The current engine materializes deterministic UTF-8 CSV. Execution is bounded by configurable `DATA_PREPARATION_MAX_ROWS` because the current transformation implementation uses an in-memory numerical table. This is an implementation safety limit, not a scientific law.
+A completed run additionally pins a private immutable `DiagnosticResultArtifact` and its result SHA-256. Configuration changes create a new DiagnosticRun rather than modifying history.
 
-Each execution records source version/hash, ordered recipe, recipe fingerprint, Studio/Python/engine/dependency versions, timing/warnings and prepared artifact hash. READY artifacts are write-once. A changed recipe or re-run creates a new preparation record instead of rewriting an existing result.
+## Storage policy
 
-Prepared output is inspected using the same data-quality contract as raw data, but raw findings remain unchanged. READY means materialization succeeded, not that a source is scientifically appropriate for a canonical Analysis.
+Long numerical series remain in private immutable artifacts rather than row-per-sample SQL tables. PostgreSQL stores identity, ownership, status, hashes, provenance, configuration and artifact references.
 
-## Canonical Analysis execution
+Canonical artifacts use `ZIP_NPY_JSON` with NumPy arrays and `allow_pickle=False`. Diagnostic artifacts use a schema-versioned private JSON-oriented ZIP representation suitable for the public Lab report, including reversible handling of non-finite diagnostic values. Pickle is not used as the scientific artifact format.
 
-Analysis execution reads exactly the selected coordinate and observable positions from the pinned source. It never sorts, interpolates, resamples, filters, fills, smooths, standardizes, normalizes or converts them. Non-finite, non-monotonic, irregular or unit-incompatible data are rejected with preparation guidance rather than modified.
+Artifacts have no public media URL. Workspace permission resolution is required for all result and visualization endpoints.
 
-A Run is inserted in `QUEUED` before Celery publication, and task publication occurs in `transaction.on_commit()`. Redis receives only the Run UUID. The worker locks the Run, changes it to `RUNNING`, reloads the immutable source/mapping/parameters, calls Lab, serializes the complete public result and only then marks the Run `COMPLETED`. Duplicate task delivery is guarded by the status transition and one-to-one result artifact.
+## Visualization architecture
 
-Lab validation errors are deterministic failures and are not automatically retried. A queued Run may be cancelled; once the public AgencityLab call is running, Studio does not pretend it can cooperatively interrupt that synchronous computation.
+Plan 8 canonical and Plan 9 diagnostic views reuse the same locally bundled Apache ECharts 6.1.0 scientific workspace controller.
 
-`COMPLETED`, `FAILED` and `CANCELLED` are operational states only. Canonical execution does not calculate coherence, angular variance, curvature, winding, regimes or a “real agencity” verdict.
+```text
+immutable artifact
+    ↓ schema-aware reader/service
+private Workspace-scoped JSON endpoint
+    ↓
+ScientificWorkspaceController
+    ↓
+display-only charts + exact sample inspector
+```
 
-## Canonical result visualization
+Browser code performs presentation only. It does not calculate coherence, variance, curvature, winding, zeros, regimes or real-agencity criteria.
 
-Plan 8 introduces no new persistent model and no new scientific dependency. `AnalysisResultReader` is a read-only, schema-aware boundary over the existing private `ZIP_NPY_JSON` artifact. It can read manifest metadata, one exact series, an exact range or one exact original sample. The compatibility full-result loader now delegates to this reader.
+Display decimation is never scientific input. Every displayed point retains its original canonical sample index, and the exact inspector requests the full-resolution stored sample. Diagnostic and canonical workspaces share that index through stable `sample=` deep links.
 
-The visualization service converts stored arrays to safe browser payloads without exposing filesystem paths. Non-finite presentation components are represented as JSON `null` plus metadata rather than invalid JSON numbers. `VISUALIZATION_MAX_POINTS` controls only how many original indices are sent to a chart; `VISUALIZATION_TABLE_PAGE_SIZE` controls exact table pagination. Neither setting is scientific.
+## Celery
 
-Private manifest/series/sample endpoints reuse AnalysisRun Workspace permission resolution and use `Cache-Control: private, no-store`. A non-member receives 404 before numerical data can be exposed.
+Canonical execution and diagnostic execution are real Celery workloads. Task submission occurs after transaction commit and payloads contain stable run identifiers rather than arbitrary scientific arrays.
 
-The browser controller is scoped to one Run. It connects coordinate-domain ECharts instances for shared range interactions, keeps one original selected-sample index, fetches exact full-resolution values for the inspector, and highlights the corresponding stored point in complex planes. It never writes AnalysisRun state.
+`analyses.diagnostic_tasks` is explicitly registered with the Celery application because it is intentionally separate from the canonical `analyses.tasks` module. Duplicate delivery is guarded by persisted run status and one-to-one artifact publication.
 
-`theta` is the stored canonical structural orientation and is never reconstructed from the phase of `beta`. Complex `U`, `beta` and `b` remain authoritative in their `.npy` payloads; Re/Im/magnitude/phase are only transport/display representations.
+Deterministic Lab validation/scientific configuration errors are not treated as endlessly retryable network incidents.
 
-Display decimation is non-authoritative and regenerable. The artifact SHA-256 remains unchanged by all visualization operations. The exact table remains in original sample order and is the accessibility fallback for chart information.
+## Permissions
 
-## Web runtime
+Permissions reuse Workspace roles; there is no diagnostic-specific ACL.
 
-Django owns URLs, server-side rendering, session authentication, CSRF protection, persistence and authorization. Uvicorn serves the ASGI application. PostgreSQL is the durable relational store. Static assets are built from Tailwind CSS and JavaScript bundles, then served with WhiteNoise in the current self-hosted foundation.
+- Owner and Editor can configure/run diagnostics.
+- Analyst can fully configure, run and inspect diagnostics.
+- Viewer can inspect completed diagnostics but cannot create them.
+- Non-members receive object-scoped 404 responses.
 
-HTMX is used for real server-rendered partial updates such as Dataset/preparation/Analysis status and preview pagination. Alpine.js owns local interface state only. Scientific or persisted domain state must not move into the browser merely for convenience.
+The same rules protect diagnostic detail, artifact-backed endpoints and visualization endpoints.
 
-Apache ECharts 6.1.0 is bundled locally as a separate modular `scientific-workspace.js` asset and is referenced only on canonical Results pages. It is a presentation engine, not a scientific engine. The ordinary application bundle remains independent so login and non-scientific pages do not load ECharts.
+## Operational boundary
 
-Account theme, locale and timezone preferences are persisted on the user. Browser local storage mirrors the theme only to avoid visual flashing and to support signed-out pages; the authenticated account remains the durable source of truth. Results charts listen to the same Light/Dark/System theme event and are re-rendered from already loaded presentation data without any Lab call.
+`/health/ready/` verifies service dependencies and AgencityLab runtime compatibility; it does not execute a scientific diagnostic suite.
 
-## Background work
+Plan 9 adds no infrastructure service and keeps `agencitylab==1.1.3` pinned. Multiscale `tau`/`w` exploration is deliberately reserved for the later sensitivity/multiscale work and is not inferred from Plan 9 diagnostics.
 
-Celery is the asynchronous execution boundary and Redis is the broker/result backend. Dataset ingestion inspection, prepared-data materialization and canonical Analysis execution use this boundary because non-trivial scientific files and computation must not block an HTTP request. `common.health_ping` remains the deterministic infrastructure validation task.
-
-Displaying a completed result is deliberately synchronous read-only HTTP work. Plan 8 does not create a Celery task per chart. A future technical visualization cache may use background work only if profiling demonstrates a real need; such a cache would remain non-authoritative and keyed by result identity.
-
-Database rows and file/object storage are separate atomicity domains; task publication occurs after transaction commit and result files are published atomically before the Run can become `COMPLETED`.
-
-## Operational health
-
-`/health/` is a liveness endpoint and deliberately does not probe dependencies. `/health/ready/` verifies PostgreSQL connectivity, Redis broker connectivity and the installed AgencityLab compatibility contract. It does not run a scientific Analysis as a health probe. Plan 8 introduces no new infrastructure dependency and therefore does not alter readiness semantics.
-
-## Deployment settings
-
-`config.settings.development` is the default local configuration. `config.settings.production` requires an explicit production secret and allowed hosts, enables secure cookies and supports proxy/HTTPS/HSTS configuration through environment variables. Local authentication uses Django sessions rather than JWTs.
-
-Dataset deployment settings include a private storage root, configurable upload/paste limits, preparation row limit and Analysis row limit. Visualization adds `VISUALIZATION_MAX_POINTS` and `VISUALIZATION_TABLE_PAGE_SIZE`; these are operational/UI safeguards, not scientific limits.
-
-See `docs/accounts-and-workspaces.md` for identity/workspace security, `docs/projects.md` for the Project lifecycle contract, `docs/datasets.md` for raw Data Workspace provenance, `docs/data-preparation.md` for explicit transformations and prepared-data lineage, `docs/systems.md` for immutable scientific-context versioning, `docs/analyses.md` for canonical Analysis execution and result storage, and `docs/visualization.md` for the read-only Results workspace.
+See `docs/analyses.md`, `docs/visualization.md` and `docs/diagnostics.md` for the execution, presentation and diagnostic contracts.

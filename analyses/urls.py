@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, visualization_views
+from . import diagnostic_views, views, visualization_views
 
 app_name = "analysis"
 
@@ -42,5 +42,66 @@ urlpatterns = [
         "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/visualization/sample/",
         visualization_views.visualization_sample,
         name="visualization-sample",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/",
+        diagnostic_views.diagnostics_home,
+        name="diagnostics",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/new/",
+        diagnostic_views.diagnostic_new,
+        name="diagnostic-new",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/review/",
+        diagnostic_views.diagnostic_review,
+        name="diagnostic-review",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/<uuid:diagnostic_run_id>/",
+        diagnostic_views.diagnostic_detail,
+        name="diagnostic-detail",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/<uuid:diagnostic_run_id>/status/",
+        diagnostic_views.diagnostic_status,
+        name="diagnostic-status",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/<uuid:diagnostic_run_id>/cancel/",
+        diagnostic_views.diagnostic_cancel,
+        name="diagnostic-cancel",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/<uuid:diagnostic_run_id>/rerun/",
+        diagnostic_views.diagnostic_rerun,
+        name="diagnostic-rerun",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/<uuid:diagnostic_run_id>/workspace/",
+        diagnostic_views.diagnostic_workspace,
+        {"section": "overview"},
+        name="diagnostic-workspace",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/<uuid:diagnostic_run_id>/workspace/<slug:section>/",
+        diagnostic_views.diagnostic_workspace,
+        name="diagnostic-workspace-section",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/<uuid:diagnostic_run_id>/visualization/manifest/",
+        diagnostic_views.diagnostic_manifest,
+        name="diagnostic-manifest",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/<uuid:diagnostic_run_id>/visualization/series/",
+        diagnostic_views.diagnostic_series,
+        name="diagnostic-series",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/diagnostics/<uuid:diagnostic_run_id>/visualization/sample/",
+        diagnostic_views.diagnostic_sample,
+        name="diagnostic-sample",
     ),
 ]

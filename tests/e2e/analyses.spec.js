@@ -118,7 +118,7 @@ async function createSystem(page) {
   await expect(page.getByRole('heading', { name: 'Canonical Rotor', exact: true })).toBeVisible();
 }
 
-test('prepared data executes a canonical Analysis through the real worker', async ({ page }, testInfo) => {
+test('prepared data executes canonical Analysis then public Lab diagnostics through real workers', async ({ page }, testInfo) => {
   await signUp(page, retrySafeEmail('analysis-owner', testInfo));
   await createProject(page);
   await importAndPrepare(page);
@@ -143,7 +143,7 @@ test('prepared data executes a canonical Analysis through the real worker', asyn
   await expect(page.getByText('AgencityLab 1.1.3 · CANONICAL SCALAR', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Run Analysis', exact: true }).click();
 
-  const liveStatus = page.locator('[aria-live="polite"]').filter({ has: page.locator('.badge') }).first();
+  let liveStatus = page.locator('[aria-live="polite"]').filter({ has: page.locator('.badge') }).first();
   await expect(liveStatus.getByText('COMPLETED', { exact: true })).toBeVisible({ timeout: 25000 });
   await page.reload();
   await expect(page.getByText('The complete canonical result is stored as a private immutable artifact.', { exact: true })).toBeVisible();
@@ -152,4 +152,40 @@ test('prepared data executes a canonical Analysis through the real worker', asyn
   await expect(page.getByRole('heading', { name: 'Reproducibility', exact: true })).toBeVisible();
   await expect(page.getByText('AgencityLab', { exact: true })).toBeVisible();
   await expect(page.getByText('COMPLETED means the canonical software execution completed successfully.', { exact: false })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Diagnostics', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Scientific Diagnostics', exact: true })).toBeVisible();
+  await expect(page.getByText('A non-zero beta is not by itself evidence of coherent or real agencity.', { exact: false })).toBeVisible();
+  await page.getByRole('link', { name: 'New Diagnostic Run', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Configure diagnostics', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Review diagnostic configuration', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Review exact diagnostic contract', exact: true })).toBeVisible();
+  await expect(page.getByText('Threshold provenance', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Run diagnostics', exact: true }).click();
+
+  liveStatus = page.locator('[aria-live="polite"]').filter({ has: page.locator('.badge') }).first();
+  await expect(liveStatus.getByText('COMPLETED', { exact: true })).toBeVisible({ timeout: 25000 });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Diagnostic result artifact', exact: true })).toBeVisible();
+  await expect(page.getByText('undetermined', { exact: true }).first()).toBeVisible();
+  await page.getByRole('link', { name: 'Explore diagnostics', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Diagnostic Workspace', exact: true })).toBeVisible();
+  await expect(page.getByText('CANONICAL', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('DIAGNOSTIC', { exact: true }).first()).toBeVisible();
+  await page.getByRole('link', { name: 'Coherence & Orientation', exact: true }).click();
+  const diagnosticChart = page.locator('[data-chart-card]').first();
+  await expect(diagnosticChart).toHaveAttribute('data-chart-ready', 'true', { timeout: 10000 });
+
+  const sampleInput = page.getByLabel('Sample index', { exact: true });
+  await sampleInput.fill('2');
+  await sampleInput.press('Tab');
+  const workspace = page.locator('[data-scientific-workspace]');
+  await expect(workspace).toHaveAttribute('data-selected-sample', '1');
+  await expect(page.getByRole('link', { name: 'Open canonical workspace', exact: true })).toHaveAttribute('href', /sample=1/);
+
+  await page.getByRole('link', { name: 'Real Agencity', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Real-agencity diagnostic', exact: true })).toBeVisible();
+  await expect(page.getByText('A non-zero beta alone is not sufficient evidence', { exact: false })).toBeVisible();
+  await expect(page.getByText('undetermined', { exact: true }).first()).toBeVisible();
 });

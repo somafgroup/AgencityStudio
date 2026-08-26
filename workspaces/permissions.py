@@ -210,3 +210,12 @@ def can_delete_analysis(user, analysis) -> bool:
 
 def can_view_analysis_result(user, run) -> bool:
     return can_view_analysis(user, run.analysis)
+
+
+def can_run_diagnostics(user, run) -> bool:
+    """Owners, Editors and Analysts may derive diagnostics from a completed Run."""
+    return getattr(run, "status", None) == "COMPLETED" and can_run_analysis(user, run.analysis)
+
+
+def can_view_diagnostic_run(user, diagnostic_run) -> bool:
+    return can_view_analysis_result(user, diagnostic_run.analysis_run)
