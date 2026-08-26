@@ -16,7 +16,6 @@ from analyses.multivariate_validation import (
 from analyses.sources import descriptor_for
 from systems.models import ObservableDefinition, ParameterOrigin, SystemRevision
 
-
 PARAMETER_MODE_CHOICES = (
     (PARAMETER_MODE_SYSTEM_GLOBAL, _("Use System Revision value for all components")),
     (PARAMETER_MODE_COMPONENT_VECTOR, _("Explicit value per component")),
