@@ -154,10 +154,37 @@ def component_table_payload(adapter, **kwargs) -> dict:
     return exact_table_payload(adapter, **kwargs)
 
 
+def _mark_aggregate(payload: dict) -> dict:
+    for item in (payload.get("series") or {}).values():
+        metadata = item.get("metadata") or {}
+        metadata["canonical"] = False
+    for item in payload.get("values") or {}:
+        metadata = (payload["values"][item].get("metadata") or {})
+        metadata["canonical"] = False
+    return payload
+
+
 def aggregate_manifest_payload(adapter, *, result_sha256: str) -> dict:
     payload = manifest_payload(adapter, result_sha256=result_sha256)
     manifest = adapter.read_manifest()
+    for metadata in (payload.get("series") or {}).values():
+        metadata["canonical"] = False
     payload["aggregation"] = manifest.get("aggregation")
     payload["scientific_boundary"] = manifest.get("scientific_boundary")
     payload["scientific_status"] = manifest.get("scientific_status")
+    return payload
+
+
+def aggregate_series_payload(adapter, **kwargs) -> dict:
+    return _mark_aggregate(series_payload(adapter, **kwargs))
+
+
+def aggregate_sample_payload(adapter, **kwargs) -> dict:
+    return _mark_aggregate(sample_payload(adapter, **kwargs))
+
+
+def aggregate_table_payload(adapter, **kwargs) -> dict:
+    payload = exact_table_payload(adapter, **kwargs)
+    for metadata in payload.get("series") or []:
+        metadata["canonical"] = False
     return payload
