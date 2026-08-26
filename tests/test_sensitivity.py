@@ -265,7 +265,7 @@ def test_fingerprint_tracks_exact_grid_and_finished_studies_are_immutable(tmp_pa
 @pytest.mark.django_db(transaction=True)
 def test_analyst_can_run_viewer_is_read_only_and_outsider_cannot_read_results(tmp_path, monkeypatch):
     with override_settings(DATASET_STORAGE_ROOT=tmp_path, ANALYSIS_MAX_ROWS=1000):
-        owner, workspace, analysis, run, _artifact = _completed_run(
+        _owner, workspace, analysis, run, _artifact = _completed_run(
             tmp_path,
             monkeypatch,
             owner_email="sensitivity-permissions-owner@example.com",
