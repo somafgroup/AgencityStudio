@@ -118,7 +118,7 @@ async function createSystem(page) {
   await expect(page.getByRole('heading', { name: 'Canonical Rotor', exact: true })).toBeVisible();
 }
 
-test('prepared data executes canonical Analysis then public Lab diagnostics through real workers', async ({ page }, testInfo) => {
+test('prepared data executes canonical Analysis, sensitivity, then diagnostics through real workers', async ({ page }, testInfo) => {
   await signUp(page, retrySafeEmail('analysis-owner', testInfo));
   await createProject(page);
   await importAndPrepare(page);
@@ -152,6 +152,25 @@ test('prepared data executes canonical Analysis then public Lab diagnostics thro
   await expect(page.getByRole('heading', { name: 'Reproducibility', exact: true })).toBeVisible();
   await expect(page.getByText('AgencityLab', { exact: true })).toBeVisible();
   await expect(page.getByText('COMPLETED means the canonical software execution completed successfully.', { exact: false })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Sensitivity', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sensitivity studies', exact: true })).toBeVisible();
+  await expect(page.getByText('dt ≠ tau ≠ w', { exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'New sensitivity study', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Configure sensitivity study', exact: true })).toBeVisible();
+  await page.getByLabel('Study type', { exact: true }).selectOption('TAU_MULTISCALE');
+  await page.getByLabel('Grid generation', { exact: true }).selectOption('EXPLICIT');
+  await page.getByLabel('Explicit scale values', { exact: false }).fill('0.1,0.2,0.3');
+  await page.getByRole('button', { name: 'Review study', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Review sensitivity study', exact: true })).toBeVisible();
+  await expect(page.getByText('agencitylab.api.compute_agencity_spectrum', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Run sensitivity study', exact: true }).click();
+  await expect(page.getByText('COMPLETED', { exact: true }).first()).toBeVisible({ timeout: 25000 });
+  const sensitivityWorkspace = page.locator('[data-sensitivity-workspace]');
+  await expect(sensitivityWorkspace).toHaveAttribute('data-chart-ready', 'true', { timeout: 10000 });
+  await expect(page.getByRole('heading', { name: 'Exact scale table', exact: true })).toBeVisible();
+  await expect(page.getByText('effective_w', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('A numerical maximum does not automatically identify the physical tau.', { exact: false })).toBeVisible();
 
   await page.getByRole('link', { name: 'Diagnostics', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Scientific Diagnostics', exact: true })).toBeVisible();
