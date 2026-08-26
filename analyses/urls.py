@@ -1,15 +1,36 @@
 from django.urls import path
 
-from . import diagnostic_views, views, visualization_views
+from . import (
+    diagnostic_views,
+    multivariate_views,
+    multivariate_visualization_views,
+    views,
+    visualization_views,
+)
 
 app_name = "analysis"
 
 urlpatterns = [
     path("workspaces/<slug:workspace_slug>/projects/<uuid:project_id>/<slug:project_slug>/analyses/", views.project_analysis_list, name="project-list"),
     path("workspaces/<slug:workspace_slug>/projects/<uuid:project_id>/<slug:project_slug>/analyses/new/", views.analysis_create, name="create"),
+    path(
+        "workspaces/<slug:workspace_slug>/projects/<uuid:project_id>/<slug:project_slug>/analyses/new/multivariate/",
+        multivariate_views.multivariate_create,
+        name="multivariate-create",
+    ),
     path("analyses/<uuid:analysis_id>/", views.analysis_detail, name="detail"),
     path("analyses/<uuid:analysis_id>/configure/", views.analysis_configure, name="configure"),
     path("analyses/<uuid:analysis_id>/review/", views.analysis_review, name="review"),
+    path(
+        "analyses/<uuid:analysis_id>/multivariate/configure/",
+        multivariate_views.multivariate_configure,
+        name="multivariate-configure",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/multivariate/review/",
+        multivariate_views.multivariate_review,
+        name="multivariate-review",
+    ),
     path("analyses/<uuid:analysis_id>/archive/", views.analysis_archive, name="archive"),
     path("analyses/<uuid:analysis_id>/restore/", views.analysis_restore, name="restore"),
     path("analyses/<uuid:analysis_id>/delete/", views.analysis_delete, name="delete"),
@@ -17,6 +38,11 @@ urlpatterns = [
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/status/", views.run_status, name="run-status"),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/cancel/", views.run_cancel, name="run-cancel"),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/rerun/", views.run_rerun, name="run-rerun"),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/multivariate/rerun/",
+        multivariate_views.multivariate_rerun,
+        name="multivariate-rerun",
+    ),
     path(
         "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/results/",
         visualization_views.result_workspace,
@@ -27,6 +53,47 @@ urlpatterns = [
         "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/results/<slug:section>/",
         visualization_views.result_workspace,
         name="results-section",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/multivariate/results/",
+        multivariate_visualization_views.multivariate_workspace,
+        {"section": "overview"},
+        name="multivariate-results",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/multivariate/results/<slug:section>/",
+        multivariate_visualization_views.multivariate_workspace,
+        name="multivariate-results-section",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/multivariate/components/<int:position>/manifest/",
+        multivariate_visualization_views.component_manifest,
+        name="multivariate-component-manifest",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/multivariate/components/<int:position>/series/",
+        multivariate_visualization_views.component_series,
+        name="multivariate-component-series",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/multivariate/components/<int:position>/sample/",
+        multivariate_visualization_views.component_sample,
+        name="multivariate-component-sample",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/multivariate/aggregate/manifest/",
+        multivariate_visualization_views.aggregate_manifest,
+        name="multivariate-aggregate-manifest",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/multivariate/aggregate/series/",
+        multivariate_visualization_views.aggregate_series,
+        name="multivariate-aggregate-series",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/multivariate/aggregate/sample/",
+        multivariate_visualization_views.aggregate_sample,
+        name="multivariate-aggregate-sample",
     ),
     path(
         "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/visualization/manifest/",
