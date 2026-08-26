@@ -49,6 +49,7 @@ def manifest_payload(study, stored) -> dict:
         "grid_unit": study.grid_unit,
         "requested_grid": _safe(study.requested_grid),
         "effective_grid": _safe(effective),
+        "effective_w": _safe(stored.arrays.get("w", np.asarray([], dtype=float))),
         "metrics": list(available_metrics(study, stored)),
         "scalars": _safe(stored.scalars),
         "result_sha256": study.result_sha256,
@@ -85,6 +86,8 @@ def table_rows(study, stored) -> list[dict]:
     rows = []
     for index in range(len(scales)):
         values = {name: _safe(np.asarray(stored.arrays[name])[index]) for name in metrics}
+        if study.study_type == StudyType.TAU_MULTISCALE and "w" in stored.arrays:
+            values["effective_w"] = _safe(np.asarray(stored.arrays["w"])[index])
         if study.study_type == StudyType.W_SENSITIVITY and "eligible" in stored.arrays:
             values["eligible"] = bool(np.asarray(stored.arrays["eligible"])[index])
         rows.append({"index": index, "scale": _safe(scales[index]), "values": values})
