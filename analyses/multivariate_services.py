@@ -16,13 +16,20 @@ from labbridge.multivariate import (
 from systems.models import ObservableDefinition, SystemRevision
 from workspaces.permissions import can_edit_analysis, can_run_analysis
 
-from .models import Analysis, AnalysisKind, AnalysisRun, AnalysisRunComponent, AnalysisStatus, RunStatus
+from .models import (
+    Analysis,
+    AnalysisKind,
+    AnalysisRun,
+    AnalysisRunComponent,
+    AnalysisStatus,
+    RunStatus,
+)
 from .multivariate_results import MULTIVARIATE_RESULT_SCHEMA_VERSION
 from .multivariate_validation import (
+    resolve_multivariate_parameters,
     validate_multivariate_mapping,
     validate_multivariate_samples,
     validate_multivariate_units,
-    resolve_multivariate_parameters,
 )
 from .services import (
     _enqueue,
@@ -33,7 +40,7 @@ from .services import (
     _source_snapshot,
     software_context,
 )
-from .sources import SourceContractError, descriptor_for, materialize_matrix
+from .sources import descriptor_for, materialize_matrix
 
 
 def _require_multivariate(analysis: Analysis) -> None:
@@ -334,7 +341,11 @@ def rerun_multivariate_run(*, actor, run: AnalysisRun) -> AnalysisRun:
     )
     raw = source_run.source_dataset_version
     prepared = source_run.source_prepared_artifact
-    descriptor = descriptor_for(dataset_version=raw) if raw else descriptor_for(prepared_artifact=prepared)
+    descriptor = (
+        descriptor_for(dataset_version=raw)
+        if raw
+        else descriptor_for(prepared_artifact=prepared)
+    )
     if descriptor.sha256 != source_run.source_sha256:
         raise ValidationError(_("The pinned source hash no longer matches the historical Run."))
     components = list(source_run.components.order_by("position"))
