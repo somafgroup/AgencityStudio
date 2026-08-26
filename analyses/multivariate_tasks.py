@@ -51,6 +51,10 @@ def _safe_value(value):
     return array.tolist()
 
 
+def _shape(value) -> list[int]:
+    return list(np.asarray(value).shape)
+
+
 def _fail(run_id, category: str, message: str) -> str:
     with transaction.atomic():
         try:
@@ -161,8 +165,8 @@ def execute_multivariate_run(run_id: str) -> str:
                 "A_ref": _safe_value(result.get("A_ref")),
                 "tau": _safe_value(result.get("tau")),
                 "w": _safe_value(result.get("w")),
-                "P_c_components": _safe_value(result.get("P_c_components")),
-                "P_c_total": _safe_value(result.get("P_c_total")),
+                "P_c_components_shape": _shape(result.get("P_c_components")),
+                "P_c_total_shape": _shape(result.get("P_c_total")),
                 "aggregation": result.get("aggregation"),
                 "scientific_boundary": result.get("scientific_boundary"),
             }
