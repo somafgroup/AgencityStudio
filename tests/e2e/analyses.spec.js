@@ -196,9 +196,7 @@ test('prepared data executes canonical Analysis, sensitivity, then diagnostics t
   const diagnosticChart = page.locator('[data-chart-card]').first();
   await expect(diagnosticChart).toHaveAttribute('data-chart-ready', 'true', { timeout: 10000 });
 
-  const sampleInput = page.getByLabel('Sample index', { exact: true });
-  await sampleInput.fill('2');
-  await sampleInput.press('Tab');
+  await page.getByRole('button', { name: 'Next sample', exact: true }).click();
   const workspace = page.locator('[data-scientific-workspace]');
   await expect(workspace).toHaveAttribute('data-selected-sample', '1');
   await expect(page.getByRole('link', { name: 'Open canonical workspace', exact: true })).toHaveAttribute('href', /sample=1/);
