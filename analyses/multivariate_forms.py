@@ -7,7 +7,6 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 from systems.models import ObservableDefinition, ParameterOrigin, SystemRevision
-
 from .models import SourceType
 from .multivariate_validation import (
     PARAMETER_MODE_COMPONENT_VECTOR,
