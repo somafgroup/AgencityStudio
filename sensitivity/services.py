@@ -153,14 +153,15 @@ def sensitivity_review_snapshot(*, run: AnalysisRun, configuration: dict) -> dic
         "source_fixed": True,
         "no_parameter_promotion": True,
     }
+    normalized_configuration = {
+        **configuration,
+        "requested_grid": grid,
+        "semantics": semantics,
+    }
     return {
         "run": run,
         "canonical_artifact": artifact,
-        "configuration": {
-            **configuration,
-            "requested_grid": grid,
-            "semantics": semantics,
-        },
+        "configuration": normalized_configuration,
         "fixed_parameter_snapshot": fixed,
         "public_api_identifier": api_identifier,
         "software": context,
@@ -197,10 +198,7 @@ def queue_sensitivity_study(*, actor, run: AnalysisRun, configuration: dict) -> 
         "canonical_run_id": str(locked.pk),
         "canonical_result_sha256": locked.result_sha256,
         "source_sha256": locked.source_sha256,
-        "study_type": normalized["study_type"],
-        "grid_type": normalized["grid_type"],
-        "grid_unit": normalized["grid_unit"],
-        "requested_grid": normalized["requested_grid"],
+        "study_configuration": normalized,
         "fixed_parameter_snapshot": fixed,
         "public_api_identifier": snapshot["public_api_identifier"],
         "agencitylab_version": context["agencitylab_version"],
