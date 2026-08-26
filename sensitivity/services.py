@@ -112,7 +112,10 @@ def sensitivity_review_snapshot(*, run: AnalysisRun, configuration: dict) -> dic
     grid_unit = str(configuration.get("grid_unit") or "")
     if not expected_unit or grid_unit != expected_unit:
         raise ValidationError(
-            _("Scale values must use the exact coordinate/tau unit of the canonical Run; Studio performs no hidden unit conversion.")
+            _(
+                "Scale values must use the exact coordinate/tau unit of the canonical Run; "
+                "Studio performs no hidden unit conversion."
+            )
         )
 
     xi, u = _materialize(run)
@@ -124,7 +127,9 @@ def sensitivity_review_snapshot(*, run: AnalysisRun, configuration: dict) -> dic
         raise ValidationError(str(exc)) from exc
 
     api_identifier = (
-        TAU_MULTISCALE_API if study_type == StudyType.TAU_MULTISCALE else WINDOW_SENSITIVITY_API
+        TAU_MULTISCALE_API
+        if study_type == StudyType.TAU_MULTISCALE
+        else WINDOW_SENSITIVITY_API
     )
     requested_w_mode = str(params["w"].get("mode") or "UNSPECIFIED")
     requested_w = params["w"].get("requested_value")
@@ -179,8 +184,6 @@ def queue_sensitivity_study(*, actor, run: AnalysisRun, configuration: dict) -> 
             "analysis__project",
             "analysis__project__workspace",
             "system_revision",
-            "source_dataset_version",
-            "source_prepared_artifact",
         )
         .get(pk=run.pk)
     )
@@ -253,7 +256,11 @@ def rerun_sensitivity_study(*, actor, study: SensitivityStudy) -> SensitivityStu
 
 @transaction.atomic
 def cancel_sensitivity_study(*, actor, study: SensitivityStudy) -> SensitivityStudy:
-    locked = SensitivityStudy.objects.select_for_update().select_related("analysis_run__analysis").get(pk=study.pk)
+    locked = (
+        SensitivityStudy.objects.select_for_update()
+        .select_related("analysis_run__analysis")
+        .get(pk=study.pk)
+    )
     if not can_run_analysis(actor, locked.analysis_run.analysis):
         raise PermissionDenied
     if locked.status != StudyStatus.QUEUED:
