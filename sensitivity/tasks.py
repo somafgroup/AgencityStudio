@@ -40,8 +40,6 @@ def _locked(study_id) -> SensitivityStudy:
             "analysis_run",
             "analysis_run__analysis",
             "analysis_run__analysis__project",
-            "analysis_run__source_dataset_version",
-            "analysis_run__source_prepared_artifact",
             "system_revision",
         )
         .get(pk=study_id)
