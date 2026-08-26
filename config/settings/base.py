@@ -127,6 +127,7 @@ DATASET_MAX_PASTE_BYTES = int(os.getenv("DATASET_MAX_PASTE_BYTES", str(2 * 1024 
 DATASET_PREVIEW_PAGE_SIZE = int(os.getenv("DATASET_PREVIEW_PAGE_SIZE", "50"))
 DATA_PREPARATION_MAX_ROWS = int(os.getenv("DATA_PREPARATION_MAX_ROWS", "250000"))
 ANALYSIS_MAX_ROWS = int(os.getenv("ANALYSIS_MAX_ROWS", str(DATA_PREPARATION_MAX_ROWS)))
+MULTIVARIATE_MAX_COMPONENTS = int(os.getenv("MULTIVARIATE_MAX_COMPONENTS", "12"))
 VISUALIZATION_MAX_POINTS = int(os.getenv("VISUALIZATION_MAX_POINTS", "5000"))
 VISUALIZATION_TABLE_PAGE_SIZE = int(os.getenv("VISUALIZATION_TABLE_PAGE_SIZE", "50"))
 SENSITIVITY_MAX_POINTS = int(os.getenv("SENSITIVITY_MAX_POINTS", "128"))
@@ -135,6 +136,8 @@ if DATASET_MAX_UPLOAD_BYTES <= 0 or DATASET_MAX_PASTE_BYTES <= 0:
     raise ImproperlyConfigured("Dataset upload limits must be positive integers.")
 if DATA_PREPARATION_MAX_ROWS <= 0 or ANALYSIS_MAX_ROWS <= 0:
     raise ImproperlyConfigured("Preparation and Analysis row limits must be positive integers.")
+if MULTIVARIATE_MAX_COMPONENTS <= 0:
+    raise ImproperlyConfigured("Multivariate component limit must be a positive integer.")
 if VISUALIZATION_MAX_POINTS <= 1 or VISUALIZATION_TABLE_PAGE_SIZE <= 0:
     raise ImproperlyConfigured("Visualization display limits must be positive integers.")
 if SENSITIVITY_MAX_POINTS <= 0:
