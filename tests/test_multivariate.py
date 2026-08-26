@@ -6,7 +6,6 @@ from django.test import override_settings
 
 from analyses.models import (
     AnalysisResultArtifact,
-    AnalysisRunComponent,
     RunStatus,
     SourceType,
 )
