@@ -1,8 +1,11 @@
 """Presentation-only payloads for immutable AgencityLab diagnostic reports."""
 
 from .result_reader import AnalysisResultReader
-from .visualization import _encode_real, display_indices
-from .visualization import sample_payload as canonical_sample_payload
+from .visualization import (
+    _encode_real,
+    display_indices,
+    sample_payload as canonical_sample_payload,
+)
 
 
 DIAGNOSTIC_SERIES = {
