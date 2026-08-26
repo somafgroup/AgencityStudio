@@ -14,7 +14,7 @@ import numpy as np
 from common.units import inspect_unit, units_are_compatible
 from systems.models import MemoryWindowMode
 
-from .sources import SourceContractError, column_at
+from .sources import column_at
 from .validation import PreflightError, validate_parameter_contract, validate_sample_contract
 
 PARAMETER_MODE_SYSTEM_GLOBAL = "SYSTEM_GLOBAL"
@@ -146,7 +146,7 @@ def resolve_multivariate_parameters(
     }:
         raise PreflightError("Unsupported w parameter mode.")
 
-    resolved: list[dict] = [dict() for _ in component_configs]
+    resolved: list[dict] = [{} for _ in component_configs]
 
     def resolve_regular(key: str, mode: str, *, allow_zero: bool = False):
         if mode == PARAMETER_MODE_SYSTEM_GLOBAL:
