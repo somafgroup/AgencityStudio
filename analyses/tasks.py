@@ -1,4 +1,4 @@
-"""Celery execution for immutable canonical AnalysisRuns."""
+"""Celery execution for immutable AnalysisRuns."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from django.utils.translation import gettext as _
 from labbridge.execution import CanonicalLabError, execute_canonical_analysis
 from projects.models import ProjectActivity
 
-from .models import AnalysisResultArtifact, AnalysisRun, RunErrorCategory, RunStatus
+from .models import AnalysisKind, AnalysisResultArtifact, AnalysisRun, RunErrorCategory, RunStatus
 from .sources import SourceContractError, materialize_vectors
 from .storage import analysis_storage, write_analysis_result
 from .validation import validate_sample_contract
@@ -64,7 +64,18 @@ def _fail(run_id, category: str, message: str) -> str:
 
 @shared_task(name="analyses.execute_analysis_run")
 def execute_analysis_run(run_id: str) -> str:
-    """Execute one frozen Run once and atomically publish its complete result artifact."""
+    """Execute one frozen Run using the public Lab contract selected by its Analysis kind."""
+    try:
+        kind = AnalysisRun.objects.filter(pk=run_id).values_list(
+            "analysis__analysis_kind", flat=True
+        ).first()
+    except (TypeError, ValueError):
+        return "missing"
+    if kind == AnalysisKind.MULTIVARIATE:
+        from .multivariate_tasks import execute_multivariate_run
+
+        return execute_multivariate_run(run_id)
+
     started_clock = time.monotonic()
     with transaction.atomic():
         try:
