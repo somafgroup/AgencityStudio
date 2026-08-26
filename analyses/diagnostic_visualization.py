@@ -1,6 +1,7 @@
 """Presentation-only payloads for immutable AgencityLab diagnostic reports."""
 
-from . import result_reader, visualization
+from . import result_reader
+from . import visualization
 
 
 DIAGNOSTIC_SERIES = {
