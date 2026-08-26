@@ -4,6 +4,8 @@ from .result_reader import AnalysisResultReader
 from .visualization import (
     _encode_real,
     display_indices,
+)
+from .visualization import (
     sample_payload as canonical_sample_payload,
 )
 
