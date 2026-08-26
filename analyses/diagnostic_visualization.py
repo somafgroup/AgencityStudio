@@ -1,13 +1,7 @@
 """Presentation-only payloads for immutable AgencityLab diagnostic reports."""
 
+from . import visualization
 from .result_reader import AnalysisResultReader
-from .visualization import (
-    _encode_real,
-    display_indices,
-)
-from .visualization import (
-    sample_payload as canonical_sample_payload,
-)
 
 
 DIAGNOSTIC_SERIES = {
@@ -126,14 +120,18 @@ def diagnostic_series_payload(
         if name not in inventory:
             raise KeyError(f"Diagnostic result does not contain series {name!r}.")
 
-    indices = display_indices(start=start, stop=resolved_stop, max_points=max_points)
+    indices = visualization.display_indices(
+        start=start,
+        stop=resolved_stop,
+        max_points=max_points,
+    )
     xi = (
         canonical_reader.read_series("xi")[indices]
         if "xi" in canonical_reader.available_series
         else indices.astype(float)
     )
     coordinate = [
-        {"index": int(index), **_encode_real(value)}
+        {"index": int(index), **visualization._encode_real(value)}
         for index, value in zip(indices.tolist(), xi, strict=True)
     ]
 
@@ -144,12 +142,12 @@ def diagnostic_series_payload(
         for index in indices.tolist():
             local = index - offset
             if local < 0 or local >= len(values):
-                encoded = _encode_real(float("nan"))
+                encoded = visualization._encode_real(float("nan"))
             else:
                 value = values[local]
                 if isinstance(value, bool):
                     value = 1.0 if value else 0.0
-                encoded = _encode_real(value)
+                encoded = visualization._encode_real(value)
             points.append({"index": int(index), **encoded})
         output[name] = {
             "metadata": inventory[name],
@@ -178,7 +176,7 @@ def diagnostic_sample_payload(
     diagnostic_result_sha256: str,
 ) -> dict:
     """Return exact canonical values plus diagnostic values at one original index."""
-    payload = canonical_sample_payload(
+    payload = visualization.sample_payload(
         canonical_reader,
         index=index,
         result_sha256=diagnostic_result_sha256,
@@ -194,7 +192,7 @@ def diagnostic_sample_payload(
             value = 1.0 if value else 0.0
         payload["values"][name] = {
             "metadata": metadata,
-            "value": _encode_real(value),
+            "value": visualization._encode_real(value),
         }
     payload["diagnostic"] = True
     return payload
