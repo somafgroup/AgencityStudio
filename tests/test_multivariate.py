@@ -299,6 +299,8 @@ def test_multivariate_run_preserves_order_parameters_complex_result_and_lab_aggr
     with override_settings(DATASET_STORAGE_ROOT=tmp_path, ANALYSIS_MAX_ROWS=1000):
         owner = _user("plan11-owner@example.com")
         _workspace, project, revision, observable_a, observable_b = _project_system(owner)
+        revision.refresh_from_db()
+        original_revision_fingerprint = revision.configuration_fingerprint
         version = _raw_multivariate_source(owner, project)
         monkeypatch.setattr("analyses.multivariate_services._enqueue", lambda _run_id: None)
         analysis = create_multivariate_analysis(
@@ -383,7 +385,7 @@ def test_multivariate_run_preserves_order_parameters_complex_result_and_lab_aggr
         version.refresh_from_db()
         revision.refresh_from_db()
         assert version.source_sha256 == original_source_hash
-        assert revision.configuration_fingerprint == "1" * 64
+        assert revision.configuration_fingerprint == original_revision_fingerprint
         assert execute_analysis_run(str(run.pk)) == "already-finished"
         assert AnalysisResultArtifact.objects.filter(run=run).count() == 1
         component = run.components.order_by("position").first()
