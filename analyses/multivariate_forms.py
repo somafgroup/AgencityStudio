@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from django import forms
-from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 from systems.models import ObservableDefinition, ParameterOrigin, SystemRevision
@@ -68,6 +67,8 @@ class MultivariateConfigurationForm(forms.Form):
     p_c_mode = forms.ChoiceField(label=_("P_c contract"), choices=PARAMETER_MODE_CHOICES)
 
     def __init__(self, *args, analysis, **kwargs):
+        from django.conf import settings
+
         super().__init__(*args, **kwargs)
         self.analysis = analysis
         config = dict(analysis.draft_configuration or {})
