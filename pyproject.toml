@@ -1,6 +1,6 @@
 [project]
 name = "agencitystudio"
-version = "0.9.0"
+version = "0.10.0"
 description = "Web interface and orchestration layer for AgencityLab"
 requires-python = ">=3.12"
 dependencies = [
@@ -29,7 +29,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["accounts*", "analyses*", "common*", "config*", "datasets*", "labbridge*", "projects*", "systems*", "workspaces*"]
+include = ["accounts*", "analyses*", "common*", "config*", "datasets*", "labbridge*", "projects*", "sensitivity*", "systems*", "workspaces*"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
@@ -39,7 +39,7 @@ python_files = ["tests.py", "test_*.py"]
 line-length = 100
 
 [tool.ruff.lint.isort]
-known-first-party = ["accounts", "analyses", "common", "config", "datasets", "labbridge", "projects", "systems", "workspaces"]
+known-first-party = ["accounts", "analyses", "common", "config", "datasets", "labbridge", "projects", "sensitivity", "systems", "workspaces"]
 
 [tool.ruff.lint.per-file-ignores]
 "accounts/forms.py" = ["RUF012"]
@@ -55,6 +55,8 @@ known-first-party = ["accounts", "analyses", "common", "config", "datasets", "la
 "projects/forms.py" = ["RUF012"]
 "projects/migrations/*.py" = ["RUF012"]
 "projects/models.py" = ["RUF012"]
+"sensitivity/migrations/*.py" = ["RUF012"]
+"sensitivity/models.py" = ["RUF012"]
 "systems/forms.py" = ["RUF012"]
 "systems/migrations/*.py" = ["RUF012"]
 "systems/models.py" = ["RUF012"]

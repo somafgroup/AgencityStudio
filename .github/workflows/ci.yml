@@ -54,9 +54,9 @@ jobs:
       - name: Frontend build
         run: npm run build
       - name: Python quality
-        run: ruff check accounts analyses config common datasets labbridge projects systems workspaces tests
+        run: ruff check accounts analyses config common datasets labbridge projects sensitivity systems workspaces tests
       - name: Compile Python
-        run: python -m compileall accounts analyses config common datasets labbridge projects systems workspaces tests
+        run: python -m compileall accounts analyses config common datasets labbridge projects sensitivity systems workspaces tests
       - name: Django checks
         run: python manage.py check
       - name: Production Django checks

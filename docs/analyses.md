@@ -1,14 +1,16 @@
-# Analyses and DiagnosticRuns
+# Analyses, DiagnosticRuns and SensitivityStudies
 
-AgencityStudio separates **canonical execution** from **diagnostic interpretation**.
+AgencityStudio separates **canonical execution**, **diagnostic interpretation** and **sensitivity exploration**.
 
-Plan 7 executes the canonical scalar pipeline through AgencityLab 1.1.3. Plan 8 reads and visualizes the immutable canonical result. Plan 9 adds immutable diagnostics downstream of that result without changing canonical quantities.
+Plan 7 executes the canonical scalar pipeline through AgencityLab 1.1.3. Plan 8 reads and visualizes the immutable canonical result. Plan 9 adds immutable diagnostics downstream of that result. Plan 10 adds immutable tau/window sensitivity studies without changing the canonical Run or SystemRevision.
 
 ## Scientific boundary
 
-Canonical execution uses the public package-root `compute_agencity`. Studio does not reproduce equations for `u_star`, `X_star`, `A_star`, `M`, `O`, `D`, `S`, `J`, `Theta`, `U`, `beta` or `b`.
+Canonical execution uses public `compute_agencity`. Studio does not reproduce equations for `u_star`, `X_star`, `A_star`, `M`, `O`, `D`, `S`, `J`, `Theta`, `U`, `beta` or `b`.
 
-Diagnostic execution uses the public package-root `analyze_agencity`. Studio does not reproduce coherence, angular-variance, curvature, winding, zero/event, transition, regime or real-agencity equations.
+Diagnostic execution uses public `analyze_agencity`. Studio does not reproduce coherence, angular-variance, curvature, winding, zero/event, transition, regime or real-agencity equations.
+
+Sensitivity execution uses public `agencitylab.api.compute_agencity_spectrum` and `agencitylab.api.optimize_agencity_window`. Studio does not reproduce multiscale or CRM-window optimization algorithms and does not turn a numerical maximum into a physical-parameter estimate.
 
 A completed canonical Run means the software calculation and immutable publication succeeded. It does not imply coherence or real agencity. Likewise, `beta != 0` and high `D` are never used as proof of real agencity.
 
@@ -34,7 +36,7 @@ Exactly one source is allowed and historical sources are protected from normal c
 
 When `w` is unspecified, Studio passes `None` to AgencityLab; it does not replace it with `tau`. The effective Lab result memory window may be recorded separately from the requested provenance state.
 
-No physical parameter is derived from signal statistics.
+No physical parameter is derived from signal statistics. `dt`, `tau` and `w` remain scientifically distinct.
 
 ## Canonical result artifact
 
@@ -44,116 +46,136 @@ Completed AnalysisRuns publish one private `AnalysisResultArtifact` using `ZIP_N
 
 NumPy dtypes, including complex arrays, are preserved and pickle is disabled. `execution_fingerprint` identifies the frozen computation contract; `result_sha256` identifies the exact serialized bytes.
 
-## DiagnosticRun — Plan 9
+## Derived immutable studies
 
-A completed canonical AnalysisRun may own multiple immutable `DiagnosticRun` records:
+A completed AnalysisRun can own multiple independent derived records:
 
 ```text
 Analysis
   ↓
 AnalysisRun
   ├── canonical AnalysisResultArtifact
-  ├── DiagnosticRun 1
-  ├── DiagnosticRun 2
-  └── ...
+  ├── DiagnosticRun 1..n
+  │     └── DiagnosticResultArtifact
+  └── SensitivityStudy 1..n
+        └── SensitivityResultArtifact
 ```
+
+Neither child path mutates the canonical parent.
+
+## DiagnosticRun — Plan 9
 
 Multiple diagnostic runs are intentional because diagnostic configuration can change without changing the canonical result.
 
-Each DiagnosticRun pins:
+Each DiagnosticRun pins the exact parent AnalysisRun, canonical result SHA-256, software versions, public diagnostic API identifiers, normalized configuration/thresholds, deterministic diagnostic fingerprint and creator/timestamps. A completed run additionally pins its private result artifact and SHA-256.
 
-- exact parent AnalysisRun;
-- canonical result SHA-256;
-- AgencityLab version;
-- Studio/Python versions;
-- public diagnostic API identifiers;
-- normalized diagnostic configuration and thresholds;
-- diagnostic schema version;
-- deterministic diagnostic execution fingerprint;
-- creator and timestamps.
+Plan 9 does not rerun canonical computation. The worker reads the exact immutable canonical artifact and reconstructs only the **public `AgencityResult` container** expected by the public diagnostic API. Stored canonical `theta` is mandatory and passed explicitly. Studio never substitutes `np.angle(beta)`.
 
-A completed DiagnosticRun additionally pins its private `DiagnosticResultArtifact` and result SHA-256. Editing a threshold creates another run; it does not rewrite the old one.
+The public Lab 1.1.3 diagnostic bundle can expose structural-orientation/coherence information, contextual real-agencity assessment, geometry/curvature, winding-related output, zeros, transitions, D peaks, S plateaus, regime signatures and contextual classification. Legacy heuristics are not promoted silently.
 
-## Diagnostic input contract
+## SensitivityStudy — Plan 10
 
-Plan 9 does not rerun canonical computation. The worker reads the exact immutable canonical artifact and reconstructs only the **public `AgencityResult` container** expected by the public diagnostic API.
+A `SensitivityStudy` is an immutable derived study pinned to one completed AnalysisRun. It records:
 
-Stored canonical `theta` is mandatory and passed explicitly. Studio never substitutes `np.angle(beta)` or a browser-computed phase. If a historical artifact lacks the required public input series, the diagnostic run is unavailable/failed safely rather than scientifically repaired.
+- canonical Run ID and canonical result SHA-256;
+- source SHA-256;
+- exact SystemRevision and system fingerprint;
+- mapping snapshot;
+- fixed `A_ref`, `P_c`, base `tau` and requested base `w` snapshots;
+- study type;
+- exact scale grid and grid-generation method;
+- grid unit;
+- fixed/varied semantics;
+- public Lab API identifier;
+- AgencityLab/Studio/Python versions;
+- deterministic study fingerprint;
+- warnings/lifecycle;
+- completed result artifact SHA-256.
 
-The worker verifies the canonical result SHA before diagnostic execution so a DiagnosticRun cannot silently consume another result.
+Changing the grid creates another study. A completed/failed/cancelled historical study is immutable.
 
-## Public diagnostic bundle in AgencityLab 1.1.3
+### `TAU_MULTISCALE`
 
-Plan 9 uses `agencitylab.analyze_agencity` as the standard public bundle. Its result can expose, according to the Lab 1.1.3 contract:
+The study sends an explicit tau grid to:
 
-- structural orientation `Sigma_Theta` and coherence information;
-- contextual real-agencity assessment/evidence;
-- beta-trajectory geometry and curvature;
-- net structural-orientation turns and winding-related output under its closure contract;
-- exact zero reporting;
-- `D = S` critical-surface transitions;
-- configurable Theta jumps;
-- public D-peak detection;
-- configurable structural S plateaus;
-- threshold-free regime signature;
-- contextual regime classification.
+```python
+agencitylab.api.compute_agencity_spectrum
+```
 
-Legacy `b` heuristics are not promoted into the standard Studio diagnostic layer. Optional filtered peak detection that would require a new SciPy dependency is not added merely for convenience. Multiscale `tau`/`w` exploration is reserved for later work.
+`A_ref`, `P_c`, source, mapping and SystemRevision remain fixed.
 
-## Thresholds and negative outcomes
+If the base Run requested `w` as unspecified, Studio sends `windows=None`. It does not materialize `w=tau_i`. Lab 1.1.3 returns effective `w` per scale and Studio records/displays those values separately.
 
-Studio defines no universal interpretive threshold. Where Lab permits contextual thresholds, the user may explicitly configure them and the exact values are persisted and transmitted unchanged.
+If base `w` is explicit, Studio passes that one explicit scalar to the spectrum API, so `w` remains fixed while tau varies.
 
-If required criteria are absent, Lab may return `undetermined` or not-configured output. This is preserved. No detected event, empty segments, unknown regime or no diagnostic evidence is a valid software result.
+A numerical maximum is not automatically the physical `tau`; Studio does not perform peak/argmax promotion.
 
-A DiagnosticRun lifecycle status (`QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`) describes execution only; it is never a hidden scientific verdict.
+### `W_SENSITIVITY`
+
+The study sends exact explicit candidate windows to:
+
+```python
+agencitylab.api.optimize_agencity_window
+```
+
+Base `tau`, `A_ref`, `P_c`, source, mapping and SystemRevision remain fixed. Candidate windows are prevalidated against the canonical `w/dt` sampling contract so Studio does not silently depend on candidate rounding.
+
+Lab returns the Chapter-13 `Phi2` criterion outputs and `w_opt`. Studio stores and displays that result as a **Lab-reported numerical optimum under Phi2**. It does not write `w_opt` into the SystemRevision or AnalysisRun.
+
+## Thresholds, grids and negative outcomes
+
+Studio defines no universal interpretive threshold. Diagnostic thresholds follow Lab/user configuration. Sensitivity grids are explicit study configuration, not theory constants or estimators.
+
+If required diagnostic criteria are absent, Lab may return `undetermined`. A sensitivity result may be flat or unexpected. These are valid software/scientific outputs; they are not reasons to alter parameters or theory.
+
+Lifecycle statuses (`QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`) describe execution only.
 
 ## Celery
 
-Canonical and diagnostic workloads use Celery after transaction commit.
+Canonical, diagnostic and sensitivity workloads use Celery after transaction commit. Redis receives stable UUID identifiers rather than scientific arrays.
 
-Diagnostic flow:
+Sensitivity flow:
 
 ```text
-DiagnosticRun QUEUED
+SensitivityStudy QUEUED
   ↓ Redis/Celery
-analyses.diagnostic_tasks
+sensitivity.tasks
   ↓
-labbridge.diagnostics
+labbridge.sensitivity
   ↓
-public agencitylab.analyze_agencity
+public AgencityLab multiscale/window API
   ↓
-private DiagnosticResultArtifact
+private SensitivityResultArtifact
   ↓
 COMPLETED
 ```
 
-Duplicate delivery sees persisted run state and cannot publish two completed artifacts. Deterministic Lab validation errors are not blindly retried.
+Duplicate delivery sees persisted state and cannot publish two authoritative artifacts. Deterministic Lab validation errors are not blindly retried.
 
 ## Permissions
 
-Analysis/diagnostic access reuses Workspace membership:
+Access reuses Workspace membership:
 
 - Owner: view/configure/run/rerun/inspect plus normal lifecycle privileges;
 - Editor: view/configure/run/rerun/inspect;
 - Analyst: view/configure/run/rerun/inspect;
-- Viewer: inspect completed canonical and diagnostic results only;
+- Viewer: inspect completed canonical/diagnostic/sensitivity results only;
 - Non-member: object endpoints resolve as 404.
 
 Artifacts have no public media URLs.
 
 ## Scientific equivalence
 
-Canonical tests compare direct `compute_agencity` with `labbridge.execution` on the same inputs.
+Canonical tests compare direct `compute_agencity` with `labbridge.execution`.
 
-Diagnostic tests compare direct public `analyze_agencity` with `labbridge.diagnostics` using the same public rehydrated result and configuration. Studio never derives expected diagnostic values from copied formulas.
+Diagnostic tests compare direct public `analyze_agencity` with `labbridge.diagnostics` on the same public diagnostic input.
 
-The stored-Theta regression explicitly protects a case where canonical `Theta` differs from `arg(beta)`.
+Sensitivity tests compare direct public `compute_agencity_spectrum` and `optimize_agencity_window` with `labbridge.sensitivity` on identical arrays, physical/contextual inputs and candidate grids. Studio never derives expected scientific values from copied formulas.
 
 ## Visualization relationship
 
-Plan 8 canonical visualization reads `AnalysisResultArtifact`. Plan 9 diagnostic visualization reads `DiagnosticResultArtifact` plus the exact canonical coordinate/index relation. Neither visualization path performs scientific computation.
+Plan 8 canonical visualization reads `AnalysisResultArtifact`. Plan 9 diagnostic visualization reads `DiagnosticResultArtifact` plus canonical sample indices. Plan 10 sensitivity visualization reads `SensitivityResultArtifact` and uses tau/w as the scale axis rather than the signal coordinate.
 
-Display decimation never changes diagnostic calculation input. Exact sample synchronization uses original canonical sample indices.
+All chart derivations are presentation-only. Exact artifacts/tables remain authoritative and no chart selection mutates scientific history.
 
-See `docs/visualization.md` and `docs/diagnostics.md` for presentation and diagnostic details.
+See `docs/visualization.md`, `docs/diagnostics.md` and `docs/sensitivity-and-multiscale.md` for detailed presentation and derived-study contracts.

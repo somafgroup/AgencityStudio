@@ -6,10 +6,12 @@
     "build:css": "tailwindcss -i ./frontend/styles/app.css -o ./static/css/app.css --minify",
     "build:js": "esbuild ./frontend/scripts/app.js --bundle --minify --sourcemap --outfile=./static/js/app.js",
     "build:science": "esbuild ./frontend/scripts/scientific-workspace.js --bundle --minify --sourcemap --outfile=./static/js/scientific-workspace.js",
-    "build": "npm run build:css && npm run build:js && npm run build:science",
+    "build:sensitivity": "esbuild ./frontend/scripts/sensitivity-workspace.js --bundle --minify --sourcemap --outfile=./static/js/sensitivity-workspace.js",
+    "build": "npm run build:css && npm run build:js && npm run build:science && npm run build:sensitivity",
     "watch:css": "tailwindcss -i ./frontend/styles/app.css -o ./static/css/app.css --watch",
     "watch:js": "esbuild ./frontend/scripts/app.js --bundle --sourcemap --outfile=./static/js/app.js --watch",
     "watch:science": "esbuild ./frontend/scripts/scientific-workspace.js --bundle --sourcemap --outfile=./static/js/scientific-workspace.js --watch",
+    "watch:sensitivity": "esbuild ./frontend/scripts/sensitivity-workspace.js --bundle --sourcemap --outfile=./static/js/sensitivity-workspace.js --watch",
     "test:e2e": "playwright test"
   },
   "dependencies": {

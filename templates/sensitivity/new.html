@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<header class="page-header"><div><span class="badge">SENSITIVITY</span><h1 class="page-title mt-2">{% translate "Configure sensitivity study" %}</h1><p class="muted mt-1">{% translate "Choose the exact parameter values to test. Studio does not derive a grid from the signal." %}</p></div><a class="btn btn-secondary" href="{% url 'sensitivity:home' analysis.id run.id %}">{% translate "Back" %}</a></header>
+<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+<section class="card"><form method="post" class="space-y-5">{% csrf_token %}{{ form.non_field_errors }}
+  <div class="field"><label for="{{ form.study_type.id_for_label }}">{{ form.study_type.label }}</label>{{ form.study_type }}<p class="help">{{ form.study_type.help_text }}</p>{{ form.study_type.errors }}</div>
+  <div class="field"><label for="{{ form.grid_type.id_for_label }}">{{ form.grid_type.label }}</label>{{ form.grid_type }}{{ form.grid_type.errors }}</div>
+  <div class="field"><label for="{{ form.explicit_values.id_for_label }}">{{ form.explicit_values.label }} [{{ grid_unit }}]</label>{{ form.explicit_values }}<p class="help">{{ form.explicit_values.help_text }}</p>{{ form.explicit_values.errors }}</div>
+  <div class="grid gap-4 sm:grid-cols-3"><div class="field"><label for="{{ form.start.id_for_label }}">{{ form.start.label }} [{{ grid_unit }}]</label>{{ form.start }}</div><div class="field"><label for="{{ form.stop.id_for_label }}">{{ form.stop.label }} [{{ grid_unit }}]</label>{{ form.stop }}</div><div class="field"><label for="{{ form.count.id_for_label }}">{{ form.count.label }}</label>{{ form.count }}</div></div>
+  <div class="toolbar"><button class="btn btn-primary" type="submit">{% translate "Review study" %}</button></div>
+</form></section>
+<aside class="card"><h2 class="section-title">{% translate "Fixed base context" %}</h2><dl class="mt-4 space-y-3 text-sm"><div><dt class="muted">{% translate "Canonical Run" %}</dt><dd>#{{ run.run_number }}</dd></div><div><dt class="muted">A_ref</dt><dd>{{ run.parameter_snapshot.A_ref.value }} {{ run.parameter_snapshot.A_ref.unit }}</dd></div><div><dt class="muted">tau</dt><dd>{{ run.parameter_snapshot.tau.value }} {{ run.parameter_snapshot.tau.unit }}</dd></div><div><dt class="muted">w</dt><dd>{% if run.parameter_snapshot.w.mode == 'UNSPECIFIED' %}{% translate "unspecified" %}{% else %}{{ run.parameter_snapshot.w.requested_value }} {{ run.parameter_snapshot.w.unit }}{% endif %}</dd></div><div><dt class="muted">P_c</dt><dd>{{ run.parameter_snapshot.P_c.value }} {{ run.parameter_snapshot.P_c.unit }}</dd></div></dl><div class="alert alert-info mt-5"><p>{% translate "Tau multiscale studies vary tau only. If w is unspecified, Studio keeps it unspecified and delegates Lab's documented effective behaviour." %}</p><p class="mt-2">{% translate "Window sensitivity varies w while tau remains fixed." %}</p></div></aside>
+</div>
+{% endblock %}

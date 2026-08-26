@@ -1,8 +1,8 @@
 # Scientific Results Visualization
 
-AgencityStudio presents canonical and diagnostic science as two distinct layers over immutable artifacts.
+AgencityStudio presents canonical, diagnostic and sensitivity science as distinct layers over immutable artifacts.
 
-Plan 8 visualizes a completed canonical `AnalysisRun`. Plan 9 adds visualization of a separate immutable `DiagnosticRun`. Neither layer performs scientific computation in the browser.
+Plan 8 visualizes a completed canonical `AnalysisRun`. Plan 9 visualizes a separate immutable `DiagnosticRun`. Plan 10 adds a scale/window workspace over an immutable `SensitivityStudy`. None of these browser layers performs scientific computation.
 
 ## Canonical data path
 
@@ -36,6 +36,22 @@ ScientificWorkspaceController + Apache ECharts 6.1.0
 
 The diagnostic browser path never computes coherence, angular variance, curvature, winding, events, regimes or real-agencity criteria. Those values already come from the backend public AgencityLab diagnostic API.
 
+## Sensitivity data path
+
+```text
+completed AnalysisRun
+  ↓ backend-only public AgencityLab multiscale/window execution
+SensitivityStudy COMPLETED
+  ↓
+SensitivityResultArtifact (ZIP_NPY_JSON)
+  ↓
+private sensitivity manifest/chart/table endpoints
+  ↓
+Sensitivity workspace controller + Apache ECharts 6.1.0
+```
+
+The scale axis is `tau` for `TAU_MULTISCALE` and `w` for `W_SENSITIVITY`. It is not the signal coordinate. Browser code does not call AgencityLab, detect peaks, select optima, normalize curves or update physical parameters.
+
 ## Explicit scientific layers
 
 UI badges and help text keep the distinction visible:
@@ -44,11 +60,15 @@ UI badges and help text keep the distinction visible:
 CANONICAL RESULT
        ↓
 DIAGNOSTIC INTERPRETATION
+
+CANONICAL RUN
+       ↓
+SENSITIVITY STUDY
 ```
 
-Canonical quantities remain canonical. Diagnostic annotations, classifications and evidence never become canonical variables merely because they appear on the same screen.
+Canonical quantities remain canonical. Diagnostic annotations and sensitivity comparisons never become canonical variables merely because they appear in the same Analysis workspace.
 
-The UI must not imply that non-zero `beta` or high `D` proves real agencity.
+The UI must not imply that non-zero `beta`, high `D`, a multiscale maximum, or a criterion-specific `w_opt` proves a physical conclusion beyond the corresponding Lab contract.
 
 ## Structural orientation
 
@@ -58,60 +78,68 @@ Canonical structural orientation is stored `theta` returned by AgencityLab. The 
 
 ## Exact sample synchronization
 
-Both workspaces use the original zero-based canonical sample index internally. Human-facing controls render one-based sample numbers where appropriate, but endpoints and deep-link synchronization preserve the exact original index.
+Canonical and diagnostic workspaces use the original zero-based canonical sample index internally. Human-facing controls render one-based sample numbers where appropriate, but endpoints and deep-link synchronization preserve the exact original index.
 
-A diagnostic event or point therefore references the same canonical sample as the Results workspace. `sample=<index>` links let users move between layers without an approximate chart-coordinate lookup.
+A diagnostic event or point therefore references the same canonical sample as the Results workspace. `sample=<index>` links let users move between those layers without an approximate chart-coordinate lookup.
 
-## Display-only decimation
+Sensitivity studies use a different exact index: the persisted **scale-candidate order**. A selected scale is not a canonical time/sample selection and is not silently mapped to one.
 
-Large series may be reduced to a subset of original indices for browser display. This rule applies to canonical and diagnostic series.
+## Display-only decimation and representation
 
-Decimation is never used by:
+Large canonical/diagnostic series may be reduced to a subset of original indices for browser display. Decimation is never used by scientific execution, artifact generation or exact inspection.
 
-- `compute_agencity`;
-- `analyze_agencity`;
-- artifact generation;
-- diagnostic event detection;
-- regime classification;
-- exact selected-sample inspection.
+Sensitivity grids are operationally bounded by `SENSITIVITY_MAX_POINTS`; Studio rejects oversized studies rather than silently truncating them. The exact scale table uses every Lab-returned candidate.
 
-Every displayed point retains its original sample index. Selecting a point fetches the exact full-resolution stored values for that index.
+Stored complex `U`, `beta`, `b` and multiscale `b`/`beta` arrays preserve their NumPy complex dtype. Browser payloads may expose real, imaginary, magnitude and phase representations for display only.
 
-## Canonical complex values
+For a one-value-per-scale complex Lab summary such as `b_mean` or `beta_mean`, the sensitivity chart may explicitly show `|b_mean|` or `|beta_mean|` as a display representation. The source metric identity remains visible and the exact table/artifact retains real and imaginary values.
 
-Stored complex `U`, `beta` and `b` preserve their NumPy complex dtype. Browser payloads may expose real, imaginary, magnitude and phase representations for display only.
-
-Complex-plane trajectories are presentation views over stored canonical values, not new persisted scientific quantities.
+No display transform is persisted as a new scientific result.
 
 ## Diagnostic series and discrete outputs
 
-When the Lab report supplies sample-indexed diagnostic series, Studio may plot them with the existing scientific bundle. Plan 9 includes presentation support for outputs such as `Sigma_Theta`, curvature and a configured local real-agencity criterion when actually present.
+When the Lab report supplies sample-indexed diagnostic series, Studio may plot them with the existing scientific bundle. Plan 9 includes presentation support for outputs such as `Sigma_Theta`, curvature and configured local real-agencity criteria when present.
 
-Discrete events/transitions are rendered as tables using Lab-provided indices/coordinates. Structural plateau and regime outputs remain diagnostic report content. Empty tables or `undetermined` classifications are valid results and are displayed honestly.
+Discrete events/transitions are rendered as tables using Lab-provided indices/coordinates. Empty tables or `undetermined` classifications are valid results and are displayed honestly.
 
 Studio does not invent overlays by applying browser thresholds to canonical series.
 
+## Tau multiscale presentation
+
+The tau workspace plots a selected Lab-returned summary against the exact Lab-returned `tau` array and exposes the exact values in a table.
+
+The table also displays the Lab-returned effective `w` per tau scale. This is especially important when the base Run requested `w` as unspecified: Studio preserves that request state and displays Lab's documented effective-window behavior rather than fabricating it before execution.
+
+A visual maximum is not marked or labeled as `physical tau`, `true tau`, `best tau` or another automatic scientific conclusion.
+
+## Window sensitivity presentation
+
+The window workspace plots Lab-returned `phi2` or other returned descriptive values against exact candidate `w` values.
+
+When Lab returns `w_opt`, Studio labels it **Lab-reported numerical window optimum** and displays the `Phi2` criterion and selection status. It does not rewrite the base Run or SystemRevision and does not relabel the optimum as physical memory.
+
+Candidates rejected by structural preflight do not enter a queued study. Eligibility returned by Lab for valid candidates is displayed rather than hidden.
+
 ## Real-agencity presentation
 
-The Real Agencity view reflects the exact Lab report. It may show status, evaluated fraction, configured thresholds and a local criterion when supplied.
+The Real Agencity view reflects the exact Lab report. If thresholds required by Lab are absent, the UI preserves `undetermined` rather than manufacturing a binary verdict. A non-zero beta alone is explicitly described as insufficient evidence.
 
-If thresholds required by Lab are absent, the UI preserves `undetermined` rather than manufacturing a binary verdict. A non-zero beta alone is explicitly described as insufficient evidence.
-
-Color is not the sole carrier of a scientific verdict. Textual status, configuration and provenance remain visible.
+Sensitivity studies do not automatically rerun or modify real-agencity diagnostics.
 
 ## ECharts bundle
 
-Apache ECharts 6.1.0 remains the only charting library. It is locally bundled by `frontend/scripts/scientific-workspace.js` and loaded only on scientific workspace pages.
+Apache ECharts 6.1.0 remains the only charting library and is bundled locally.
 
-The diagnostic workspace uses the same stylesheet and controller as the canonical workspace. The controller is data-source agnostic: it reads the manifest/series/sample endpoints declared by the page and performs only display operations.
+- `frontend/scripts/scientific-workspace.js` serves canonical/diagnostic time/sample exploration;
+- `frontend/scripts/sensitivity-workspace.js` is scoped to one sensitivity result and scale axis.
 
-No CDN fallback or second plotting framework is introduced.
+Neither bundle is loaded as a scientific dependency on unrelated pages. No CDN fallback or second plotting framework is introduced.
 
 ## Accessibility
 
-Important plotted quantities have textual/tabular alternatives. Exact sample values are available through the shared sample inspector, and discrete diagnostics use ordinary tables.
+Important plotted quantities have textual/tabular alternatives. Exact canonical values are available through the sample inspector, diagnostic discrete results use ordinary tables, and sensitivity results provide an exact scale table.
 
-Charts use ECharts ARIA support and descriptive labels. Keyboard-accessible sample controls do not depend on clicking canvas coordinates. Playback never starts automatically and reduced-motion preferences are respected.
+Charts use ECharts ARIA support and descriptive labels. Sensitivity metrics are selectable with ordinary form controls; interpreting a result never depends only on canvas hover or colour.
 
 ## Privacy and security
 
@@ -122,7 +150,7 @@ All scientific numerical endpoints:
 - use private/no-store response policy;
 - never expose storage paths or filesystem roots.
 
-Diagnostic artifact access follows the same rules as canonical result access.
+Canonical, diagnostic and sensitivity artifacts follow the same private-storage rule.
 
 ## Scientific boundary review
 
@@ -133,8 +161,10 @@ Production visualization code must not contain substitute implementations such a
 - custom curvature formulas;
 - `find_peaks`-based Studio scientific detection;
 - browser regime rules;
-- browser real-agencity thresholds.
+- browser real-agencity thresholds;
+- `np.argmax`/peak selection that promotes a multiscale point to physical `tau`;
+- a browser `w` optimizer or automatic update of System/Run parameters.
 
-Such diagnostics belong to AgencityLab. Studio renders their public outputs.
+Such scientific computations belong to AgencityLab or to explicit future scientific contracts. Studio renders their public outputs.
 
-See `docs/diagnostics.md` for the exact Plan 9 public diagnostic inventory and provenance contract.
+See `docs/diagnostics.md` for Plan 9 and `docs/sensitivity-and-multiscale.md` for Plan 10.
