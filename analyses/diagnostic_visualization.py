@@ -1,7 +1,6 @@
 """Presentation-only payloads for immutable AgencityLab diagnostic reports."""
 
-from . import result_reader
-from . import visualization
+from . import result_reader, visualization
 
 DIAGNOSTIC_SERIES = {
     "sigma_theta": {
