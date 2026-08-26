@@ -20,7 +20,6 @@ from .multivariate_visualization import (
     aggregate_manifest_payload,
     aggregate_sample_payload,
     aggregate_series_payload,
-    aggregate_table_payload,
     component_manifest_payload,
     component_sample_payload,
     component_series_payload,
