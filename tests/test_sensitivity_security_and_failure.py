@@ -130,6 +130,7 @@ def test_scale_inspector_selects_exact_stored_row_without_mutating_study(tmp_pat
             configuration=_tau_configuration(run, values=(0.1, 0.2, 0.3)),
         )
         assert execute_sensitivity_study(str(study.pk)) == "completed"
+        study.refresh_from_db()
         before_fingerprint = study.execution_fingerprint
         before_result_sha = study.result_sha256
 
