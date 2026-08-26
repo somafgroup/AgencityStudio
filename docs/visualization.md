@@ -1,143 +1,140 @@
-# Canonical Results Visualization
+# Scientific Results Visualization
 
-Plan 8 turns a completed canonical `AnalysisRun` into a read-only scientific exploration workspace. The source of truth is the immutable Plan 7 `AnalysisResultArtifact`; the visualization layer does not call `compute_agencity` and does not reconstruct canonical equations.
+AgencityStudio presents canonical and diagnostic science as two distinct layers over immutable artifacts.
 
-## Data path
+Plan 8 visualizes a completed canonical `AnalysisRun`. Plan 9 adds visualization of a separate immutable `DiagnosticRun`. Neither layer performs scientific computation in the browser.
+
+## Canonical data path
 
 ```text
 AnalysisRun COMPLETED
-        |
-AnalysisResultArtifact (ZIP_NPY_JSON schema 1)
-        |
+  ↓
+AnalysisResultArtifact (ZIP_NPY_JSON)
+  ↓
 AnalysisResultReader
-        |
-Visualization service
-        |
-private Django endpoints
-        |
-ScientificWorkspaceController + Apache ECharts
+  ↓
+private visualization endpoints
+  ↓
+ScientificWorkspaceController + Apache ECharts 6.1.0
 ```
 
-The result reader is the single storage-aware read boundary. It validates the stored schema, Run identity, series inventory, shape, and dtype. It supports manifest, single-series, range, and exact-sample reads. The existing compatibility function that loads a full result also delegates to this reader.
+The canonical workspace reads stored values only. It never calls `compute_agencity` during display and never reconstructs canonical equations.
 
-## Stored canonical series
-
-Schema 1 can persist the public Plan 7 inventory:
+## Diagnostic data path
 
 ```text
-xi
-u
-u_star
-X_star
-A_star
-t_star
-M
-O
-D
-S
-J
-theta
-U
-beta
-b
+AnalysisRun canonical result
+  ↓ backend-only public AgencityLab diagnostic execution
+DiagnosticRun COMPLETED
+  ↓
+DiagnosticResultArtifact
+  ↓
+private diagnostic manifest/series/sample endpoints
+  ↓
+ScientificWorkspaceController + Apache ECharts 6.1.0
 ```
 
-A historical artifact may contain fewer series. The UI only advertises series present in its manifest. Missing quantities are shown as unavailable; Studio never reconstructs them.
+The diagnostic browser path never computes coherence, angular variance, curvature, winding, events, regimes or real-agencity criteria. Those values already come from the backend public AgencityLab diagnostic API.
 
-## Canonical workspace
+## Explicit scientific layers
 
-The Results workspace provides stable deep links for:
-
-- Overview
-- Observable
-- Dynamics
-- Structure
-- Contrast & Orientation
-- Agencity State
-- Agencity Flux
-- Exact table
-- Reproducibility
-
-The Overview keeps the operational Run status separate from the `CANONICAL` scientific-status badge. `COMPLETED` means execution and immutable publication succeeded. It does not mean coherent, stable, or real agencity was detected.
-
-## Complex values
-
-`U`, `beta`, and `b` remain complex NumPy arrays in the canonical result artifact. The reader does not downcast them. JSON presentation encodes real and imaginary components explicitly and may additionally provide magnitude and phase for display.
-
-`Re`, `Im`, magnitude, and `arg` are visualization representations when they are not independently stored canonical series. They are not inserted into the result artifact or into PostgreSQL as new scientific quantities.
-
-The beta and b views include both coordinate-domain component views and a complex plane. The U complex plane is available in Contrast & Orientation when U exists in the artifact. Complex-plane colour follows the stored coordinate (or original sample index when no coordinate series exists); it is navigation context, not a scientific classification.
-
-## Theta vs arg(beta)
-
-**Structural orientation Theta is read from the AgencityLab result and is never reconstructed from beta.**
-
-The canonical orientation chart reads the stored `theta` array. Studio never substitutes `np.angle(beta)` or a browser-computed beta phase for structural orientation. This distinction is protected by a regression test using a real Lab-backed result containing samples where stored Theta and `arg(beta)` differ.
-
-Plan 8 does not unwrap Theta by default.
-
-## Sample synchronization
-
-One original sample index is the persistent selection for a workspace. Chart points retain their original sample index. Selection can come from a chart point, Previous/Next controls, direct sample input, or keyboard Left/Right navigation.
-
-The selected-sample inspector then performs a separate exact full-resolution sample request. It never uses an approximate or decimated chart value. Complex-plane highlights and coordinate-chart cursors identify that same original sample. The selected index is also kept in a compact `?sample=` URL parameter while navigating result sections.
-
-Playback is optional, user-triggered, and visits only stored sample indices. It never starts automatically and does not interpolate scientific samples. Global reduced-motion preferences disable chart animation.
-
-## Display decimation
-
-`VISUALIZATION_MAX_POINTS` is a UI/performance setting, not a scientific threshold. A long requested range may be represented by a bounded set of original indices for chart rendering. Both range endpoints are retained and every returned point includes its original index.
-
-> Display decimation never alters the canonical result or the data used for scientific calculations.
-
-Decimated values never feed Analysis execution, diagnostics, exports, or the exact selected-sample inspector. `result_sha256` naturally distinguishes caches or representations associated with different immutable results. Plan 8 does not persist a visualization cache because the current row limits and on-demand reader are sufficient.
-
-## Exact table
-
-The Exact table is server-paginated and keeps original result order. It never sorts samples by D, beta, b, or any other scientific value. Complex cells expose real and imaginary components without changing the stored dtype.
-
-The table is also the principal accessibility fallback for users who cannot or do not wish to interpret a canvas chart.
-
-## Endpoints
-
-Plan 8 endpoints are internal UI endpoints, not a public `/api/v1/` contract:
+UI badges and help text keep the distinction visible:
 
 ```text
-.../visualization/manifest/
-.../visualization/series/
-.../visualization/sample/
+CANONICAL RESULT
+       ↓
+DIAGNOSTIC INTERPRETATION
 ```
 
-They require the same Workspace access as the Run. A non-member resolves through the normal object lookup as 404. Responses use `Cache-Control: private, no-store` and never include filesystem paths or storage-backend internals.
+Canonical quantities remain canonical. Diagnostic annotations, classifications and evidence never become canonical variables merely because they appear on the same screen.
 
-Complex/non-finite display JSON remains valid: exceptional NaN/Infinity components are emitted as `null` with a non-finite flag rather than invalid JSON numeric tokens. This changes only transport representation, never the artifact.
+The UI must not imply that non-zero `beta` or high `D` proves real agencity.
 
-## Chart engine and bundling
+## Structural orientation
 
-Apache ECharts 6.1.0 is the single Plan 8 chart engine. It is imported modularly and built by esbuild into `static/js/scientific-workspace.js`. That bundle is referenced only by Results workspace pages, so ordinary pages such as login do not load the chart library.
+Canonical structural orientation is stored `theta` returned by AgencityLab. The canonical orientation plot and all orientation-aware diagnostics use that contract.
 
-Charts react to AgencityStudio's Light/Dark/System theme event and use the existing Design System variables. Legends and line styles accompany colour distinctions. Zoom/pan, Reset view, fullscreen, and current-view PNG export are display operations only.
+`arg(beta)` is only a display phase of a complex value and may differ from structural `Theta`. It is never used as a fallback for a missing canonical `theta`.
+
+## Exact sample synchronization
+
+Both workspaces use the original zero-based canonical sample index internally. Human-facing controls render one-based sample numbers where appropriate, but endpoints and deep-link synchronization preserve the exact original index.
+
+A diagnostic event or point therefore references the same canonical sample as the Results workspace. `sample=<index>` links let users move between layers without an approximate chart-coordinate lookup.
+
+## Display-only decimation
+
+Large series may be reduced to a subset of original indices for browser display. This rule applies to canonical and diagnostic series.
+
+Decimation is never used by:
+
+- `compute_agencity`;
+- `analyze_agencity`;
+- artifact generation;
+- diagnostic event detection;
+- regime classification;
+- exact selected-sample inspection.
+
+Every displayed point retains its original sample index. Selecting a point fetches the exact full-resolution stored values for that index.
+
+## Canonical complex values
+
+Stored complex `U`, `beta` and `b` preserve their NumPy complex dtype. Browser payloads may expose real, imaginary, magnitude and phase representations for display only.
+
+Complex-plane trajectories are presentation views over stored canonical values, not new persisted scientific quantities.
+
+## Diagnostic series and discrete outputs
+
+When the Lab report supplies sample-indexed diagnostic series, Studio may plot them with the existing scientific bundle. Plan 9 includes presentation support for outputs such as `Sigma_Theta`, curvature and a configured local real-agencity criterion when actually present.
+
+Discrete events/transitions are rendered as tables using Lab-provided indices/coordinates. Structural plateau and regime outputs remain diagnostic report content. Empty tables or `undetermined` classifications are valid results and are displayed honestly.
+
+Studio does not invent overlays by applying browser thresholds to canonical series.
+
+## Real-agencity presentation
+
+The Real Agencity view reflects the exact Lab report. It may show status, evaluated fraction, configured thresholds and a local criterion when supplied.
+
+If thresholds required by Lab are absent, the UI preserves `undetermined` rather than manufacturing a binary verdict. A non-zero beta alone is explicitly described as insufficient evidence.
+
+Color is not the sole carrier of a scientific verdict. Textual status, configuration and provenance remain visible.
+
+## ECharts bundle
+
+Apache ECharts 6.1.0 remains the only charting library. It is locally bundled by `frontend/scripts/scientific-workspace.js` and loaded only on scientific workspace pages.
+
+The diagnostic workspace uses the same stylesheet and controller as the canonical workspace. The controller is data-source agnostic: it reads the manifest/series/sample endpoints declared by the page and performs only display operations.
+
+No CDN fallback or second plotting framework is introduced.
 
 ## Accessibility
 
-Each chart has a semantic title/description, series labels, ECharts ARIA support, and a link to the Exact table. Sample selection is persistent only through click/keyboard/controls; hover is a convenience rather than accessible state. The selected sample is reported through a restrained polite live region.
+Important plotted quantities have textual/tabular alternatives. Exact sample values are available through the shared sample inspector, and discrete diagnostics use ordinary tables.
 
-## No diagnostics in Plan 8
+Charts use ECharts ARIA support and descriptive labels. Keyboard-accessible sample controls do not depend on clicking canvas coordinates. Playback never starts automatically and reduced-motion preferences are respected.
 
-Plan 8 does **not** calculate or infer:
+## Privacy and security
 
-- coherence;
-- angular variance or Theta stability;
-- curvature;
-- winding number;
-- zeros;
-- events or transitions;
-- D peaks or S plateaus;
-- signatures or regime classes;
-- real agencity.
+All scientific numerical endpoints:
 
-A visually striking trajectory is not automatically labelled coherent, chaotic, transitional, or a stable regime. Those belong to the separate diagnostic layer planned for Plan 9 and must use AgencityLab diagnostic contracts when available.
+- require authenticated Workspace-scoped object access;
+- return 404 to non-members where object discovery must be hidden;
+- use private/no-store response policy;
+- never expose storage paths or filesystem roots.
 
-## Integrity rule
+Diagnostic artifact access follows the same rules as canonical result access.
 
-A completed Run is immutable. Visualization reads it; visualization never recalculates, normalizes, repairs, preprocesses, or modifies it. If the artifact is missing or corrupt, Studio reports an integrity problem rather than silently rerunning AgencityLab.
+## Scientific boundary review
+
+Production visualization code must not contain substitute implementations such as:
+
+- `np.var(theta)` as official angular variance;
+- `np.unwrap(np.angle(beta))` as official winding;
+- custom curvature formulas;
+- `find_peaks`-based Studio scientific detection;
+- browser regime rules;
+- browser real-agencity thresholds.
+
+Such diagnostics belong to AgencityLab. Studio renders their public outputs.
+
+See `docs/diagnostics.md` for the exact Plan 9 public diagnostic inventory and provenance contract.
