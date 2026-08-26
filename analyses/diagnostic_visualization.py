@@ -1,7 +1,6 @@
 """Presentation-only payloads for immutable AgencityLab diagnostic reports."""
 
-from . import visualization
-from .result_reader import AnalysisResultReader
+from . import result_reader, visualization
 
 
 DIAGNOSTIC_SERIES = {
@@ -79,7 +78,7 @@ def diagnostic_series_inventory(report: dict, sample_count: int) -> dict[str, di
 
 
 def diagnostic_manifest_payload(
-    canonical_reader: AnalysisResultReader,
+    canonical_reader: result_reader.AnalysisResultReader,
     *,
     report: dict,
     diagnostic_result_sha256: str,
@@ -100,7 +99,7 @@ def diagnostic_manifest_payload(
 
 
 def diagnostic_series_payload(
-    canonical_reader: AnalysisResultReader,
+    canonical_reader: result_reader.AnalysisResultReader,
     *,
     report: dict,
     names: tuple[str, ...],
@@ -169,7 +168,7 @@ def diagnostic_series_payload(
 
 
 def diagnostic_sample_payload(
-    canonical_reader: AnalysisResultReader,
+    canonical_reader: result_reader.AnalysisResultReader,
     *,
     report: dict,
     index: int,
