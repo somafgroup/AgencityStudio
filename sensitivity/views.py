@@ -75,7 +75,7 @@ def _stored(study):
     if study.status != StudyStatus.COMPLETED:
         raise Http404
     try:
-        study.result_artifact
+        _artifact = study.result_artifact
     except SensitivityResultArtifact.DoesNotExist as exc:
         raise Http404 from exc
     return read_sensitivity_result(study, verify_hash=True)
@@ -194,7 +194,7 @@ def sensitivity_detail(request, analysis_id, run_id, study_id):
 
 @login_required
 def sensitivity_status(request, analysis_id, run_id, study_id):
-    analysis, run, study = _study_or_404(request.user, analysis_id, run_id, study_id)
+    _analysis, _run, study = _study_or_404(request.user, analysis_id, run_id, study_id)
     return _private_json(
         {
             "study_id": str(study.pk),
