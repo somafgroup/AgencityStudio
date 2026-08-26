@@ -7,7 +7,11 @@ import uuid
 
 from analyses.storage import analysis_storage
 
-from .results import StoredSensitivityResult, load_sensitivity_result_bytes, serialize_sensitivity_result
+from .results import (
+    StoredSensitivityResult,
+    load_sensitivity_result_bytes,
+    serialize_sensitivity_result,
+)
 
 
 def sensitivity_artifact_path(study, artifact_id: uuid.UUID) -> str:
