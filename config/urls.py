@@ -21,6 +21,7 @@ urlpatterns = [
     path("", include("datasets.urls")),
     path("", include("systems.urls")),
     path("", include("analyses.urls")),
+    path("", include("sensitivity.urls")),
     path("", include("projects.urls")),
     path("admin/", admin.site.urls),
     path("compare/", views.workspace_section, {"section": "compare"}, name="compare"),
