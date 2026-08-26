@@ -3,7 +3,6 @@
 from . import result_reader
 from . import visualization
 
-
 DIAGNOSTIC_SERIES = {
     "sigma_theta": {
         "key": "sigma_theta",
