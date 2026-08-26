@@ -5,17 +5,16 @@ from __future__ import annotations
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from systems.models import ObservableDefinition, ParameterOrigin, SystemRevision
-
-from .models import SourceType
-from .multivariate_validation import (
+from analyses.models import SourceType
+from analyses.multivariate_validation import (
     PARAMETER_MODE_COMPONENT_VECTOR,
     PARAMETER_MODE_SYSTEM_GLOBAL,
     WINDOW_MODE_COMPONENT_VECTOR,
     WINDOW_MODE_SYSTEM_GLOBAL,
     WINDOW_MODE_UNSPECIFIED,
 )
-from .sources import descriptor_for
+from analyses.sources import descriptor_for
+from systems.models import ObservableDefinition, ParameterOrigin, SystemRevision
 
 
 PARAMETER_MODE_CHOICES = (
