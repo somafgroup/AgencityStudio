@@ -47,6 +47,8 @@ def _study_or_404(user, analysis_id, run_id, study_id):
     study = get_sensitivity_study_or_404(user=user, study_id=study_id)
     if study.analysis_run_id != run.pk:
         raise Http404
+    if study.status != StudyStatus.COMPLETED and not can_run_analysis(user, analysis):
+        raise Http404
     return analysis, run, study
 
 
@@ -81,10 +83,23 @@ def _stored(study):
     return read_sensitivity_result(study, verify_hash=True)
 
 
+def _selected_scale(request, rows: list[dict]) -> dict | None:
+    if not rows:
+        return None
+    try:
+        requested = int(request.GET.get("scale", "0"))
+    except (TypeError, ValueError):
+        requested = 0
+    resolved = min(max(requested, 0), len(rows) - 1)
+    return rows[resolved]
+
+
 @login_required
 def sensitivity_home(request, analysis_id, run_id):
     analysis, run = _run_or_404(request.user, analysis_id, run_id)
     studies = run.sensitivity_studies.select_related("result_artifact").all()
+    if not can_run_analysis(request.user, analysis):
+        studies = studies.filter(status=StudyStatus.COMPLETED)
     return render(
         request,
         "sensitivity/home.html",
@@ -167,12 +182,14 @@ def sensitivity_detail(request, analysis_id, run_id, study_id):
     stored = None
     metrics = ()
     rows = []
+    selected_row = None
     result_error = ""
     if study.status == StudyStatus.COMPLETED:
         try:
             stored = _stored(study)
             metrics = available_metrics(study, stored)
             rows = table_rows(study, stored)
+            selected_row = _selected_scale(request, rows)
         except (OSError, ValueError) as exc:
             result_error = str(exc)
     return render(
@@ -186,6 +203,7 @@ def sensitivity_detail(request, analysis_id, run_id, study_id):
             stored=stored,
             metrics=metrics,
             rows=rows,
+            selected_row=selected_row,
             result_error=result_error,
             page_title=_("Sensitivity study"),
         ),
