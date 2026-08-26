@@ -4,6 +4,7 @@ from .models import (
     Analysis,
     AnalysisResultArtifact,
     AnalysisRun,
+    AnalysisRunComponent,
     DiagnosticResultArtifact,
     DiagnosticRun,
     RunStatus,
@@ -38,6 +39,36 @@ class AnalysisRunAdmin(admin.ModelAdmin):
         return scientific
 
     def has_add_permission(self, request):
+        return False
+
+
+@admin.register(AnalysisRunComponent)
+class AnalysisRunComponentAdmin(admin.ModelAdmin):
+    list_display = ("run", "position", "observable_definition", "source_column_position")
+    search_fields = (
+        "run__id",
+        "run__analysis__name",
+        "observable_definition__name",
+        "source_column_identity",
+    )
+    readonly_fields = (
+        "id",
+        "run",
+        "position",
+        "observable_definition",
+        "source_column_identity",
+        "source_column_position",
+        "source_name",
+        "display_name",
+        "unit",
+        "parameter_snapshot",
+        "created_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
         return False
 
 
