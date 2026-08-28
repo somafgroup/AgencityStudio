@@ -5,7 +5,7 @@ FIELD_ANALYSIS_LABEL = "Observable Spatial Agencity Field"
 FIELD_SCIENTIFIC_STATUS = "EXPERIMENTAL"
 FIELD_PUBLIC_FUNCTION = "agencitylab.fields.compute_agencity_field"
 FIELD_MODEL = "observable_agencity_field"
-FIELD_RESULT_SCHEMA_VERSION = "observable-field-result-v1"
+FIELD_RESULT_SCHEMA_VERSION = "field-v1"
 
 SPATIAL_AXES_SAMPLE_INDEX = "SAMPLE_INDEX"
 SPATIAL_AXES_EXPLICIT = "EXPLICIT"
