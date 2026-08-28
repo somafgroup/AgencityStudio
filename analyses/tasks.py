@@ -14,6 +14,7 @@ from django.utils.translation import gettext as _
 from labbridge.execution import CanonicalLabError, execute_canonical_analysis
 from projects.models import ProjectActivity
 
+from .field_contract import FIELD_ANALYSIS_KIND
 from .models import AnalysisKind, AnalysisResultArtifact, AnalysisRun, RunErrorCategory, RunStatus
 from .sources import SourceContractError, materialize_vectors
 from .storage import analysis_storage, write_analysis_result
@@ -74,6 +75,10 @@ def execute_analysis_run(run_id: str) -> str:
         from .multivariate_tasks import execute_multivariate_run
 
         return execute_multivariate_run(run_id)
+    if kind == FIELD_ANALYSIS_KIND:
+        from .field_tasks import execute_observable_field_run
+
+        return execute_observable_field_run(run_id)
 
     started_clock = time.monotonic()
     with transaction.atomic():
