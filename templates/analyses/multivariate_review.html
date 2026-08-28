@@ -25,7 +25,7 @@
         <h4 class="font-medium">{{ component.position }} → {{ component.observable.name }}{% if component.observable.symbol %} ({{ component.observable.symbol }}){% endif %}</h4>
         <p><span class="muted">{% translate "Source column" %}:</span> {{ component.source.position }} · {{ component.source.display_name|default:component.source.source_name }} {% if component.source.unit %}[{{ component.source.unit }}]{% endif %}</p>
         <p><span class="muted">A_ref:</span> {{ component.parameters.A_ref.value }} {{ component.parameters.A_ref.unit }} · <span class="muted">tau:</span> {{ component.parameters.tau.value }} {{ component.parameters.tau.unit }}</p>
-        <p><span class="muted">w:</span> {% if snapshot.call_contract.w.mode == "UNSPECIFIED" %}{% translate "Unspecified (w=None)" %}{% else %}{{ component.parameters.w.requested_value }} {{ component.parameters.w.unit }}{% endif %}</p>
+        <p><span class="muted">w:</span> {% if snapshot.call_contract.w.mode == "UNSPECIFIED" %}<span>{% translate "Unspecified (w=None)" %}</span>{% else %}{{ component.parameters.w.requested_value }} {{ component.parameters.w.unit }}{% endif %}</p>
         <p><span class="muted">P_c:</span> {{ component.parameters.P_c.value }} {{ component.parameters.P_c.unit }}</p>
       </article>
     {% endfor %}
