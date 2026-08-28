@@ -163,7 +163,7 @@ def test_field_local_positions_equal_direct_public_scalar_api():
             A_ref=float(result.A_ref[index]),
             tau=float(result.tau[index]),
             w=None,
-            P_c=float(result.P_c[index]),
+            P_c=float(result.P_c[0, index]),
         )
         for name in ("u_star", "X_star", "A_star", "M", "O", "D", "S", "J", "U", "beta", "b"):
             np.testing.assert_array_equal(
