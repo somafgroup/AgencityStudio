@@ -1,6 +1,6 @@
 [project]
 name = "agencitystudio"
-version = "0.11.0"
+version = "0.12.0"
 description = "Web interface and orchestration layer for AgencityLab"
 requires-python = ">=3.12"
 dependencies = [
@@ -46,11 +46,13 @@ known-first-party = ["accounts", "analyses", "common", "config", "datasets", "la
 "accounts/migrations/*.py" = ["RUF012"]
 "accounts/models.py" = ["RUF012"]
 "analyses/forms.py" = ["RUF012"]
+"analyses/field_forms.py" = ["RUF012"]
 "analyses/multivariate_forms.py" = ["RUF012"]
 "analyses/migrations/*.py" = ["RUF012"]
 "analyses/models.py" = ["RUF012"]
 "config/settings/*.py" = ["F403", "F405"]
 "datasets/forms.py" = ["RUF012"]
+"datasets/field_forms.py" = ["RUF012"]
 "datasets/migrations/*.py" = ["RUF012"]
 "datasets/models.py" = ["RUF012"]
 "projects/forms.py" = ["RUF012"]
