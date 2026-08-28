@@ -54,6 +54,8 @@ async function importFieldSource(page) {
   });
   await page.getByRole('button', { name: 'Store and inspect field source', exact: true }).click();
   await expect(page.locator('#dataset-import-status').getByText('READY', { exact: true })).toBeVisible({ timeout: 20000 });
+  await page.reload();
+  await expect(page.locator('#dataset-import-status').getByText('READY', { exact: true })).toBeVisible({ timeout: 10000 });
   await expect(page.getByText('N-D FIELD SOURCE', { exact: true })).toBeVisible({ timeout: 10000 });
   await expect(page.getByText('u', { exact: true }).first()).toBeVisible();
   const confirm = page.getByRole('button', { name: 'Confirm as current', exact: true });
