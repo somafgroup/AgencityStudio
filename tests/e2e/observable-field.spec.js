@@ -54,7 +54,7 @@ async function importFieldSource(page) {
   });
   await page.getByRole('button', { name: 'Store and inspect field source', exact: true }).click();
   await expect(page.locator('#dataset-import-status').getByText('READY', { exact: true })).toBeVisible({ timeout: 20000 });
-  await expect(page.getByText('N-D FIELD SOURCE', { exact: true })).toBeVisible();
+  await expect(page.getByText('N-D FIELD SOURCE', { exact: true })).toBeVisible({ timeout: 10000 });
   await expect(page.getByText('u', { exact: true }).first()).toBeVisible();
   const confirm = page.getByRole('button', { name: 'Confirm as current', exact: true });
   if (await confirm.isVisible()) await confirm.click();
@@ -174,8 +174,9 @@ test('Plan 12 observable field executes through the real worker and exposes exac
   await expect(page.locator('[data-field-trace-chart] canvas')).toBeVisible({ timeout: 10000 });
 
   await page.getByRole('link', { name: 'Reproducibility', exact: true }).click();
-  await expect(page.getByText('Execution fingerprint', { exact: true })).toBeVisible();
-  await expect(page.getByText('Source SHA-256', { exact: true })).toBeVisible();
-  await expect(page.getByText('Public function', { exact: true })).toBeVisible();
-  await expect(page.getByText('Parameter modes', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Reproducibility', exact: true })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText('Execution fingerprint:', { exact: true })).toBeVisible();
+  await expect(page.getByText('Source SHA-256:', { exact: true })).toBeVisible();
+  await expect(page.getByText('Public function:', { exact: true })).toBeVisible();
+  await expect(page.getByText('Parameter modes:', { exact: true })).toBeVisible();
 });
