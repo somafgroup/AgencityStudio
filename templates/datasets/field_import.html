@@ -1,0 +1,13 @@
+{% extends "projects/base.html" %}{% load i18n %}
+{% block project_content %}
+<div class="max-w-3xl space-y-5">
+  <div><span class="badge">{% translate "EXPERIMENTAL FIELD DATA" %}</span><h2 class="text-xl font-semibold mt-2">{% translate "Import observable field source" %}</h2><p class="muted mt-2">{% translate "Store one exact NPZ source containing u(t,x,...), t, optional spatial coordinate arrays, and optional explicit physical parameter maps. Scientific meaning is assigned later in the Analysis builder." %}</p></div>
+  <div class="alert alert-info"><strong>{% translate "Immutable source contract" %}</strong><p class="mt-1">{% translate "Studio preserves the uploaded bytes and SHA-256. It does not flatten, reshape, interpolate, resample, smooth, normalize, fill, or spatially average field arrays." %}</p></div>
+  <form method="post" enctype="multipart/form-data" class="card space-y-4">{% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}<div><label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<p class="muted text-xs mt-1">{{ field.help_text }}</p>{% endif %}{% for error in field.errors %}<p class="text-sm mt-1" role="alert">{{ error }}</p>{% endfor %}</div>{% endfor %}
+    <div class="flex flex-wrap justify-between gap-3"><a class="btn" href="{% url 'datasets:project-list' workspace.slug project.id project.slug %}">{% translate "Cancel" %}</a><button class="btn btn-primary" type="submit">{% translate "Store and inspect field source" %}</button></div>
+  </form>
+  <section class="card"><h3 class="font-semibold">{% translate "NPZ safety" %}</h3><p class="muted text-sm mt-2">{% translate "Object/pickle arrays, path-traversing ZIP members, unsupported NPY members, oversized shapes, and configured size-limit violations are rejected before Analysis." %}</p></section>
+</div>
+{% endblock %}
