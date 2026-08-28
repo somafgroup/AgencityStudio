@@ -26,7 +26,7 @@ class ObservableFieldLabError(RuntimeError):
 def public_fields_api():
     """Return the documented public ``agencitylab.fields`` module."""
 
-    import agencitylab.fields as fields
+    from agencitylab import fields
 
     return fields
 
