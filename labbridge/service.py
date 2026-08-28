@@ -1,7 +1,7 @@
 """AgencityLab integration services.
 
-Only the public AgencityLab package surface may be imported here. Studio must
-never duplicate or reach into the canonical implementation internals.
+Only documented public AgencityLab package surfaces may be imported here. Studio
+must never duplicate or reach into canonical implementation internals.
 """
 
 from importlib import import_module
@@ -25,5 +25,10 @@ def lab_is_compatible() -> bool:
 
 
 def public_api() -> ModuleType:
-    """Load the documented AgencityLab package root and nothing below it."""
+    """Load the documented AgencityLab package root and nothing private."""
     return import_module("agencitylab")
+
+
+def public_extended_api() -> ModuleType:
+    """Load the documented ``agencitylab.api`` namespace and nothing private."""
+    return import_module("agencitylab.api")

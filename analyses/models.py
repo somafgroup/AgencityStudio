@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 
 class AnalysisKind(models.TextChoices):
     CANONICAL_SCALAR = "CANONICAL_SCALAR", _("Canonical scalar")
+    MULTIVARIATE = "MULTIVARIATE", _("Multivariate Agencity")
 
 
 class AnalysisStatus(models.TextChoices):
@@ -111,7 +112,7 @@ class Analysis(models.Model):
 
 
 class AnalysisRun(models.Model):
-    """Immutable reproducibility boundary for one exact canonical execution."""
+    """Immutable reproducibility boundary for one exact Analysis execution."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     analysis = models.ForeignKey(Analysis, on_delete=models.CASCADE, related_name="runs")
@@ -141,7 +142,11 @@ class AnalysisRun(models.Model):
         "systems.SystemRevision", on_delete=models.PROTECT, related_name="analysis_runs"
     )
     system_observable = models.ForeignKey(
-        "systems.ObservableDefinition", on_delete=models.PROTECT, related_name="analysis_runs"
+        "systems.ObservableDefinition",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="analysis_runs",
     )
     system_configuration_fingerprint = models.CharField(max_length=64, blank=True)
     parameter_snapshot = models.JSONField(default=dict)
@@ -207,8 +212,60 @@ class AnalysisRun(models.Model):
         return f"{self.analysis} · Run {self.run_number}"
 
 
+class AnalysisRunComponent(models.Model):
+    """Immutable ordered component identity and parameter snapshot for one multivariate Run."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    run = models.ForeignKey(
+        AnalysisRun,
+        on_delete=models.CASCADE,
+        related_name="components",
+    )
+    position = models.PositiveIntegerField()
+    observable_definition = models.ForeignKey(
+        "systems.ObservableDefinition",
+        on_delete=models.PROTECT,
+        related_name="multivariate_run_components",
+    )
+    source_column_identity = models.CharField(max_length=160)
+    source_column_position = models.PositiveIntegerField()
+    source_name = models.CharField(max_length=255, blank=True)
+    display_name = models.CharField(max_length=255, blank=True)
+    unit = models.CharField(max_length=80, blank=True)
+    parameter_snapshot = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["position"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("run", "position"),
+                name="analysis_component_position_unique",
+            ),
+            models.CheckConstraint(
+                condition=Q(position__gt=0),
+                name="analysis_component_position_positive",
+            ),
+            models.CheckConstraint(
+                condition=Q(source_column_position__gt=0),
+                name="analysis_component_column_positive",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=("run", "position"), name="analysis_component_order_idx"),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.pk and AnalysisRunComponent.objects.filter(pk=self.pk).exists():
+            raise ValidationError(_("Multivariate Run component snapshots are immutable."))
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.run} · Component {self.position}"
+
+
 class AnalysisResultArtifact(models.Model):
-    """Private immutable serialization of one completed public AgencityResult."""
+    """Private immutable serialization of one completed public AgencityLab result."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     run = models.OneToOneField(AnalysisRun, on_delete=models.CASCADE, related_name="result_artifact")
@@ -231,7 +288,7 @@ class AnalysisResultArtifact(models.Model):
         return super().save(*args, **kwargs)
 
     def __str__(self) -> str:
-        return f"{self.run} · canonical result"
+        return f"{self.run} · analysis result"
 
 
 class DiagnosticRun(models.Model):

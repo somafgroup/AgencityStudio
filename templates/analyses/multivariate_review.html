@@ -1,0 +1,46 @@
+{% extends "projects/base.html" %}{% load i18n %}
+{% block project_content %}
+<div class="max-w-5xl space-y-5">
+  <div>
+    <span class="badge">7 · {% translate "Review" %}</span>
+    <h2 class="text-xl font-semibold mt-2">{% translate "Multivariate Analysis Review" %}</h2>
+    <p class="muted mt-2">{% translate "Verify the exact source, shared coordinate, ordered component mappings and scientific parameters before execution." %}</p>
+  </div>
+  <section class="card space-y-2">
+    <h3 class="font-semibold">{% translate "Source" %}</h3>
+    <p><span class="muted">{% translate "Type" %}:</span> {{ snapshot.descriptor.source_type }}</p>
+    <p><span class="muted">SHA-256:</span> <code>{{ snapshot.descriptor.sha256 }}</code></p>
+    <p><span class="muted">{% translate "Rows" %}:</span> {{ snapshot.descriptor.rows }} · <span class="muted">{% translate "Columns" %}:</span> {{ snapshot.descriptor.columns }}</p>
+    <p><span class="muted">{% translate "Shared coordinate" %}:</span> {{ snapshot.coordinate.display_name|default:snapshot.coordinate.source_name }} {% if snapshot.coordinate.unit %}[{{ snapshot.coordinate.unit }}]{% endif %}</p>
+  </section>
+  <section class="card space-y-2">
+    <h3 class="font-semibold">{% translate "System" %}</h3>
+    <p>{{ snapshot.revision.system.name }} · {% translate "Revision" %} {{ snapshot.revision.revision_number }}</p>
+    <p><span class="muted">{% translate "Fingerprint" %}:</span> <code>{{ snapshot.revision.configuration_fingerprint }}</code></p>
+  </section>
+  <section class="card space-y-4">
+    <h3 class="font-semibold">{% translate "Component order" %}</h3>
+    {% for component in snapshot.components %}
+      <article class="rounded-lg border p-4 space-y-2">
+        <h4 class="font-medium">{{ component.position }} → {{ component.observable.name }}{% if component.observable.symbol %} ({{ component.observable.symbol }}){% endif %}</h4>
+        <p><span class="muted">{% translate "Source column" %}:</span> {{ component.source.position }} · {{ component.source.display_name|default:component.source.source_name }} {% if component.source.unit %}[{{ component.source.unit }}]{% endif %}</p>
+        <p><span class="muted">A_ref:</span> {{ component.parameters.A_ref.value }} {{ component.parameters.A_ref.unit }} · <span class="muted">tau:</span> {{ component.parameters.tau.value }} {{ component.parameters.tau.unit }}</p>
+        <p><span class="muted">w:</span> {% if snapshot.call_contract.w.mode == "UNSPECIFIED" %}<span>{% translate "Unspecified (w=None)" %}</span>{% else %}{{ component.parameters.w.requested_value }} {{ component.parameters.w.unit }}{% endif %}</p>
+        <p><span class="muted">P_c:</span> {{ component.parameters.P_c.value }} {{ component.parameters.P_c.unit }}</p>
+      </article>
+    {% endfor %}
+  </section>
+  <section class="card space-y-2">
+    <h3 class="font-semibold">{% translate "Engine" %}</h3>
+    <p>AgencityLab 1.1.3</p>
+    <p><code>{{ snapshot.options.public_function }}</code></p>
+    <p>{% translate "Scientific status" %}: {{ snapshot.options.scientific_status }}</p>
+    <p class="muted">{% translate "Aggregate quantities will only be shown when they are returned by this public AgencityLab function." %}</p>
+  </section>
+  {% if snapshot.warnings %}<section class="card"><h3 class="font-semibold">{% translate "Warnings" %}</h3><ul class="list-disc pl-5 mt-2">{% for warning in snapshot.warnings %}<li>{{ warning.message|default:warning }}</li>{% endfor %}</ul></section>{% endif %}
+  <form method="post" class="flex flex-wrap justify-between gap-3">{% csrf_token %}
+    <a class="btn" href="{% url 'analysis:multivariate-configure' analysis_id=analysis.pk %}">{% translate "Back to configuration" %}</a>
+    <button class="btn btn-primary" type="submit">{% translate "Run Multivariate Analysis" %}</button>
+  </form>
+</div>
+{% endblock %}

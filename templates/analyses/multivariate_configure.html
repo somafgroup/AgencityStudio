@@ -1,0 +1,30 @@
+{% extends "projects/base.html" %}{% load i18n %}
+{% block project_content %}
+<div class="max-w-5xl">
+  <div class="mb-4">
+    <span class="badge">2–6 · {% translate "Multivariate configuration" %}</span>
+    <h2 class="text-xl font-semibold mt-2">{% translate "Configure components" %}</h2>
+    <p class="muted mt-2">{% translate "Component numbering defines execution order and is frozen in the Run fingerprint." %}</p>
+    <p class="muted mt-2">{% translate "Studio does not align, resample, normalize, fill, sort or truncate selected data during Analysis." %}</p>
+  </div>
+  <form method="post" class="card space-y-5">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <div>
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% for error in field.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="rounded-lg border p-4 text-sm">
+      <p class="font-medium">{% translate "Component order" %}</p>
+      <p class="muted mt-1">{% translate "The numbered component fields are the exact order sent to AgencityLab. Review that order before running." %}</p>
+    </div>
+    <div class="flex flex-wrap justify-between gap-3">
+      <a class="btn" href="{% url 'analysis:detail' analysis_id=analysis.pk %}">{% translate "Cancel" %}</a>
+      <button class="btn btn-primary" type="submit">{% translate "Continue to Review" %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

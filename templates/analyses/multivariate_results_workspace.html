@@ -1,0 +1,92 @@
+{% extends "base.html" %}{% load static i18n %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/scientific-workspace.css' %}">
+<header class="page-header">
+  <div>
+    <div class="flex flex-wrap items-center gap-2"><span class="badge">{% translate "VOLUME 2 MULTIVARIATE EXTENSION" %}</span><span class="badge">{{ run.get_status_display|upper }}</span></div>
+    <h1 class="page-title mt-2">{{ analysis.name }} · {% translate "Run" %} {{ run.run_number }}</h1>
+    <p class="muted mt-1 text-sm">{% translate "All component and aggregate scientific values below are read from the immutable AgencityLab multivariate result. Studio does not recompute aggregation." %}</p>
+  </div>
+  <div class="toolbar"><a class="btn btn-secondary" href="{% url 'analysis:run-detail' analysis.id run.id %}">{% translate "Run information" %}</a><a class="btn btn-secondary" href="{% url 'analysis:detail' analysis.id %}">{% translate "Back to Analysis" %}</a></div>
+</header>
+
+<nav class="result-workspace-nav mb-5" aria-label="{% translate 'Multivariate result sections' %}">
+{% for key,label in result_sections %}<a class="tab {% if key == result_section %}tab-active{% endif %}" {% if key == result_section %}aria-current="page"{% endif %} data-sample-link href="{% url 'analysis:multivariate-results-section' analysis.id run.id key %}?component={{ selected_component }}&sample={{ selected_sample }}">{{ label }}</a>{% endfor %}
+</nav>
+
+{% if not workspace_ready %}
+  {% if result_error %}<div class="alert alert-error">{{ result_error }}</div>{% elif run.status == 'RUNNING' %}<div class="alert alert-info">{% translate "Multivariate calculation is still running." %}</div>{% elif run.status == 'QUEUED' %}<div class="alert alert-info">{% translate "Multivariate calculation is queued." %}</div>{% elif run.status == 'FAILED' %}<div class="alert alert-error"><strong>{% translate "Run failed" %}</strong><p class="mt-1">{{ run.error_message }}</p></div>{% else %}<div class="alert alert-error">{% translate "No readable immutable multivariate result is available." %}</div>{% endif %}
+{% else %}
+  <section class="card mb-5" aria-labelledby="components-title">
+    <div><h2 id="components-title" class="section-title">{% translate "Ordered components" %}</h2><p class="muted text-xs mt-1">{% translate "Switching component preserves the same exact selected sample." %}</p></div>
+    <div class="flex flex-wrap gap-2 mt-3" aria-label="{% translate 'Component selector' %}">
+      {% for component in component_inventory %}<a class="btn btn-secondary" {% if component.position == selected_component %}aria-current="page"{% endif %} data-sample-link href="{% url 'analysis:multivariate-results-section' analysis.id run.id result_section %}?component={{ component.position }}&sample={{ selected_sample }}">{{ component.position }} · {{ component.observable_name }}</a>{% endfor %}
+    </div>
+  </section>
+
+  {% if result_section == 'overview' %}
+    <section class="card space-y-4">
+      <div><h2 class="section-title">{% translate "Overview" %}</h2><p class="muted mt-1 text-sm">{% translate "A non-zero component or aggregate value is not by itself evidence of coherent or real agencity." %}</p></div>
+      <dl class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 text-sm">
+        <div><dt class="muted">{% translate "Analysis kind" %}</dt><dd>{{ analysis.get_analysis_kind_display }}</dd></div>
+        <div><dt class="muted">{% translate "Scientific status" %}</dt><dd>{{ manifest.scientific_status }}</dd></div>
+        <div><dt class="muted">{% translate "Components" %}</dt><dd>{{ manifest.n_components }}</dd></div>
+        <div><dt class="muted">{% translate "Source SHA-256" %}</dt><dd class="font-mono text-xs break-all">{{ run.source_sha256 }}</dd></div>
+        <div><dt class="muted">{% translate "System" %}</dt><dd>{{ run.system_revision.system.name }} · {% translate "Revision" %} {{ run.system_revision.revision_number }}</dd></div>
+        <div><dt class="muted">AgencityLab</dt><dd>{{ run.agencitylab_version }}</dd></div>
+        <div><dt class="muted">{% translate "Public function" %}</dt><dd class="font-mono text-xs">{{ manifest.public_function }}</dd></div>
+        <div><dt class="muted">{% translate "Samples" %}</dt><dd>{{ sample_count }}</dd></div>
+        <div><dt class="muted">{% translate "Result SHA-256" %}</dt><dd class="font-mono text-xs break-all">{{ artifact.sha256 }}</dd></div>
+      </dl>
+      <div class="alert alert-info"><strong>{% translate "Lab-provided aggregation" %}</strong><p class="mt-1">{{ manifest.aggregation }}</p><p class="mt-1 muted">{{ manifest.scientific_boundary }}</p></div>
+    </section>
+  {% elif result_section == 'component' %}
+    <div
+      data-scientific-workspace
+      data-run-id="{{ run.id }}-component-{{ selected_component }}"
+      data-result-sha256="{{ artifact.sha256 }}"
+      data-manifest-endpoint="{% url 'analysis:multivariate-component-manifest' analysis.id run.id selected_component %}"
+      data-series-endpoint="{% url 'analysis:multivariate-component-series' analysis.id run.id selected_component %}"
+      data-sample-endpoint="{% url 'analysis:multivariate-component-sample' analysis.id run.id selected_component %}"
+      data-max-points="{{ display_max_points }}"
+      data-initial-sample="{{ selected_sample }}"
+      data-coordinate-label="{{ coordinate_label }}{% if coordinate_unit %} [{{ coordinate_unit }}]{% endif %}"
+      data-error-message="{% translate 'Unable to load this component result.' %}"
+    >
+      <div class="alert alert-error mb-4" data-workspace-error hidden></div>
+      <header class="mb-4"><h2 class="text-xl font-semibold">{{ selected_component_descriptor.observable_name }}</h2><p class="muted mt-1 text-sm">{% translate "Canonical scalar output returned by AgencityLab for this component within the multivariate call." %}</p></header>
+      <section class="card chart-card mb-4" data-chart-card data-chart-mode="series" data-series="u" data-chart-description="{% translate 'Stored component observable.' %}"><h3 class="font-semibold">u</h3><div class="chart-stage mt-3" data-chart-container role="img" aria-label="{% translate 'Component observable chart' %}"></div>{% include "analyses/_chart_toolbar.html" %}</section>
+      <section class="card chart-card mb-4" data-chart-card data-chart-mode="complex-components" data-series="beta" data-chart-description="{% translate 'Stored complex component beta.' %}"><h3 class="font-semibold">β</h3><div class="chart-stage mt-3" data-chart-container role="img" aria-label="{% translate 'Component beta chart' %}"></div>{% include "analyses/_chart_toolbar.html" %}</section>
+      <section class="card chart-card" data-chart-card data-chart-mode="complex-plane" data-series="b" data-chart-description="{% translate 'Complex plane of stored component agencity flux b.' %}"><h3 class="font-semibold">b · {% translate "complex plane" %}</h3><div class="chart-stage mt-3" data-chart-container role="img" aria-label="{% translate 'Component b complex plane' %}"></div>{% include "analyses/_chart_toolbar.html" %}</section>
+      <div class="card mt-4"><h3 class="font-semibold">{% translate "Exact sample" %}</h3><div class="mt-3" data-sample-inspector></div></div>
+    </div>
+  {% elif result_section == 'aggregate' %}
+    <div class="alert alert-info mb-4"><strong>{% translate "AgencityLab aggregate only" %}</strong><p class="mt-1">{{ manifest.aggregation }}</p><p class="muted mt-1">{% translate "Studio does not average, sum, normalize or weight component scientific outputs here." %}</p></div>
+    <div
+      data-scientific-workspace
+      data-run-id="{{ run.id }}-aggregate"
+      data-result-sha256="{{ artifact.sha256 }}"
+      data-manifest-endpoint="{% url 'analysis:multivariate-aggregate-manifest' analysis.id run.id %}"
+      data-series-endpoint="{% url 'analysis:multivariate-aggregate-series' analysis.id run.id %}"
+      data-sample-endpoint="{% url 'analysis:multivariate-aggregate-sample' analysis.id run.id %}"
+      data-max-points="{{ display_max_points }}"
+      data-initial-sample="{{ selected_sample }}"
+      data-coordinate-label="{{ coordinate_label }}{% if coordinate_unit %} [{{ coordinate_unit }}]{% endif %}"
+      data-error-message="{% translate 'Unable to load the Lab-provided aggregate result.' %}"
+    >
+      <div class="alert alert-error mb-4" data-workspace-error hidden></div>
+      <section class="card chart-card mb-4" data-chart-card data-chart-mode="complex-components" data-series="beta_multi" data-chart-description="{% translate 'Lab-provided multivariate beta representation.' %}"><h3 class="font-semibold">β_multi</h3><div class="chart-stage mt-3" data-chart-container role="img" aria-label="{% translate 'Lab multivariate beta chart' %}"></div>{% include "analyses/_chart_toolbar.html" %}</section>
+      <section class="card chart-card" data-chart-card data-chart-mode="complex-components" data-series="b_total" data-chart-description="{% translate 'Lab-provided total multivariate agencity flux.' %}"><h3 class="font-semibold">b_total</h3><div class="chart-stage mt-3" data-chart-container role="img" aria-label="{% translate 'Lab total multivariate flux chart' %}"></div>{% include "analyses/_chart_toolbar.html" %}</section>
+      <div class="card mt-4"><h3 class="font-semibold">{% translate "Exact aggregate sample" %}</h3><div class="mt-3" data-sample-inspector></div></div>
+    </div>
+  {% elif result_section == 'table' %}
+    <section class="card overflow-x-auto">
+      <div><h2 class="section-title">{% translate "Exact component table" %}</h2><p class="muted text-xs mt-1">{% translate "Full-resolution stored values for the selected component. No display decimation is used." %}</p></div>
+      <table class="table mt-4"><thead><tr><th>{% translate "Sample" %}</th>{% for series in table.series %}<th>{{ series.symbol }}</th>{% endfor %}</tr></thead><tbody>{% for row in table.rows %}<tr><td>{{ row.display_index }}</td>{% for cell in row.cells %}<td>{% if cell.complex %}{{ cell.value.real }} + {{ cell.value.imag }}i{% else %}{{ cell.value.value }}{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+    </section>
+  {% elif result_section == 'reproducibility' %}
+    <section class="card space-y-3"><h2 class="section-title">{% translate "Reproducibility" %}</h2><p><span class="muted">{% translate "Execution fingerprint" %}</span>: <code>{{ run.execution_fingerprint }}</code></p><p><span class="muted">{% translate "Result SHA-256" %}</span>: <code>{{ artifact.sha256 }}</code></p><p><span class="muted">{% translate "System fingerprint" %}</span>: <code>{{ run.system_configuration_fingerprint }}</code></p><p><span class="muted">{% translate "Source SHA-256" %}</span>: <code>{{ run.source_sha256 }}</code></p><p><span class="muted">{% translate "Public function" %}</span>: <code>{{ manifest.public_function }}</code></p><ol class="list-decimal pl-5">{% for component in component_inventory %}<li>{{ component.observable_name }} · {{ component.source_column_identity }}</li>{% endfor %}</ol></section>
+  {% endif %}
+{% endif %}
+<script type="module" src="{% static 'js/scientific-workspace.js' %}"></script>
+{% endblock %}
