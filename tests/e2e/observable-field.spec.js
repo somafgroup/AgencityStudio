@@ -159,7 +159,7 @@ test('Plan 12 observable field executes through the real worker and exposes exac
   await expect(page.locator('[data-field-point]')).toContainText('t[0]', { timeout: 10000 });
 
   await page.getByRole('link', { name: 'Field Observable', exact: true }).click();
-  await expect(page.locator('[data-field-chart] canvas')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[data-field-chart] canvas').first()).toBeVisible({ timeout: 10000 });
   await expect(page.getByText(/Display-only index sampling/)).toBeVisible();
   await page.getByRole('button', { name: 'Next time', exact: true }).click();
   await page.getByRole('button', { name: 'Next first spatial coordinate', exact: true }).click();
@@ -168,7 +168,7 @@ test('Plan 12 observable field executes through the real worker and exposes exac
   await page.getByRole('link', { name: 'Agencity State Field', exact: true }).click();
   await expect(page.getByLabel('Complex display', { exact: true })).toBeVisible();
   await page.getByLabel('Complex display', { exact: true }).selectOption('real');
-  await expect(page.locator('[data-field-chart] canvas')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[data-field-chart] canvas').first()).toBeVisible({ timeout: 10000 });
 
   await page.getByRole('link', { name: 'Local Trace', exact: true }).click();
   await expect(page.locator('[data-field-trace-chart] canvas')).toBeVisible({ timeout: 10000 });
