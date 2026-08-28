@@ -23,14 +23,13 @@ logger = logging.getLogger(__name__)
 
 
 def _locked(run_id) -> AnalysisRun:
-    """Lock the Run row without outer-joining its mutually exclusive nullable sources."""
+    """Lock only relations that cannot introduce nullable outer joins."""
     return (
         AnalysisRun.objects.select_for_update()
         .select_related(
             "analysis",
             "analysis__project",
             "system_revision",
-            "system_observable",
         )
         .get(pk=run_id)
     )
