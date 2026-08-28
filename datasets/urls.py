@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import preparation_views, views
+from . import field_views, preparation_views, views
 
 app_name = "datasets"
 
@@ -12,6 +12,11 @@ urlpatterns = [
     path("datasets/", views.dataset_list, name="list"),
     path(PROJECT_PREFIX + "/", views.project_datasets, name="project-list"),
     path(PROJECT_PREFIX + "/import/", views.dataset_import, name="import"),
+    path(
+        PROJECT_PREFIX + "/import/observable-field/",
+        field_views.field_dataset_import,
+        name="field-import",
+    ),
     path(DATASET_PREFIX + "/", views.dataset_overview, name="overview"),
     path(DATASET_PREFIX + "/status/", views.dataset_status, name="status"),
     path(DATASET_PREFIX + "/preview/", views.dataset_preview, name="preview"),
