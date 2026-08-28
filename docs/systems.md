@@ -65,23 +65,40 @@ A revision stores one of two distinct states:
 - `UNSPECIFIED`: no numerical `w` is persisted;
 - `EXPLICIT`: a finite positive value and its provenance are persisted.
 
-`UNSPECIFIED` is **not** silently rewritten to `w = tau` in Studio. Plan 7 passes `w=None` through the public Lab call. Studio does not pre-resolve that request merely to reproduce Lab internals. If AgencityLab successfully computes the Run, `AgencityResult.memory_window` is recorded separately as the effective Lab context.
+`UNSPECIFIED` is **not** silently rewritten to `w = tau` in Studio. Plan 7 passes `w=None` through the public Lab call. Studio does not pre-resolve that request merely to reproduce Lab internals. If AgencityLab successfully computes the Run, the effective Lab context may be recorded separately from the requested provenance state.
 
 ### P_c
 
-Plan 6 and Plan 7 support the fixed scalar case. A known unit must have power dimensionality. Zero is accepted because it is valid under the inspected public Lab contract. Time-varying/component-specific power remains a future workflow rather than a browser-supplied callable.
+Plan 6 and Plan 7 support the fixed scalar case. A known unit must have power dimensionality. Zero is accepted because it is valid under the inspected public Lab contract.
+
+## Plan 12 spatial parameter maps
+
+Plan 12 does **not** change the scalar `SystemRevision` schema or reinterpret a scalar System parameter. For an **EXPERIMENTAL Observable Spatial Agencity Field Analysis**, the public AgencityLab 1.1.3 field API additionally permits:
+
+```text
+A_ref  scalar or exact spatial-shape map
+tau    scalar or exact spatial-shape map
+w      None, scalar or exact spatial-shape map
+P_c    scalar, exact spatial-shape map or exact space-time shape
+```
+
+A scalar mode uses the exact immutable `SystemRevision` value. A spatial or space-time mode points to an explicit array in the same pinned immutable NPZ field source. The `AnalysisRun` freezes the map key, shape, dtype, SHA-256, unit, provenance text and supplier identity. PostgreSQL does not store one row per spatial cell.
+
+These maps are physical/contextual inputs. Studio never constructs them from local standard deviation, range, maxima, MAD, FFT, autocorrelation or another statistic of `u(x,t)`. A map with `P_c = 0` at one or more locations remains valid wherever the public Lab contract accepts it.
+
+If field `w` is `UNSPECIFIED`, the Run snapshot records `requested_value=None` and the labbridge passes literal `w=None`. Any effective `w` resolution reported by AgencityLab is stored as returned execution context; it is not written back into `SystemRevision` and is not converted into a Studio-generated `w(x)` map.
 
 ## Observables
 
 `ObservableDefinition` describes scientific meaning independently of `DatasetColumn`. It records name, optional symbol/description, unit, kind, measurement nature and source description. A revision supports multiple observables and at most one primary observable, keeping the UX scalar-first without making the schema permanently scalar-only.
 
-Plan 7 explicitly maps one selected source column to one exact `ObservableDefinition` and pins that mapping in each AnalysisRun. Column identity includes stable source position rather than depending only on a possibly duplicated header.
+Plan 7 explicitly maps one selected source column to one exact `ObservableDefinition` and pins that mapping in each AnalysisRun. Plan 12 maps one exact N-dimensional observable array `u` to one `ObservableDefinition` while separately pinning time and spatial coordinate arrays.
 
 ## References and parameter provenance
 
 `ScientificReference` is deliberately lightweight: title, citation, DOI, URL, notes and optional flags indicating which canonical physical/contextual parameter the source supports. User-supplied URLs and citations are rendered as escaped content; no external bibliographic service is required.
 
-For each physical/contextual parameter, origin and justification are distinct from general scientific notes. Origin choices are a small ergonomic vocabulary (measurement, calibration, manufacturer, literature, model, protocol, convention, other), with free-text detail.
+For each physical/contextual parameter, origin and justification are distinct from general scientific notes. Origin choices are a small ergonomic vocabulary (measurement, calibration, manufacturer, literature, model, protocol, convention, other), with free-text detail. Field parameter maps additionally carry explicit Run-level provenance and immutable array hashes.
 
 ## Draft versus Documented
 
@@ -89,7 +106,7 @@ A Draft revision may be incomplete so scientists can build context progressively
 
 A documented revision requires a primary observable with unit plus `A_ref`, `tau`, `P_c` values/units/origins/justifications. If `w` is explicit, its value/unit/origin/justification are also required. `w` may intentionally remain unspecified.
 
-Canonical execution additionally requires the selected SystemRevision to contain the explicit scalar values required by the Studio execution contract. Analysis never fills an incomplete revision with signal-derived defaults.
+Canonical scalar execution requires the selected SystemRevision to contain the explicit scalar values required by that contract. Plan 12 may select explicit field maps instead of the scalar value only where the public field API supports that mode; it does not fill missing scientific context with signal-derived defaults.
 
 ## Permissions
 
@@ -103,7 +120,7 @@ System permissions inherit Workspace membership; there is no System ACL.
 | Viewer | yes | no | no | no |
 | Non-member | safe not-found | no | no | no |
 
-Analyst can therefore perform scientific configuration work without receiving raw Dataset mutation or Workspace-administration rights. The same Analyst role can configure and run canonical Analyses.
+Analyst can therefore perform scientific configuration work without receiving raw Dataset mutation or Workspace-administration rights. The same Analyst role can configure and run supported Analyses, including Plan 12 observable fields.
 
 ## Lifecycle and deletion
 
@@ -113,20 +130,8 @@ A Project that contains Systems cannot be hard-deleted. A SystemRevision or Obse
 
 ## Scientific boundary
 
-Systems themselves do not call `compute_agencity`, `analyze_agencity` or `scientific_workflow`. They store no `u*`, `X*`, `A*`, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta` or `b`. No Theory of Agencity equation is duplicated in the Systems app.
+Systems themselves do not call `compute_agencity`, `analyze_agencity`, `compute_agencity_field` or another scientific workflow. They store no `u*`, `X*`, `A*`, `M`, `O`, `D`, `S`, `J`, `Theta`, `beta`, `b`, `beta_obs` or `b_obs`. No Theory of Agencity equation is duplicated in the Systems app.
 
-Plan 7 joins the existing contracts explicitly:
+Plan 12 preserves the distinction between an observable field and autonomous field physics: `beta_obs(x,t)` and `b_obs(x,t)` are derived from measured or simulated `u(x,t)` by public AgencityLab field orchestration. They are not `phi(x,t)` and the System layer introduces no spatial CRM, derivative or PDE.
 
-```text
-DatasetVersion or PreparedDataArtifact
-+
-exact SystemRevision
-+
-exact ObservableDefinition
-+
-stable coordinate/observable mapping
--> immutable AnalysisRun
--> public AgencityLab compute_agencity
-```
-
-See `docs/analyses.md` for the complete execution, result-storage and reproducibility contract.
+See `docs/analyses.md` and `docs/observable-spatial-fields.md` for execution, map storage and reproducibility contracts.

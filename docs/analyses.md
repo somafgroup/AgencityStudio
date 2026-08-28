@@ -1,181 +1,155 @@
-# Analyses, DiagnosticRuns and SensitivityStudies
+# Analyses, derived studies and observable fields
 
-AgencityStudio separates **canonical execution**, **diagnostic interpretation** and **sensitivity exploration**.
+AgencityStudio separates canonical scalar execution, diagnostic interpretation, sensitivity exploration, multivariate execution and **EXPERIMENTAL observable spatial field** execution. Studio orchestrates public AgencityLab APIs; it is not a second scientific engine.
 
-Plan 7 executes the canonical scalar pipeline through AgencityLab 1.1.3. Plan 8 reads and visualizes the immutable canonical result. Plan 9 adds immutable diagnostics downstream of that result. Plan 10 adds immutable tau/window sensitivity studies without changing the canonical Run or SystemRevision.
+## Scientific execution boundaries
 
-## Scientific boundary
+| Workflow | Scientific status | Public AgencityLab entry point |
+| --- | --- | --- |
+| Canonical scalar | canonical local engine | `agencitylab.compute_agencity` |
+| Diagnostics | diagnostic layer | `agencitylab.analyze_agencity` |
+| Tau/window sensitivity | derived sensitivity layer | public multiscale/window APIs |
+| Multivariate | public multivariate extension | public multivariate API |
+| Observable spatial field | **EXPERIMENTAL** | `agencitylab.fields.compute_agencity_field` |
 
-Canonical execution uses public `compute_agencity`. Studio does not reproduce equations for `u_star`, `X_star`, `A_star`, `M`, `O`, `D`, `S`, `J`, `Theta`, `U`, `beta` or `b`.
-
-Diagnostic execution uses public `analyze_agencity`. Studio does not reproduce coherence, angular-variance, curvature, winding, zero/event, transition, regime or real-agencity equations.
-
-Sensitivity execution uses public `agencitylab.api.compute_agencity_spectrum` and `agencitylab.api.optimize_agencity_window`. Studio does not reproduce multiscale or CRM-window optimization algorithms and does not turn a numerical maximum into a physical-parameter estimate.
-
-A completed canonical Run means the software calculation and immutable publication succeeded. It does not imply coherence or real agencity. Likewise, `beta != 0` and high `D` are never used as proof of real agencity.
+A completed execution means the software call and immutable publication succeeded. It does not imply coherent or “real” agencity. `beta != 0`, non-zero local `beta_obs`, high `D` or large `b_obs` are not by themselves proof of real agencity.
 
 ## Analysis and AnalysisRun
 
-`Analysis` is a mutable Project-owned workspace. `AnalysisRun` is its immutable canonical reproducibility boundary.
+`Analysis` is a mutable Project-owned workspace. `AnalysisRun` is the immutable reproducibility boundary for an exact execution. A queued Run freezes source identity/hash, scientific mapping, exact `SystemRevision` and `ObservableDefinition`, parameter state, software versions, execution fingerprint and warnings before Celery executes the public Lab API.
 
-Each queued AnalysisRun freezes:
+Historical finished Runs are immutable. Exactly one authoritative result artifact is published for a successful Run, and private storage paths are never exposed as public media URLs.
 
-- exact DatasetVersion or PreparedDataArtifact identity and SHA-256;
-- explicit coordinate/observable column positions;
-- exact SystemRevision and ObservableDefinition;
-- `A_ref`, `tau`, requested `w` and `P_c` snapshots;
-- public canonical options;
-- AgencityLab, Studio and Python versions;
-- deterministic canonical execution fingerprint.
+## Canonical scalar Analysis
 
-Exactly one source is allowed and historical sources are protected from normal cascading deletion.
+Canonical scalar Runs pin an exact raw/prepared source, coordinate/observable mapping and scalar physical/contextual `A_ref`, `tau`, requested `w` and `P_c` snapshots. When `w` is unspecified, Studio passes `None`; it does not substitute `tau` before the public API call.
 
-## Canonical parameters
-
-`A_ref` and `tau` must be explicit positive physical/contextual values. `P_c` is explicit non-negative and `P_c = 0` is valid. `w` remains either explicit or unspecified.
-
-When `w` is unspecified, Studio passes `None` to AgencityLab; it does not replace it with `tau`. The effective Lab result memory window may be recorded separately from the requested provenance state.
-
-No physical parameter is derived from signal statistics. `dt`, `tau` and `w` remain scientifically distinct.
-
-## Canonical result artifact
-
-Completed AnalysisRuns publish one private `AnalysisResultArtifact` using `ZIP_NPY_JSON` schema 1. Stored public canonical series include, when available:
-
-`xi`, `u`, `u_star`, `X_star`, `A_star`, `t_star`, `M`, `O`, `D`, `S`, `J`, `theta`, `U`, `beta`, `b`.
-
-NumPy dtypes, including complex arrays, are preserved and pickle is disabled. `execution_fingerprint` identifies the frozen computation contract; `result_sha256` identifies the exact serialized bytes.
-
-## Derived immutable studies
-
-A completed AnalysisRun can own multiple independent derived records:
-
-```text
-Analysis
-  ↓
-AnalysisRun
-  ├── canonical AnalysisResultArtifact
-  ├── DiagnosticRun 1..n
-  │     └── DiagnosticResultArtifact
-  └── SensitivityStudy 1..n
-        └── SensitivityResultArtifact
-```
-
-Neither child path mutates the canonical parent.
+Completed scalar Runs publish `ZIP_NPY_JSON` artifacts preserving public returned arrays such as `xi`, `u`, `u_star`, `X_star`, `A_star`, `M`, `O`, `D`, `S`, `J`, `theta`, `U`, `beta` and `b` when present. Complex dtypes are preserved and pickle is disabled.
 
 ## DiagnosticRun — Plan 9
 
-Multiple diagnostic runs are intentional because diagnostic configuration can change without changing the canonical result.
+Diagnostics are immutable records downstream of one completed canonical Run. Studio reads the exact canonical artifact and reconstructs only the public result container required by `analyze_agencity`; it does not rerun canonical computation or implement diagnostic equations.
 
-Each DiagnosticRun pins the exact parent AnalysisRun, canonical result SHA-256, software versions, public diagnostic API identifiers, normalized configuration/thresholds, deterministic diagnostic fingerprint and creator/timestamps. A completed run additionally pins its private result artifact and SHA-256.
-
-Plan 9 does not rerun canonical computation. The worker reads the exact immutable canonical artifact and reconstructs only the **public `AgencityResult` container** expected by the public diagnostic API. Stored canonical `theta` is mandatory and passed explicitly. Studio never substitutes `np.angle(beta)`.
-
-The public Lab 1.1.3 diagnostic bundle can expose structural-orientation/coherence information, contextual real-agencity assessment, geometry/curvature, winding-related output, zeros, transitions, D peaks, S plateaus, regime signatures and contextual classification. Legacy heuristics are not promoted silently.
+Stored canonical `theta` is authoritative for structural orientation. Studio never repairs missing orientation with `arg(beta)`. Diagnostic thresholds are public-Lab/default or explicit user configuration; absent criteria may legitimately produce `undetermined`.
 
 ## SensitivityStudy — Plan 10
 
-A `SensitivityStudy` is an immutable derived study pinned to one completed AnalysisRun. It records:
+Sensitivity studies pin one completed canonical Run and fixed context. Tau multiscale sends an exact requested tau grid to the public spectrum API. Window sensitivity sends exact explicit `w` candidates to the public optimization API.
 
-- canonical Run ID and canonical result SHA-256;
-- source SHA-256;
-- exact SystemRevision and system fingerprint;
-- mapping snapshot;
-- fixed `A_ref`, `P_c`, base `tau` and requested base `w` snapshots;
-- study type;
-- exact scale grid and grid-generation method;
-- grid unit;
-- fixed/varied semantics;
-- public Lab API identifier;
-- AgencityLab/Studio/Python versions;
-- deterministic study fingerprint;
-- warnings/lifecycle;
-- completed result artifact SHA-256.
+`dt`, `tau` and `w` remain distinct. A multiscale maximum is not automatically physical `tau`; Lab-reported `w_opt` is a criterion-dependent numerical result and does not mutate the base Run or `SystemRevision`.
 
-Changing the grid creates another study. A completed/failed/cancelled historical study is immutable.
+## Multivariate Analysis — Plan 11
 
-### `TAU_MULTISCALE`
+Multivariate Analysis preserves ordered components, component-to-observable mappings and parameter provenance. Studio uses the public AgencityLab multivariate API and stores Lab-returned component/aggregate outputs. It does not invent an aggregate by averaging, summing, weighting or normalizing component science.
 
-The study sends an explicit tau grid to:
+## Observable Spatial Agencity Field — Plan 12
 
-```python
-agencitylab.api.compute_agencity_spectrum
-```
-
-`A_ref`, `P_c`, source, mapping and SystemRevision remain fixed.
-
-If the base Run requested `w` as unspecified, Studio sends `windows=None`. It does not materialize `w=tau_i`. Lab 1.1.3 returns effective `w` per scale and Studio records/displays those values separately.
-
-If base `w` is explicit, Studio passes that one explicit scalar to the spectrum API, so `w` remains fixed while tau varies.
-
-A numerical maximum is not automatically the physical `tau`; Studio does not perform peak/argmax promotion.
-
-### `W_SENSITIVITY`
-
-The study sends exact explicit candidate windows to:
-
-```python
-agencitylab.api.optimize_agencity_window
-```
-
-Base `tau`, `A_ref`, `P_c`, source, mapping and SystemRevision remain fixed. Candidate windows are prevalidated against the canonical `w/dt` sampling contract so Studio does not silently depend on candidate rounding.
-
-Lab returns the Chapter-13 `Phi2` criterion outputs and `w_opt`. Studio stores and displays that result as a **Lab-reported numerical optimum under Phi2**. It does not write `w_opt` into the SystemRevision or AnalysisRun.
-
-## Thresholds, grids and negative outcomes
-
-Studio defines no universal interpretive threshold. Diagnostic thresholds follow Lab/user configuration. Sensitivity grids are explicit study configuration, not theory constants or estimators.
-
-If required diagnostic criteria are absent, Lab may return `undetermined`. A sensitivity result may be flat or unexpected. These are valid software/scientific outputs; they are not reasons to alter parameters or theory.
-
-Lifecycle statuses (`QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`) describe execution only.
-
-## Celery
-
-Canonical, diagnostic and sensitivity workloads use Celery after transaction commit. Redis receives stable UUID identifiers rather than scientific arrays.
-
-Sensitivity flow:
+Plan 12 introduces `OBSERVABLE_SPATIAL_FIELD` with scientific status **EXPERIMENTAL**. Its concept is exclusively:
 
 ```text
-SensitivityStudy QUEUED
-  ↓ Redis/Celery
-sensitivity.tasks
+u(x,t)
+  or
+u(x1,x2,...,xd,t)
+        ↓
+public agencitylab.fields.compute_agencity_field
+        ↓
+beta_obs(x,t), b_obs(x,t)
+```
+
+AgencityLab applies the canonical temporal scalar pipeline locally at each spatial position. CRM remains temporal and independent for each local trajectory. Studio does not implement the local loop or equations itself.
+
+### Exact immutable field source
+
+A field Analysis selects one confirmed immutable NPZ `DatasetVersion`. The Run pins:
+
+- exact DatasetVersion UUID and source SHA-256;
+- exact `u` and `t` array identities/hashes;
+- original N-D field shape and dtype;
+- explicit normalized `time_axis`;
+- ordered spatial dimensions;
+- explicit coordinate arrays and their hashes, or explicit `spatial_axes=None`/sample-index mode;
+- observable/time units as documented;
+- exact `SystemRevision` and `ObservableDefinition`.
+
+Shape and axis order are scientifically significant. `(time,64)` is not the same contract as `(time,8,8)`, and `(time,x,y)` is not interchangeable with `(time,y,x)`. Studio does not flatten, guess or silently reshape a field.
+
+### Physical parameter modes
+
+The actual AgencityLab 1.1.3 public field contract supports:
+
+```text
+A_ref: scalar or exact spatial shape
+tau:   scalar or exact spatial shape
+w:     None, scalar or exact spatial shape
+P_c:   scalar, exact spatial shape or exact space-time u.shape
+```
+
+Scalar modes use the immutable `SystemRevision` scalar. Map modes identify explicit arrays in the pinned NPZ source and freeze key, shape, dtype, unit, SHA-256, provenance and supplier in the Run snapshot. No map is derived from signal statistics.
+
+`P_c=0` is not rejected merely because it is zero when the public Lab contract accepts it. When `w` is unspecified, Studio stores the request as `None` and transmits literal `w=None`; any effective Lab behavior is recorded separately from the requested state.
+
+### Field execution fingerprint
+
+The deterministic field fingerprint includes source SHA, field shape, time-axis identity, ordered spatial-axis metadata/hashes, parameter modes and scalar/map identities, System fingerprint, AgencityLab version, field result schema and scientific status. Two flattened-equal fields with different shapes or axis order therefore receive different contracts.
+
+### Field Celery execution
+
+```text
+AnalysisRun QUEUED
+  ↓ Redis: Run UUID only
+worker loads immutable Run
   ↓
-labbridge.sensitivity
+load exact N-D source + axes + parameter maps
+  ↓ structural validation only
+labbridge.fields
   ↓
-public AgencityLab multiscale/window API
+public compute_agencity_field
   ↓
-private SensitivityResultArtifact
+lossless immutable field artifact + SHA-256
   ↓
 COMPLETED
 ```
 
-Duplicate delivery sees persisted state and cannot publish two authoritative artifacts. Deterministic Lab validation errors are not blindly retried.
+Double delivery observes persisted state and one-to-one artifact publication. A deterministic Lab validation error becomes a safe failed Run; no completed artifact is fabricated.
+
+### Field result artifact
+
+The field result reuses private `AnalysisResultArtifact` with `ZIP_NPY_JSON` and a compact schema identifier compatible with the existing artifact column. N-D shapes, axis order, real/complex dtypes and values are preserved. Public `beta` and `b` are exposed in the field manifest with observable aliases `beta_obs` and `b_obs`.
+
+Studio stores only fields that are actually present in public `ObservableAgencityFieldResult`; it does not reconstruct absent series. In AgencityLab 1.1.3 the public field result does not expose `theta`, so Plan 12 does not manufacture field structural orientation from `arg(beta_obs)`.
 
 ## Permissions
 
-Access reuses Workspace membership:
+Analysis permissions continue to inherit Workspace membership:
 
-- Owner: view/configure/run/rerun/inspect plus normal lifecycle privileges;
-- Editor: view/configure/run/rerun/inspect;
-- Analyst: view/configure/run/rerun/inspect;
-- Viewer: inspect completed canonical/diagnostic/sensitivity results only;
-- Non-member: object endpoints resolve as 404.
+- Owner/Editor/Analyst can create, configure, run, rerun and inspect supported Analyses according to existing lifecycle policy;
+- Viewer can inspect completed results;
+- non-members receive object-scoped 404 responses for detail, manifest, slice, point, trace and artifact-backed endpoints.
 
-Artifacts have no public media URLs.
+## Scientific equivalence tests
 
-## Scientific equivalence
+Canonical tests compare direct public `compute_agencity` with `labbridge.execution`. Plan 12 adds two blocking comparisons:
 
-Canonical tests compare direct `compute_agencity` with `labbridge.execution`.
+```text
+direct compute_agencity_field
+==
+Studio -> labbridge.fields -> compute_agencity_field
+```
 
-Diagnostic tests compare direct public `analyze_agencity` with `labbridge.diagnostics` on the same public diagnostic input.
+and for selected spatial points:
 
-Sensitivity tests compare direct public `compute_agencity_spectrum` and `optimize_agencity_window` with `labbridge.sensitivity` on identical arrays, physical/contextual inputs and candidate grids. Studio never derives expected scientific values from copied formulas.
+```text
+field local trajectory
+==
+direct public compute_agencity(local temporal series)
+```
 
-## Visualization relationship
+Expected scientific values come from AgencityLab direct execution, never from copied Studio equations.
 
-Plan 8 canonical visualization reads `AnalysisResultArtifact`. Plan 9 diagnostic visualization reads `DiagnosticResultArtifact` plus canonical sample indices. Plan 10 sensitivity visualization reads `SensitivityResultArtifact` and uses tau/w as the scale axis rather than the signal coordinate.
+## Scientific boundary of Plan 12
 
-All chart derivations are presentation-only. Exact artifacts/tables remain authoritative and no chart selection mutates scientific history.
+Plan 12 introduces no spatial CRM, neighbour-correlation CRM, spatial derivative, gradient, Laplacian, PDE, autonomous `phi`, beta-to-phi bridge, domain walls, vortices, thermodynamics, gravity, quantum or cosmological dynamics. It performs no interpolation, resampling, smoothing, filling, normalization, clipping or spatial averaging during Analysis.
 
-See `docs/visualization.md`, `docs/diagnostics.md` and `docs/sensitivity-and-multiscale.md` for detailed presentation and derived-study contracts.
+`beta_obs(x,t)` and `b_obs(x,t)` are observable fields derived from measured or simulated `u(x,t)`. They are not autonomous dynamical field `phi(x,t)` and must remain labeled **EXPERIMENTAL**.
+
+See `docs/observable-spatial-fields.md` for the exact Plan 12 source, parameter, storage and UI contract and `docs/visualization.md` for field slicing/presentation rules.
