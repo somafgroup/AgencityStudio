@@ -4,7 +4,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.utils.translation import gettext as _
 
 from datasets.field_source import FIELD_SOURCE_FORMAT, is_field_source
-from datasets.models import DatasetImportStatus, DatasetVersion
+from datasets.models import Dataset, DatasetImportStatus, DatasetVersion
 from projects.models import ProjectActivity
 from workspaces.permissions import can_create_analysis
 
@@ -20,9 +20,9 @@ def create_observable_field_analysis(
     clean_name = str(name).strip()
     if not clean_name:
         raise ValidationError(_("Analysis name is required."))
-    if source.dataset.project_id != project.pk:
+    if not Dataset.objects.filter(pk=source.dataset_id, project=project).exists():
         raise ValidationError(_("The selected field source belongs to another Project."))
-    if source.dataset.current_version_id != source.pk:
+    if not Dataset.objects.filter(pk=source.dataset_id, current_version=source).exists():
         raise ValidationError(_("Select the confirmed current Dataset Version for the field source."))
     if source.import_status != DatasetImportStatus.READY or source.source_format != FIELD_SOURCE_FORMAT:
         raise ValidationError(_("Select a successfully inspected NPZ field source."))
