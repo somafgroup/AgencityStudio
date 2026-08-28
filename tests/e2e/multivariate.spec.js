@@ -174,7 +174,7 @@ test('Plan 11 prepared multivariate workflow executes through the real worker an
   await page.reload();
   await expect(page.getByRole('link', { name: 'Explore multivariate results', exact: true })).toBeVisible();
   await expect(page.getByText('Ordered component snapshots', { exact: true })).toBeVisible();
-  await expect(page.getByText('unspecified', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Unspecified (w=None)', { exact: true }).first()).toBeVisible();
 
   await page.getByRole('link', { name: 'Explore multivariate results', exact: true }).click();
   await expect(page.getByRole('heading', { name: /Plan 11 multivariate run · Run 1/ })).toBeVisible();
