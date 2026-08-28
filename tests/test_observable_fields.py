@@ -99,8 +99,8 @@ def _assert_field_equal(left, right):
 def test_field_labbridge_equals_direct_public_field_api_1d_with_maps_and_zero_power():
     t, x, u = _signals_1d()
     a_ref = np.linspace(0.9, 1.3, x.size)
-    tau = np.linspace(0.18, 0.26, x.size)
-    w = np.linspace(0.20, 0.30, x.size)
+    tau = np.array([0.15, 0.20, 0.25, 0.30, 0.35], dtype=np.float64)
+    w = np.array([0.20, 0.25, 0.30, 0.35, 0.40], dtype=np.float64)
     p_c = np.array([0.0, 1.2, 2.0, 3.5, 0.7])
     kwargs = {
         "spatial_axes": (x,),
@@ -124,7 +124,7 @@ def test_field_labbridge_equals_direct_public_field_api_2d_spacetime_power_and_w
     t, x, y, u = _signals_2d()
     spatial_shape = (x.size, y.size)
     a_ref = np.linspace(0.8, 1.4, x.size * y.size).reshape(spatial_shape)
-    tau = np.linspace(0.12, 0.24, x.size * y.size).reshape(spatial_shape)
+    tau = np.resize(np.array([0.12, 0.16, 0.20, 0.24], dtype=np.float64), spatial_shape)
     p_c = np.ones_like(u)
     p_c[:, 0, 0] = 0.0
     kwargs = {
@@ -151,7 +151,7 @@ def test_field_local_positions_equal_direct_public_scalar_api():
         t,
         spatial_axes=(x,),
         A_ref=np.linspace(0.9, 1.3, x.size),
-        tau=np.linspace(0.18, 0.26, x.size),
+        tau=np.array([0.15, 0.20, 0.25, 0.30, 0.35], dtype=np.float64),
         w=None,
         P_c=np.array([0.0, 1.2, 2.0, 3.5, 0.7]),
     )
@@ -369,7 +369,7 @@ def test_field_analysis_run_matches_direct_lab_and_preserves_immutable_artifact(
     _workspace, project, revision, observable = _project_system(owner)
     t, x, u = _signals_1d()
     a_ref = np.linspace(0.9, 1.3, x.size)
-    tau_map = np.linspace(0.17, 0.25, x.size)
+    tau_map = np.array([0.15, 0.20, 0.25, 0.30, 0.35], dtype=np.float64)
     p_c = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
     version, source_bytes = _field_version(
         owner, project, u=u, t=t, x=x, A_ref_map=a_ref, tau_map=tau_map, P_c_map=p_c
