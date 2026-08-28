@@ -52,7 +52,7 @@ def _source(analysis: Analysis) -> DatasetVersion:
 
 
 def _system_scalar_snapshot(revision: SystemRevision, name: str) -> dict:
-    prefix = "p_c" if name == "P_c" else name
+    prefix = {"A_ref": "a_ref", "P_c": "p_c"}.get(name, name)
     value = getattr(revision, f"{prefix}_value")
     if value is None:
         raise ValidationError(
@@ -291,10 +291,7 @@ def configure_observable_field_analysis(*, actor, analysis: Analysis, values: di
     }
     locked.draft_configuration = config
     locked.save(update_fields=("draft_configuration", "updated_at"))
-    try:
-        _review(locked, actor=actor)
-    except Exception:
-        raise
+    _review(locked, actor=actor)
     _record(locked, actor, "ANALYSIS_UPDATED", _("Updated EXPERIMENTAL observable field configuration."))
     return locked
 
