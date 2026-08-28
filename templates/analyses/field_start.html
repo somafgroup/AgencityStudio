@@ -1,0 +1,13 @@
+{% extends "projects/base.html" %}{% load i18n %}
+{% block project_content %}
+<div class="max-w-4xl space-y-5">
+  <div><span class="badge">{% translate "EXPERIMENTAL" %}</span><h2 class="text-xl font-semibold mt-2">{% translate "Observable Spatial Agencity Field" %}</h2><p class="muted mt-2">{% translate "Apply AgencityLab's canonical temporal scalar pipeline locally at every spatial location of one exact immutable N-dimensional field source." %}</p></div>
+  <div class="alert alert-warning"><strong>{% translate "Scientific boundary" %}</strong><p class="mt-1">{% translate "This is an observable field derived from u(x,t). It is not autonomous phi dynamics. No spatial CRM, spatial derivative, PDE, topology, thermodynamics or gravity is introduced." %}</p></div>
+  <section class="card"><span class="badge">1 · {% translate "Field Source" %}</span><form method="post" class="space-y-4 mt-4">{% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}<div><label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<p class="muted text-xs mt-1">{{ field.help_text }}</p>{% endif %}{% for error in field.errors %}<p class="text-sm mt-1" role="alert">{{ error }}</p>{% endfor %}</div>{% endfor %}
+    <div class="flex flex-wrap justify-between gap-3"><a class="btn" href="{% url 'analysis:project-list' workspace.slug project.id project.slug %}">{% translate "Cancel" %}</a><button class="btn btn-primary" type="submit">{% translate "Continue to field configuration" %}</button></div>
+  </form></section>
+  <p class="muted text-sm">{% translate "Need a field source?" %} <a href="{% url 'datasets:field-import' workspace.slug project.id project.slug %}">{% translate "Import an immutable NPZ field source" %}</a>.</p>
+</div>
+{% endblock %}

@@ -1,6 +1,6 @@
 # Development guide
 
-AgencityStudio is an orchestration and presentation application around the pinned public AgencityLab runtime. Contributors must preserve the boundary between physical/contextual configuration, canonical computation, diagnostics and sensitivity studies.
+AgencityStudio is an orchestration and presentation application around the pinned public AgencityLab runtime. Contributors must preserve the boundary between physical/contextual configuration, canonical computation, diagnostics, sensitivity studies, multivariate execution and experimental observable spatial fields.
 
 ## Environment and validation
 
@@ -24,7 +24,7 @@ Run the worker separately when testing asynchronous behavior:
 celery -A config worker --loglevel=INFO
 ```
 
-Important operational settings include PostgreSQL/Redis connection values, private `DATASET_STORAGE_ROOT`, Dataset/preparation/Analysis size bounds, visualization point/page bounds and `SENSITIVITY_MAX_POINTS`. Operational memory/display/grid limits are not theory constants or diagnostic thresholds.
+Operational settings include PostgreSQL/Redis connection values, private `DATASET_STORAGE_ROOT`, Dataset/preparation/Analysis bounds, visualization limits, `SENSITIVITY_MAX_POINTS` and the `FIELD_MAX_*` source/display guards. Operational limits are never theory constants or diagnostic thresholds.
 
 AgencityLab remains explicitly pinned. Do not silently install another Lab version merely to make a Studio test pass.
 
@@ -59,15 +59,13 @@ private AnalysisResultArtifact
 
 Only `labbridge.execution` calls the public canonical API. Do not duplicate `J`, `Theta`, `U`, `beta`, `b`, CRM or any other canonical equation in Studio.
 
-The source adapter may materialize finite NumPy vectors, but it cannot scientifically repair them. Unit conversion belongs in an explicit PreparedDataArtifact.
-
-An unspecified `w` is passed as `None`; Studio does not substitute `tau` before the public Lab call.
+The source adapter may materialize finite NumPy vectors, but it cannot scientifically repair them. Unit conversion belongs in an explicit PreparedDataArtifact. An unspecified `w` is passed as `None`; Studio does not substitute `tau` before the public Lab call.
 
 Canonical result serialization preserves real/complex NumPy dtypes and uses `allow_pickle=False`. A Run becomes `COMPLETED` only after immutable artifact publication.
 
 ## Plan 9 diagnostic development
 
-Diagnostics are a second immutable execution boundary **downstream** of a completed canonical AnalysisRun:
+Diagnostics are a separate immutable execution boundary downstream of a completed canonical AnalysisRun:
 
 ```text
 completed AnalysisRun + canonical result SHA
@@ -85,33 +83,13 @@ private DiagnosticResultArtifact
 
 The diagnostic bridge reads the exact stored canonical arrays. It reconstructs only the documented public `AgencityResult` container required by Lab and supplies stored canonical `theta` explicitly.
 
-It must not:
+It must not call `compute_agencity` again merely to obtain diagnostics, import `agencitylab.core`, calculate its own coherence/curvature/winding/regime/real-agencity formulas, use `np.angle(beta)` as structural orientation, or invent universal diagnostic thresholds.
 
-- call `compute_agencity` again merely to obtain diagnostics;
-- import `agencitylab.core` or another private Lab module;
-- calculate its own coherence, angular variance, curvature, winding, zero/event, regime or real-agencity formulas;
-- use `np.angle(beta)` as structural orientation;
-- invent universal diagnostic thresholds.
-
-If a required stored canonical series is missing, return an input/unavailable error rather than reconstructing science privately.
-
-### Diagnostic configuration
-
-`analyses.diagnostic_validation` validates structure only. Optional thresholds remain `None` unless explicitly supplied. User values are persisted and transmitted unchanged.
-
-Contextual regime classification is disabled unless its criteria are explicitly supplied. Real-agencity assessment may remain `undetermined` when required thresholds are absent. This is correct behavior, not a reason to choose friendlier defaults.
-
-Changing configuration creates a new `DiagnosticRun` and fingerprint.
-
-### Diagnostic Celery registration
-
-The diagnostic task intentionally lives in `analyses/diagnostic_tasks.py`, separate from canonical `analyses/tasks.py`. Because Celery autodiscovery normally targets `tasks.py`, `config/celery.py` explicitly imports the diagnostic module.
-
-Keep the worker-registration regression test when reorganizing tasks. A direct Python task test is not enough if a real Celery worker cannot discover the task.
+Changing diagnostic configuration creates a new `DiagnosticRun` and fingerprint. The diagnostic task remains explicitly registered because it intentionally lives outside the default `tasks.py` autodiscovery path.
 
 ## Plan 10 sensitivity development
 
-Sensitivity is a third immutable scientific-software boundary derived from one completed canonical Run:
+Sensitivity is another immutable boundary derived from one completed canonical Run:
 
 ```text
 completed AnalysisRun
@@ -127,31 +105,50 @@ labbridge.sensitivity
 private SensitivityResultArtifact
 ```
 
-The bridge may adapt representation only. Do not reproduce a multiscale loop or window criterion when the public Lab API already owns it. Do not import private Lab code.
+The bridge may adapt representation only. Do not reproduce a multiscale loop or window criterion when the public Lab API already owns it. If base `w` is unspecified, pass `windows=None`; do not materialize `w=tau_i` in Studio. If base `w` is explicit, keep it fixed through a tau sweep. Never promote a numerical maximum or `w_opt` into physical context automatically.
 
-### Tau multiscale
+## Plan 12 observable spatial field development
 
-The grid is explicit user configuration. `EXPLICIT`, `LINEAR` and `LOG` generation only sample the requested parameter space; they are not estimators.
+Plan 12 is explicitly **EXPERIMENTAL** and has a separate public integration boundary:
 
-If base `w` is unspecified, pass `windows=None`. Do not write a Studio loop that replaces each point with `w=tau_i`. Record Lab-returned effective `w` values separately.
+```text
+immutable NPZ DatasetVersion
+  ↓ exact u/t/coordinate/map materialization
+immutable AnalysisRun snapshot
+  ↓ transaction.on_commit
+analyses.tasks -> analyses.field_tasks
+  ↓
+labbridge.fields
+  ↓ public agencitylab.fields.compute_agencity_field
+  ↓
+private AnalysisResultArtifact (ZIP_NPY_JSON, N-D shapes preserved)
+```
 
-If base `w` is explicit, pass that scalar unchanged so it remains fixed across the tau sweep.
+`labbridge.fields` is the only field-science call boundary. Studio must not loop over spatial locations to reimplement the canonical equations. The public Lab field API owns the local temporal orchestration.
 
-Never add `np.argmax`, an FFT peak, autocorrelation or another rule that changes the System or Analysis because one scale is numerically large.
+### Field-source rules
 
-### Window sensitivity
+Plan 12 reuses `Dataset` / immutable `DatasetVersion`; it does not create a second Data Workspace. NPZ is the minimum N-D source format. Inspection reads ZIP/NPY structure safely before large allocations, records each array key/shape/dtype/hash, rejects object dtype/pickle requirements and path traversal, and enforces configurable operational size/element limits.
 
-Use the public `optimize_agencity_window` API with the exact candidate list reviewed by the user. Because Lab windows are discrete in sample counts, prevalidate each candidate with the existing canonical `w/dt` contract. Reject incompatible values; do not silently round them.
+Do not flatten `(time,x,y,...)` into tabular rows merely to reuse scalar machinery. Do not silently transpose, reshape or guess the time axis. Representation adaptation is allowed only when explicit and provenance-preserving.
 
-Keep base `tau`, `A_ref`, `P_c`, source, mapping and SystemRevision fixed. The returned `w_opt` is a criterion-specific numerical output under Phi2, not a new physical/contextual memory value.
+### Field parameter rules
 
-### Sensitivity storage and lifecycle
+The public 1.1.3 field contract supports scalar/spatial `A_ref` and `tau`, `w=None`/scalar/spatial, and scalar/spatial/space-time `P_c`. Spatial maps are explicit physical/contextual inputs from immutable source arrays. Store map identity, shape, dtype, unit, SHA-256 and provenance in the Run snapshot.
 
-`SensitivityStudy` is immutable once finished. PostgreSQL stores identity/configuration/provenance; large Lab arrays remain in private `ZIP_NPY_JSON` artifacts. NumPy dtypes, including complex `b` and `beta` matrices, must not be downcast. Pickle is forbidden.
+When `w` is unspecified, pass literal `None`. AgencityLab may report an effective convention in result metadata; Studio records it separately and does not generate `w=tau` itself. `P_c=0` remains legal where Lab accepts it.
 
-The Celery payload contains only the study UUID. The worker verifies canonical/source hashes before calling Lab and publishes the artifact atomically. Standard `sensitivity/tasks.py` is discovered through the installed Django app.
+### Scientific boundary
 
-The configurable `SENSITIVITY_MAX_POINTS` limit is operational. Never silently truncate a larger scientific request.
+The field result is `beta_obs(x,t)` / `b_obs(x,t)` derived from observable `u(x,t)`. It is not autonomous `phi(x,t)`. Production field code must contain no spatial CRM, gradient, Laplacian, PDE solver, autonomous-field evolution, domain-wall/vortex physics, thermodynamics or gravity.
+
+No analysis-time interpolation, resampling, smoothing, filtering, filling, normalization or spatial averaging is permitted. No local statistics may generate `A_ref(x)`, `tau(x)`, `w(x)` or `P_c(x,t)`.
+
+### Field result and reader
+
+Serialize only public returned fields. Preserve exact N-D shape, axis order, dtype and complex values. `beta_obs` and `b_obs` remain aliases of stored Lab `beta` and `b`. If the public field result does not expose `theta`, Studio does not reconstruct it from `arg(beta_obs)`.
+
+Private field endpoints expose manifest, exact spatial slices, exact point values and exact local temporal traces. Display-only downsampling never changes the artifact or exact-value endpoints.
 
 ## Failure handling
 
@@ -161,25 +158,15 @@ Duplicate deliveries must observe persisted run/study state and one-to-one artif
 
 ## Visualization development
 
-Canonical and diagnostic workspaces reuse `frontend/scripts/scientific-workspace.js`; sensitivity uses the scoped `frontend/scripts/sensitivity-workspace.js`. Both use the pinned Apache ECharts 6.1.0 package and are bundled locally.
+Canonical and diagnostic workspaces use `frontend/scripts/scientific-workspace.js`; sensitivity uses `sensitivity-workspace.js`; Plan 12 fields use `field-workspace.js`. All use pinned Apache ECharts 6.1.0 bundled locally.
 
-The browser is presentation-only. It may:
+The browser is presentation-only. It may request private payloads, plot already-computed values, perform labeled display-only complex representations, preserve exact indices and provide zoom/table alternatives. It may not calculate canonical science, diagnostics, field physics, peak selection, window criteria or physical-parameter estimates.
 
-- request private manifest/series/scale payloads;
-- plot already-computed values;
-- perform explicitly labeled display-only complex representations;
-- preserve exact sample or scale indices;
-- provide zoom and exact table alternatives.
-
-It may not calculate canonical science, diagnostics, peak selection, window criteria or physical-parameter estimates.
-
-Structural orientation always uses stored `theta`; missing orientation data makes the view unavailable rather than reconstructed.
-
-Complex multiscale metrics may use magnitude in a chart only when explicitly labeled as a display representation. The exact table/artifact remains authoritative.
+Structural orientation uses stored Lab `theta` only where that field exists. Missing orientation data is not reconstructed.
 
 ## Permissions and privacy
 
-Scientific views/services must resolve the object through Workspace/Project membership. Analyst is a scientific author role and can run diagnostics and sensitivity studies. Viewer is read-only. Non-members receive scoped 404 responses.
+Scientific views/services resolve objects through Workspace/Project membership. Analyst is a scientific author role; Viewer is read-only. Non-members receive scoped 404 responses.
 
 Private artifacts never receive public media URLs. Numerical endpoints use private/no-store responses and never expose storage paths.
 
@@ -187,59 +174,30 @@ Private artifacts never receive public media URLs. Numerical endpoints use priva
 
 Tests verify software contracts and direct Lab equivalence. They do not prove the theory.
 
-For diagnostics compare:
+For Plan 12 compare both:
 
 ```text
-direct public analyze_agencity
+direct public compute_agencity_field
 vs
-Studio -> labbridge.diagnostics -> analyze_agencity
+Studio -> labbridge.fields -> compute_agencity_field
 ```
 
-For sensitivity compare the same public API both ways:
+and:
 
 ```text
-direct compute_agencity_spectrum
+selected field spatial trajectory
 vs
-Studio -> labbridge.sensitivity -> compute_agencity_spectrum
+direct public compute_agencity on the same local temporal series
 ```
 
-and, for windows:
+Do not calculate expected scientific results with a Studio formula. A useful field debugging order is: source bytes → NPZ array → shape → time axis → spatial-axis order → parameter maps → labbridge arguments → direct Lab field → Studio field → serialized artifact → reader/slice.
 
-```text
-direct optimize_agencity_window
-vs
-Studio -> labbridge.sensitivity -> optimize_agencity_window
-```
-
-Do not calculate expected scientific results with a Studio formula. Regression tests must also prove that unspecified `w` stays unspecified at the Studio/Lab boundary, explicit `w` stays fixed in a tau sweep, tau stays fixed in a window study, and no study mutates its base Run/SystemRevision.
-
-A useful scientific debugging order remains: source → exact vectors → fixed snapshot → exact grid → labbridge arguments → direct Lab output → Studio Lab output → artifact serialization. Do not alter `beta`, `J`, `D`, `S`, `Theta`, `tau`, `w`, `A_ref` or `P_c` merely to obtain prettier results.
+Unexpected field results are scientifically useful. Do not alter `beta`, `J`, `D`, `S`, `Theta`, `tau`, `w`, `A_ref` or `P_c` merely to obtain smoother maps or passing tests.
 
 ## Worker and readiness
 
-Dataset inspection, Prepared Data generation, canonical Analysis, DiagnosticRun and SensitivityStudy execution are real worker workloads. Web and worker must share the private storage root.
+Dataset inspection, Prepared Data generation, canonical Analysis, DiagnosticRun, SensitivityStudy and observable-field Analysis execution are real worker workloads. Web and worker must share the private storage root.
 
-`/health/ready/` checks PostgreSQL, Redis and compatible AgencityLab availability. It must not run a scientific analysis, diagnostic or sensitivity suite.
+`/health/ready/` checks PostgreSQL, Redis and compatible AgencityLab availability. It must not run `compute_agencity_field` or another scientific suite.
 
-## Current scientific architecture
-
-```text
-DatasetVersion / PreparedDataArtifact     SystemRevision
-                 \                         /
-                  \      Analysis         /
-                   ------ AnalysisRun -----
-                            ↓
-                  public compute_agencity
-                            ↓
-               immutable canonical artifact
-             ┌──────────────┼─────────────────┐
-             ↓              ↓                 ↓
-   canonical visualization DiagnosticRun  SensitivityStudy
-                            ↓                 ↓
-                   public analyze_agencity   public multiscale/window APIs
-                            ↓                 ↓
-                 immutable diagnostic     immutable sensitivity
-                       artifact               artifact
-```
-
-See `docs/analyses.md`, `docs/visualization.md`, `docs/diagnostics.md` and `docs/sensitivity-and-multiscale.md` for detailed contracts.
+See `docs/analyses.md`, `docs/visualization.md`, `docs/testing.md` and `docs/observable-spatial-fields.md` for detailed contracts.
