@@ -131,6 +131,13 @@ MULTIVARIATE_MAX_COMPONENTS = int(os.getenv("MULTIVARIATE_MAX_COMPONENTS", "12")
 VISUALIZATION_MAX_POINTS = int(os.getenv("VISUALIZATION_MAX_POINTS", "5000"))
 VISUALIZATION_TABLE_PAGE_SIZE = int(os.getenv("VISUALIZATION_TABLE_PAGE_SIZE", "50"))
 SENSITIVITY_MAX_POINTS = int(os.getenv("SENSITIVITY_MAX_POINTS", "128"))
+FIELD_MAX_UPLOAD_BYTES = int(os.getenv("FIELD_MAX_UPLOAD_BYTES", str(DATASET_MAX_UPLOAD_BYTES)))
+FIELD_MAX_ARRAYS = int(os.getenv("FIELD_MAX_ARRAYS", "64"))
+FIELD_MAX_ELEMENTS = int(os.getenv("FIELD_MAX_ELEMENTS", "20000000"))
+FIELD_MAX_UNCOMPRESSED_BYTES = int(
+    os.getenv("FIELD_MAX_UNCOMPRESSED_BYTES", str(512 * 1024 * 1024))
+)
+FIELD_MAX_DISPLAY_POINTS = int(os.getenv("FIELD_MAX_DISPLAY_POINTS", "12000"))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(2_621_440)))
 if DATASET_MAX_UPLOAD_BYTES <= 0 or DATASET_MAX_PASTE_BYTES <= 0:
     raise ImproperlyConfigured("Dataset upload limits must be positive integers.")
@@ -142,6 +149,14 @@ if VISUALIZATION_MAX_POINTS <= 1 or VISUALIZATION_TABLE_PAGE_SIZE <= 0:
     raise ImproperlyConfigured("Visualization display limits must be positive integers.")
 if SENSITIVITY_MAX_POINTS <= 0:
     raise ImproperlyConfigured("Sensitivity grid limit must be a positive integer.")
+if (
+    FIELD_MAX_UPLOAD_BYTES <= 0
+    or FIELD_MAX_ARRAYS <= 0
+    or FIELD_MAX_ELEMENTS <= 0
+    or FIELD_MAX_UNCOMPRESSED_BYTES <= 0
+    or FIELD_MAX_DISPLAY_POINTS <= 1
+):
+    raise ImproperlyConfigured("Observable field operational limits must be positive integers.")
 
 LANGUAGE_CODE = "en"
 LANGUAGES = [("en", "English"), ("fr", "Français")]
