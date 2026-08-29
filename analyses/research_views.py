@@ -63,10 +63,7 @@ def research_field_configure(request, analysis_id):
         raise Http404
     if not can_edit_analysis(request.user, analysis):
         raise PermissionDenied
-    form = ResearchFieldConfigurationForm(
-        request.POST or None,
-        project=analysis.project,
-    )
+    form = ResearchFieldConfigurationForm(request.POST or None, project=analysis.project)
     if request.method == "POST" and form.is_valid():
         try:
             configure_research_field_analysis(
@@ -103,7 +100,7 @@ def research_field_review(request, analysis_id):
         except (ValidationError, ResearchConfigurationError, OSError) as exc:
             messages.error(request, str(exc))
         else:
-            return redirect("analysis:research-run-detail", analysis_id=analysis.pk, run_id=run.pk)
+            return redirect("analysis:run-detail", analysis_id=analysis.pk, run_id=run.pk)
     return render(
         request,
         "analyses/research_review.html",
@@ -113,6 +110,8 @@ def research_field_review(request, analysis_id):
 
 @login_required
 def research_field_run_detail(request, analysis_id, run_id):
+    """Optional dedicated RESEARCH run rendering for callers that want it explicitly."""
+
     analysis, run = _run_or_404(request.user, analysis_id, run_id)
     if analysis.analysis_kind != AnalysisKind.RESEARCH_FIELD:
         raise Http404
@@ -153,5 +152,5 @@ def research_field_rerun(request, analysis_id, run_id):
         new_run = rerun_research_field(actor=request.user, run=run)
     except (ValidationError, ResearchConfigurationError, OSError) as exc:
         messages.error(request, str(exc))
-        return redirect("analysis:research-run-detail", analysis_id=analysis.pk, run_id=run.pk)
-    return redirect("analysis:research-run-detail", analysis_id=analysis.pk, run_id=new_run.pk)
+        return redirect("analysis:run-detail", analysis_id=analysis.pk, run_id=run.pk)
+    return redirect("analysis:run-detail", analysis_id=analysis.pk, run_id=new_run.pk)
