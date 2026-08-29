@@ -15,7 +15,6 @@ from .research_results import ResearchArtifactError
 from .research_storage import open_research_input_reader, open_research_result_reader
 from .views import _analysis_context, _run_or_404
 
-
 BASE_SECTIONS = (
     ("overview", _("Overview")),
     ("initial", _("Initial Condition")),
