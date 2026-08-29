@@ -235,9 +235,12 @@ class ResearchFieldConfigurationForm(forms.Form):
         except forms.ValidationError as exc:
             self.add_error(None, exc)
 
-        if mode == INITIAL_DOMAIN_WALL and data.get("generated_shape_parsed"):
-            if len(data["generated_shape_parsed"]) != 1:
-                self.add_error("generated_shape", _("The public domain-wall reference is one-dimensional."))
+        if (
+            mode == INITIAL_DOMAIN_WALL
+            and data.get("generated_shape_parsed")
+            and len(data["generated_shape_parsed"]) != 1
+        ):
+            self.add_error("generated_shape", _("The public domain-wall reference is one-dimensional."))
         if data.get("thermo_t_eff") is not None and data["thermo_t_eff"] <= 0.0:
             self.add_error("thermo_t_eff", _("T_eff must be strictly positive."))
         if data.get("boundary_kind") == BOUNDARY_PERIODIC:
