@@ -21,8 +21,6 @@ from labbridge.research import (
     domain_wall_initial_field,
     execute_research_dynamics,
     make_boundary,
-    make_grid,
-    make_potential,
     public_fields_api,
     public_thermodynamics_api,
     vortex_initial_field,
