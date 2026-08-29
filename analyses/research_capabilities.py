@@ -85,7 +85,11 @@ _CAPABILITIES = {
     "effective_beta_field": {
         "classification": OUT_OF_SCOPE,
         "status": "RESEARCH",
-        "public_api": "agencitylab.fields.effective_beta",
+        "public_api": [
+            "agencitylab.fields.effective_beta_rhs",
+            "agencitylab.fields.effective_beta_reaction",
+            "agencitylab.fields.effective_beta_stationary_amplitude",
+        ],
         "inputs": "Chapter-15 effective-beta model inputs",
         "outputs": "effective-beta research quantities",
         "note": "Explicitly separate in AgencityLab from both beta_obs and autonomous phi; Plan 13 is scoped to autonomous phi workflows.",
@@ -94,9 +98,9 @@ _CAPABILITIES = {
         "classification": OUT_OF_SCOPE,
         "status": "SPECULATIVE",
         "public_api": "agencitylab.quantum",
-        "inputs": "not audited for execution in Plan 13",
+        "inputs": "not integrated in Plan 13",
         "outputs": "not integrated",
-        "note": "Excluded by the Plan 13 scientific boundary.",
+        "note": "AgencityLab exposes speculative Chapter-21 primitives, but Plan 13 excludes quantum extensions.",
     },
     "cosmology": {
         "classification": OUT_OF_SCOPE,
