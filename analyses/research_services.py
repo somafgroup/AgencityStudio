@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-import io
+import uuid
 
 import numpy as np
 from django.conf import settings
@@ -42,8 +42,6 @@ from .research_contract import (
     INITIAL_NPZ,
     INITIAL_OBSERVABLE_BRIDGE,
     INITIAL_VORTEX_PROFILE,
-    MODEL_DISSIPATIVE_KLEIN_GORDON,
-    MODEL_KLEIN_GORDON,
     MODEL_TDGL,
     PUBLIC_APIS,
     RESEARCH_ANALYSIS_KIND,
@@ -104,6 +102,7 @@ def _json_configuration(values: dict) -> dict:
         "configured": True,
         "model": values["model"],
         "initial_mode": values["initial_mode"],
+        "initial_velocity_mode": values["initial_velocity_mode"],
         "source_id": str(source.pk) if source else None,
         "phi_key": str(values.get("phi_key") or "").strip(),
         "phi_dot_key": str(values.get("phi_dot_key") or "").strip(),
@@ -180,7 +179,7 @@ def _zero_velocity(phi0):
 def _npz_initial(analysis: Analysis, config: dict):
     version = _dataset_for(analysis, config.get("source_id"))
     keys = [config["phi_key"], *config.get("spatial_axis_keys", [])]
-    if config.get("phi_dot_key"):
+    if config.get("initial_velocity_mode") == "NPZ_ARRAY":
         keys.append(config["phi_dot_key"])
     arrays = load_npz_arrays(version, keys)
     phi0 = np.asarray(arrays[config["phi_key"]])
@@ -191,7 +190,7 @@ def _npz_initial(analysis: Analysis, config: dict):
             f"Initial phi shape {phi0.shape} does not match grid shape {grid.shape}."
         )
     phi_dot0 = None
-    if config.get("phi_dot_key"):
+    if config.get("initial_velocity_mode") == "NPZ_ARRAY":
         phi_dot0 = np.asarray(arrays[config["phi_dot_key"]])
         if phi_dot0.shape != phi0.shape:
             raise ResearchConfigurationError("Initial phi_dot must have exactly the phi shape.")
@@ -260,7 +259,7 @@ def _domain_wall_initial(config: dict):
         spacings=config["generated_spacings"],
         origins=config["generated_origins"],
     )
-    if grid.ndim != 1:
+    if len(grid.shape) != 1:
         raise ResearchConfigurationError("The public domain-wall reference requires a one-dimensional grid.")
     phi0 = domain_wall_initial_field(
         x=grid.axes[0],
@@ -282,6 +281,8 @@ def _domain_wall_initial(config: dict):
 def _vortex_initial(analysis: Analysis, config: dict):
     version = _dataset_for(analysis, config.get("source_id"))
     keys = [config["vortex_x_key"], config["vortex_y_key"], config["radial_profile_key"]]
+    if config.get("initial_velocity_mode") == "NPZ_ARRAY":
+        keys.append(config["phi_dot_key"])
     arrays = load_npz_arrays(version, keys)
     x = np.asarray(arrays[config["vortex_x_key"]])
     y = np.asarray(arrays[config["vortex_y_key"]])
@@ -299,6 +300,11 @@ def _vortex_initial(analysis: Analysis, config: dict):
         lambda_=config["lambda"],
         mu=config["mu"],
     )
+    phi_dot0 = None
+    if config.get("initial_velocity_mode") == "NPZ_ARRAY":
+        phi_dot0 = np.asarray(arrays[config["phi_dot_key"]])
+        if phi_dot0.shape != phi0.shape:
+            raise ResearchConfigurationError("Initial phi_dot must have exactly the vortex phi shape.")
     source = {
         "kind": "AGENCITYLAB_VORTEX_FROM_SUPPLIED_PROFILE",
         "dataset_version_id": str(version.pk),
@@ -308,9 +314,10 @@ def _vortex_initial(analysis: Analysis, config: dict):
         "x_key": config["vortex_x_key"],
         "y_key": config["vortex_y_key"],
         "winding": config["vortex_winding"],
+        "phi_dot_key": config.get("phi_dot_key") or None,
         "note": "The radial profile is user supplied; Studio does not invent a vortex profile formula.",
     }
-    return np.asarray(phi0), None, tuple(grid.axes), source
+    return np.asarray(phi0), phi_dot0, tuple(grid.axes), source
 
 
 def _materialize_initial(analysis: Analysis, config: dict):
@@ -326,11 +333,21 @@ def _materialize_initial(analysis: Analysis, config: dict):
     else:
         raise ResearchConfigurationError("Unsupported Research initial-condition mode.")
 
-    if config["model"] != MODEL_TDGL and phi_dot0 is None:
-        phi_dot0 = _zero_velocity(phi0)
-        source["phi_dot_initialization"] = "EXPLICIT_ZERO_VELOCITY_CONVENTION"
+    velocity_mode = config.get("initial_velocity_mode")
     if config["model"] == MODEL_TDGL:
         phi_dot0 = None
+        source["phi_dot_initialization"] = "NOT_USED_BY_TDGL"
+    elif velocity_mode == "ZERO":
+        phi_dot0 = _zero_velocity(phi0)
+        source["phi_dot_initialization"] = "USER_SELECTED_EXPLICIT_ZERO"
+    elif velocity_mode == "NPZ_ARRAY":
+        if phi_dot0 is None:
+            raise ResearchConfigurationError(
+                "The selected NPZ initial-velocity mode did not materialize an exact phi_dot array."
+            )
+        source["phi_dot_initialization"] = "PINNED_NPZ_ARRAY"
+    else:
+        raise ResearchConfigurationError("Second-order Research dynamics require an explicit initial velocity mode.")
     if not np.all(np.isfinite(phi0)):
         raise ResearchConfigurationError("Initial phi must contain only finite values.")
     if phi_dot0 is not None and not np.all(np.isfinite(phi_dot0)):
@@ -423,6 +440,7 @@ def research_field_review_snapshot(analysis: Analysis) -> dict:
 def _initial_descriptor(snapshot: dict) -> dict:
     return {
         "mode": snapshot["config"]["initial_mode"],
+        "velocity_mode": snapshot["config"]["initial_velocity_mode"],
         "source": snapshot["source"],
         "field_shape": snapshot["field_shape"],
         "phi_dtype": snapshot["phi_dtype"],
@@ -484,6 +502,7 @@ def queue_research_field_run(*, actor, analysis: Analysis) -> AnalysisRun:
         "model": config["model"],
         "public_function": snapshot["public_function"],
         "initial_mode": config["initial_mode"],
+        "initial_velocity_mode": config["initial_velocity_mode"],
         "units_convention": config["units_convention"],
         "boundary": {
             "kind": config["boundary_kind"],
@@ -537,7 +556,7 @@ def queue_research_field_run(*, actor, analysis: Analysis) -> AnalysisRun:
         created_by=actor,
         queued_at=timezone.now(),
     )
-    artifact_id = __import__("uuid").uuid4()
+    artifact_id = uuid.uuid4()
     stored_path = None
     try:
         stored_path = write_research_input(serialized=serialized_input, run=run, artifact_id=artifact_id)
@@ -583,6 +602,7 @@ def rerun_research_field(*, actor, run: AnalysisRun) -> AnalysisRun:
     if hashlib.sha256(data).hexdigest() != source_artifact.sha256:
         raise ValidationError(_("The immutable RESEARCH input artifact failed SHA-256 verification."))
 
+    software = software_context()
     new_run = AnalysisRun.objects.create(
         analysis=locked_analysis,
         run_number=_next_run_number(locked_analysis),
@@ -594,15 +614,18 @@ def rerun_research_field(*, actor, run: AnalysisRun) -> AnalysisRun:
         parameter_snapshot=run.parameter_snapshot,
         analysis_options=run.analysis_options,
         agencitylab_version=run.agencitylab_version,
-        studio_version=software_context()["studio_version"],
-        python_version=software_context()["python_version"],
+        studio_version=software["studio_version"],
+        python_version=software["python_version"],
         execution_fingerprint=run.execution_fingerprint,
         warnings=list(run.warnings),
         created_by=actor,
         queued_at=timezone.now(),
     )
-    artifact_id = __import__("uuid").uuid4()
-    path = f"analyses/{new_run.analysis.project_id}/{new_run.analysis_id}/{new_run.pk}/{artifact_id}/research-field-input.zip"
+    artifact_id = uuid.uuid4()
+    path = (
+        f"analyses/{new_run.analysis.project_id}/{new_run.analysis_id}/{new_run.pk}/"
+        f"{artifact_id}/research-field-input.zip"
+    )
     stored_path, size, digest = storage.save_atomic(path, data)
     if size != len(data) or digest != source_artifact.sha256:
         storage.delete(stored_path)
