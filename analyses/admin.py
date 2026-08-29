@@ -7,6 +7,7 @@ from .models import (
     AnalysisRunComponent,
     DiagnosticResultArtifact,
     DiagnosticRun,
+    ResearchFieldInputArtifact,
     RunStatus,
 )
 
@@ -39,6 +40,22 @@ class AnalysisRunAdmin(admin.ModelAdmin):
         return scientific
 
     def has_add_permission(self, request):
+        return False
+
+
+@admin.register(ResearchFieldInputArtifact)
+class ResearchFieldInputArtifactAdmin(admin.ModelAdmin):
+    list_display = ("run", "format", "schema_version", "size_bytes", "created_at")
+    search_fields = ("run__id", "run__analysis__name", "sha256", "storage_path")
+    readonly_fields = (
+        "id", "run", "storage_path", "format", "schema_version", "sha256", "size_bytes",
+        "manifest", "created_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
         return False
 
 
