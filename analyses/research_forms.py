@@ -49,6 +49,12 @@ class ResearchFieldStartForm(forms.Form):
 class ResearchFieldConfigurationForm(forms.Form):
     model = forms.ChoiceField(choices=MODEL_CHOICES, label=_("Autonomous field model"))
     initial_mode = forms.ChoiceField(choices=INITIAL_CHOICES, label=_("Initial condition source"))
+    initial_velocity_mode = forms.ChoiceField(
+        choices=(("ZERO", _("Explicit zero phi_dot")), ("NPZ_ARRAY", _("Pinned NPZ phi_dot array"))),
+        initial="ZERO",
+        label=_("Initial velocity for second-order models"),
+        help_text=_("TDGL does not use phi_dot. For Klein-Gordon models choose the initial velocity explicitly."),
+    )
 
     source = forms.ModelChoiceField(
         queryset=DatasetVersion.objects.none(), required=False, label=_("Pinned NPZ source")
@@ -75,12 +81,8 @@ class ResearchFieldConfigurationForm(forms.Form):
         label=_("Generated grid shape"),
         help_text=_("Comma-separated point counts. Domain wall is 1D."),
     )
-    generated_spacings = forms.CharField(
-        required=False, label=_("Generated grid spacings")
-    )
-    generated_origins = forms.CharField(
-        required=False, label=_("Generated grid origins")
-    )
+    generated_spacings = forms.CharField(required=False, label=_("Generated grid spacings"))
+    generated_origins = forms.CharField(required=False, label=_("Generated grid origins"))
     domain_wall_center = forms.FloatField(required=False, initial=0.0, label=_("Domain-wall center"))
     domain_wall_orientation = forms.ChoiceField(
         required=False,
@@ -95,9 +97,9 @@ class ResearchFieldConfigurationForm(forms.Form):
 
     lambda_ = forms.FloatField(label=_("lambda model parameter"))
     lambda_origin = forms.CharField(label=_("lambda provenance"))
-    mu = forms.FloatField(min_value=0.0, label=_("mu model parameter"))
+    mu = forms.FloatField(label=_("mu model parameter"))
     mu_origin = forms.CharField(label=_("mu provenance"))
-    gamma = forms.FloatField(required=False, min_value=0.0, label=_("Gamma model parameter"))
+    gamma = forms.FloatField(required=False, label=_("Gamma model parameter"))
     gamma_origin = forms.CharField(required=False, label=_("Gamma provenance"))
     units_convention = forms.ChoiceField(
         choices=(("dimensionless", _("Dimensionless")), ("natural_units", _("Natural units"))),
@@ -107,7 +109,7 @@ class ResearchFieldConfigurationForm(forms.Form):
     boundary_kind = forms.ChoiceField(choices=BOUNDARY_CHOICES, label=_("Boundary condition"))
     boundary_value_real = forms.FloatField(required=False, initial=0.0, label=_("Boundary value / gradient (real)"))
     boundary_value_imag = forms.FloatField(required=False, initial=0.0, label=_("Boundary value / gradient (imaginary)"))
-    dt_solver = forms.FloatField(min_value=0.0, label=_("Numerical dt_solver"))
+    dt_solver = forms.FloatField(label=_("Numerical dt_solver"))
     n_steps = forms.IntegerField(min_value=1, label=_("Numerical integration steps"))
 
     topology_contour_indices = forms.CharField(
@@ -115,9 +117,7 @@ class ResearchFieldConfigurationForm(forms.Form):
         label=_("Ordered topology contour flat indices"),
         help_text=_("Optional comma-separated indices. AgencityLab evaluates phase_winding; Studio does not detect a contour."),
     )
-    thermo_t_eff = forms.FloatField(
-        required=False, min_value=0.0, label=_("Thermodynamic T_eff")
-    )
+    thermo_t_eff = forms.FloatField(required=False, label=_("Thermodynamic T_eff"))
     thermo_entropy_a = forms.FloatField(required=False, label=_("Field entropy coefficient a"))
 
     def __init__(self, *args, project, **kwargs):
@@ -154,13 +154,14 @@ class ResearchFieldConfigurationForm(forms.Form):
         data = super().clean()
         mode = data.get("initial_mode")
         model = data.get("model")
+        velocity_mode = data.get("initial_velocity_mode")
         if data.get("mu") is not None and data["mu"] <= 0.0:
             self.add_error("mu", _("mu must be strictly positive."))
         if data.get("dt_solver") is not None and data["dt_solver"] <= 0.0:
             self.add_error("dt_solver", _("dt_solver must be strictly positive."))
         if model in {MODEL_DISSIPATIVE_KLEIN_GORDON, MODEL_TDGL}:
-            if data.get("gamma") is None:
-                self.add_error("gamma", _("This public Lab model requires Gamma."))
+            if data.get("gamma") is None or data["gamma"] < 0.0:
+                self.add_error("gamma", _("This public Lab model requires finite Gamma >= 0."))
             if not str(data.get("gamma_origin") or "").strip():
                 self.add_error("gamma_origin", _("Gamma provenance is required."))
 
@@ -183,6 +184,20 @@ class ResearchFieldConfigurationForm(forms.Form):
                     self.add_error(name, _("This field is required for the Lab vortex constructor."))
             if data.get("vortex_winding") is None:
                 self.add_error("vortex_winding", _("Vortex winding is required."))
+
+        if model != MODEL_TDGL:
+            if velocity_mode == "NPZ_ARRAY":
+                if mode not in {INITIAL_NPZ, INITIAL_VORTEX_PROFILE}:
+                    self.add_error(
+                        "initial_velocity_mode",
+                        _("Pinned NPZ phi_dot is available only when the initial source is an NPZ artifact."),
+                    )
+                if not str(data.get("phi_dot_key") or "").strip():
+                    self.add_error("phi_dot_key", _("Select the exact phi_dot array for NPZ velocity mode."))
+            elif velocity_mode != "ZERO":
+                self.add_error("initial_velocity_mode", _("Choose an explicit initial velocity mode."))
+        elif data.get("phi_dot_key"):
+            self.add_error("phi_dot_key", _("TDGL does not consume phi_dot."))
 
         try:
             if str(data.get("spatial_axis_keys") or "").strip():
