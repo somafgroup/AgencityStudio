@@ -68,7 +68,11 @@ urlpatterns = [
     path("analyses/<uuid:analysis_id>/archive/", views.analysis_archive, name="archive"),
     path("analyses/<uuid:analysis_id>/restore/", views.analysis_restore, name="restore"),
     path("analyses/<uuid:analysis_id>/delete/", views.analysis_delete, name="delete"),
-    path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/", views.run_detail, name="run-detail"),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/",
+        research_views.run_detail_dispatch,
+        name="run-detail",
+    ),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/status/", views.run_status, name="run-status"),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/cancel/", views.run_cancel, name="run-cancel"),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/rerun/", views.run_rerun, name="run-rerun"),
