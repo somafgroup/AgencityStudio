@@ -1,5 +1,4 @@
 import ast
-import re
 from pathlib import Path
 
 from labbridge.contracts import compatibility
@@ -12,7 +11,11 @@ RUNTIME_VERSION_GUARD_FILES = (
     "analyses/diagnostic_services.py",
     "sensitivity/services.py",
 )
-SEMVER_PATTERN = re.compile(r"(?<!\d)\d+\.\d+\.\d+(?!\d)")
+
+
+def _is_semver_literal(value: str) -> bool:
+    parts = value.split(".")
+    return len(parts) == 3 and all(part.isdigit() for part in parts)
 
 
 def test_pinned_agencitylab_public_api_is_available():
@@ -41,7 +44,7 @@ def test_runtime_lab_version_guards_use_central_supported_version():
             if (
                 isinstance(node, ast.Constant)
                 and isinstance(node.value, str)
-                and SEMVER_PATTERN.search(node.value)
+                and _is_semver_literal(node.value)
             ):
                 offenders.append(f"{relative_path}:{node.lineno}: {node.value!r}")
 
