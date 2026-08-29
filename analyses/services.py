@@ -16,7 +16,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from datasets.models import DatasetVersion, PreparedDataArtifact
-from labbridge.service import get_lab_version
+from labbridge.service import SUPPORTED_AGENCITYLAB_VERSION, get_lab_version
 from projects.models import ProjectActivity
 from systems.models import ObservableDefinition, SystemRevision
 from workspaces.permissions import (
@@ -315,9 +315,10 @@ def queue_analysis_run(*, actor, analysis: Analysis) -> AnalysisRun:
         tau=params["tau"]["value"],
     )
     context = software_context()
-    if context["agencitylab_version"] != "1.1.3":
+    if context["agencitylab_version"] != SUPPORTED_AGENCITYLAB_VERSION:
         raise ValidationError(
-            _("AgencityLab 1.1.3 is required for this Analysis contract.")
+            _("AgencityLab %(version)s is required for this Analysis contract.")
+            % {"version": SUPPORTED_AGENCITYLAB_VERSION}
         )
     mapping = _mapping_snapshot(
         coordinate=snapshot["coordinate"],
