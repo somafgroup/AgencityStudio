@@ -10,7 +10,6 @@ Plan.
 
 from copy import deepcopy
 
-
 SUPPORTED = "SUPPORTED"
 UNAVAILABLE = "UNAVAILABLE"
 OUT_OF_SCOPE = "OUT_OF_SCOPE"
