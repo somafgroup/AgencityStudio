@@ -138,6 +138,12 @@ FIELD_MAX_UNCOMPRESSED_BYTES = int(
     os.getenv("FIELD_MAX_UNCOMPRESSED_BYTES", str(512 * 1024 * 1024))
 )
 FIELD_MAX_DISPLAY_POINTS = int(os.getenv("FIELD_MAX_DISPLAY_POINTS", "12000"))
+RESEARCH_FIELD_MAX_ELEMENTS = int(os.getenv("RESEARCH_FIELD_MAX_ELEMENTS", "250000"))
+RESEARCH_FIELD_MAX_STEPS = int(os.getenv("RESEARCH_FIELD_MAX_STEPS", "20000"))
+RESEARCH_FIELD_MAX_OUTPUT_BYTES = int(
+    os.getenv("RESEARCH_FIELD_MAX_OUTPUT_BYTES", str(512 * 1024 * 1024))
+)
+RESEARCH_FIELD_MAX_DISPLAY_POINTS = int(os.getenv("RESEARCH_FIELD_MAX_DISPLAY_POINTS", "12000"))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(2_621_440)))
 if DATASET_MAX_UPLOAD_BYTES <= 0 or DATASET_MAX_PASTE_BYTES <= 0:
     raise ImproperlyConfigured("Dataset upload limits must be positive integers.")
@@ -157,6 +163,13 @@ if (
     or FIELD_MAX_DISPLAY_POINTS <= 1
 ):
     raise ImproperlyConfigured("Observable field operational limits must be positive integers.")
+if (
+    RESEARCH_FIELD_MAX_ELEMENTS <= 0
+    or RESEARCH_FIELD_MAX_STEPS <= 0
+    or RESEARCH_FIELD_MAX_OUTPUT_BYTES <= 0
+    or RESEARCH_FIELD_MAX_DISPLAY_POINTS <= 1
+):
+    raise ImproperlyConfigured("Research field operational limits must be positive integers.")
 
 LANGUAGE_CODE = "en"
 LANGUAGES = [("en", "English"), ("fr", "Français")]
