@@ -330,8 +330,8 @@ def queue_observable_field_run(*, actor, analysis: Analysis) -> AnalysisRun:
         raise ValidationError(_("Restore the Analysis before running it."))
     snapshot = _review(locked, actor=actor)
     context = software_context()
-    if context["agencitylab_version"] != "1.1.3":
-        raise ValidationError(_("AgencityLab 1.1.3 is required for this field Analysis contract."))
+    if context["agencitylab_version"] != "1.2.0":
+        raise ValidationError(_("AgencityLab 1.2.0 is required for this field Analysis contract."))
     source_snapshot = _source_snapshot(snapshot["version"])
     options = {
         "public_function": FIELD_PUBLIC_FUNCTION,
