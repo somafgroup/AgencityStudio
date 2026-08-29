@@ -8,7 +8,7 @@ from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
 from types import ModuleType
 
-SUPPORTED_AGENCITYLAB_VERSION = "1.1.3"
+SUPPORTED_AGENCITYLAB_VERSION = "1.2.0"
 
 
 def get_lab_version() -> str:
