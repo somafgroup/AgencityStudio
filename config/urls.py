@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.contrib.auth.decorators import login_required
 from django.urls import include, path
 
-from analyses import research_views
 from analyses import views as analysis_views
 from common import views
 from datasets import views as dataset_views
@@ -19,10 +18,6 @@ urlpatterns = [
     path("workspaces/", include("workspaces.urls")),
     path("datasets/", dataset_views.dataset_list, name="datasets"),
     path("analyses/", analysis_views.global_analysis_list, name="analyses"),
-    path(
-        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/",
-        research_views.run_detail_dispatch,
-    ),
     path("", include("datasets.urls")),
     path("", include("systems.urls")),
     path("", include("analyses.urls")),
