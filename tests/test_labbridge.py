@@ -1,5 +1,5 @@
 from labbridge.contracts import compatibility
-from labbridge.service import SUPPORTED_AGENCITYLAB_VERSION, public_api
+from labbridge.service import public_api, SUPPORTED_AGENCITYLAB_VERSION
 
 
 RUNTIME_VERSION_GUARD_MODULES = (
