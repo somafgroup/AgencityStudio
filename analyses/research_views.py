@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 
 from workspaces.permissions import can_create_analysis, can_edit_analysis, can_run_analysis
 
+from . import views as base_views
 from .models import AnalysisKind, AnalysisResultArtifact, RunStatus
 from .research_forms import ResearchFieldConfigurationForm, ResearchFieldStartForm
 from .research_services import (
@@ -109,9 +110,15 @@ def research_field_review(request, analysis_id):
 
 
 @login_required
-def research_field_run_detail(request, analysis_id, run_id):
-    """Optional dedicated RESEARCH run rendering for callers that want it explicitly."""
+def run_detail_dispatch(request, analysis_id, run_id):
+    analysis, _run = _run_or_404(request.user, analysis_id, run_id)
+    if analysis.analysis_kind == AnalysisKind.RESEARCH_FIELD:
+        return research_field_run_detail(request, analysis_id, run_id)
+    return base_views.run_detail(request, analysis_id, run_id)
 
+
+@login_required
+def research_field_run_detail(request, analysis_id, run_id):
     analysis, run = _run_or_404(request.user, analysis_id, run_id)
     if analysis.analysis_kind != AnalysisKind.RESEARCH_FIELD:
         raise Http404
