@@ -68,10 +68,10 @@ class Migration(migrations.Migration):
             model_name="analysisrun",
             constraint=models.CheckConstraint(
                 condition=(
-                    models.Q(
-                        source_type="RESEARCH_FIELD_INPUT",
-                        source_dataset_version__isnull=True,
-                        source_prepared_artifact__isnull=True,
+                    (
+                        models.Q(source_type="RESEARCH_FIELD_INPUT")
+                        & models.Q(source_dataset_version__isnull=True)
+                        & models.Q(source_prepared_artifact__isnull=True)
                     )
                     | (
                         ~models.Q(source_type="RESEARCH_FIELD_INPUT")
