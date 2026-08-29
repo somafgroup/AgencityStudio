@@ -8,8 +8,6 @@ capability is public but belongs to a different scientific layer or a future
 Plan.
 """
 
-from __future__ import annotations
-
 from copy import deepcopy
 
 
