@@ -1,7 +1,5 @@
 """Private display-only endpoints for immutable autonomous RESEARCH field results."""
 
-from __future__ import annotations
-
 import math
 
 import numpy as np
@@ -48,7 +46,7 @@ def _sections(manifest: dict):
 
 def _indices(value: str) -> tuple[int, ...]:
     if not str(value or "").strip():
-        return tuple()
+        return ()
     try:
         return tuple(int(item.strip()) for item in str(value).split(",") if item.strip())
     except ValueError as exc:
@@ -320,7 +318,7 @@ def research_trace(request, analysis_id, run_id):
         {
             "spatial_index": list(spatial),
             "display_only": True,
-            "exact_sample_count": int(len(times)),
+            "exact_sample_count": len(times),
             "indices": shown.tolist(),
             "time": np.asarray(times)[shown].tolist(),
             "phi": {
