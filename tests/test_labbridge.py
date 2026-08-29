@@ -1,7 +1,6 @@
 from labbridge.contracts import compatibility
 from labbridge.service import SUPPORTED_AGENCITYLAB_VERSION, public_api
 
-
 RUNTIME_VERSION_GUARD_MODULES = (
     "analyses.services",
     "analyses.multivariate_services",
