@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 
 from workspaces.permissions import can_create_analysis, can_edit_analysis, can_run_analysis
 
+from .models import AnalysisKind, AnalysisResultArtifact, RunStatus
 from .research_forms import ResearchFieldConfigurationForm, ResearchFieldStartForm
 from .research_services import (
     ResearchConfigurationError,
@@ -19,6 +20,7 @@ from .research_services import (
     research_field_review_snapshot,
 )
 from .services import get_analysis_or_404
+from .storage import analysis_storage
 from .views import _analysis_context, _membership_project, _run_or_404
 
 
@@ -57,6 +59,8 @@ def research_field_create(request, workspace_slug, project_id, project_slug):
 @login_required
 def research_field_configure(request, analysis_id):
     analysis = get_analysis_or_404(user=request.user, analysis_id=analysis_id)
+    if analysis.analysis_kind != AnalysisKind.RESEARCH_FIELD:
+        raise Http404
     if not can_edit_analysis(request.user, analysis):
         raise PermissionDenied
     form = ResearchFieldConfigurationForm(
@@ -84,6 +88,8 @@ def research_field_configure(request, analysis_id):
 @login_required
 def research_field_review(request, analysis_id):
     analysis = get_analysis_or_404(user=request.user, analysis_id=analysis_id)
+    if analysis.analysis_kind != AnalysisKind.RESEARCH_FIELD:
+        raise Http404
     try:
         snapshot = research_field_review_snapshot(analysis)
     except (ValidationError, ResearchConfigurationError, ValueError) as exc:
@@ -97,7 +103,7 @@ def research_field_review(request, analysis_id):
         except (ValidationError, ResearchConfigurationError, OSError) as exc:
             messages.error(request, str(exc))
         else:
-            return redirect("analysis:run-detail", analysis_id=analysis.pk, run_id=run.pk)
+            return redirect("analysis:research-run-detail", analysis_id=analysis.pk, run_id=run.pk)
     return render(
         request,
         "analyses/research_review.html",
@@ -106,13 +112,46 @@ def research_field_review(request, analysis_id):
 
 
 @login_required
+def research_field_run_detail(request, analysis_id, run_id):
+    analysis, run = _run_or_404(request.user, analysis_id, run_id)
+    if analysis.analysis_kind != AnalysisKind.RESEARCH_FIELD:
+        raise Http404
+    artifact = None
+    input_artifact = None
+    artifact_available = False
+    input_available = False
+    if hasattr(run, "research_input_artifact"):
+        input_artifact = run.research_input_artifact
+        input_available = analysis_storage().exists(input_artifact.storage_path)
+    if run.status == RunStatus.COMPLETED:
+        artifact = AnalysisResultArtifact.objects.filter(run=run).first()
+        if artifact is not None:
+            artifact_available = analysis_storage().exists(artifact.storage_path)
+    return render(
+        request,
+        "analyses/research_run_detail.html",
+        _analysis_context(
+            request,
+            analysis,
+            run=run,
+            artifact=artifact,
+            input_artifact=input_artifact,
+            artifact_available=artifact_available,
+            input_available=input_available,
+        ),
+    )
+
+
+@login_required
 def research_field_rerun(request, analysis_id, run_id):
     analysis, run = _run_or_404(request.user, analysis_id, run_id)
+    if analysis.analysis_kind != AnalysisKind.RESEARCH_FIELD:
+        raise Http404
     if request.method != "POST":
         raise Http404
     try:
         new_run = rerun_research_field(actor=request.user, run=run)
     except (ValidationError, ResearchConfigurationError, OSError) as exc:
         messages.error(request, str(exc))
-        return redirect("analysis:run-detail", analysis_id=analysis.pk, run_id=run.pk)
-    return redirect("analysis:run-detail", analysis_id=analysis.pk, run_id=new_run.pk)
+        return redirect("analysis:research-run-detail", analysis_id=analysis.pk, run_id=run.pk)
+    return redirect("analysis:research-run-detail", analysis_id=analysis.pk, run_id=new_run.pk)
