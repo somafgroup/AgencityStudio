@@ -49,6 +49,17 @@ class Migration(migrations.Migration):
                 to="systems.systemrevision",
             ),
         ),
+        migrations.AlterField(
+            model_name="analysisrun",
+            name="system_observable",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="analysis_runs",
+                to="systems.observabledefinition",
+            ),
+        ),
         migrations.RemoveConstraint(
             model_name="analysisrun",
             name="analysis_run_exactly_one_source",
