@@ -246,7 +246,7 @@ class ResearchFieldInputArtifact(models.Model):
     )
     storage_path = models.CharField(max_length=600, unique=True)
     format = models.CharField(max_length=32, default="ZIP_NPY_JSON")
-    schema_version = models.CharField(max_length=16, default="research-input-v1")
+    schema_version = models.CharField(max_length=32, default="research-input-v1")
     sha256 = models.CharField(max_length=64)
     size_bytes = models.BigIntegerField()
     manifest = models.JSONField(default=dict)
