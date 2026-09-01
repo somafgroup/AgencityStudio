@@ -60,6 +60,11 @@ class Migration(migrations.Migration):
                 to="systems.observabledefinition",
             ),
         ),
+        migrations.AlterField(
+            model_name="analysisresultartifact",
+            name="schema_version",
+            field=models.CharField(default="1", max_length=32),
+        ),
         migrations.RemoveConstraint(
             model_name="analysisrun",
             name="analysis_run_exactly_one_source",
