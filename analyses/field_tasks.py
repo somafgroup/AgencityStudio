@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 def _locked(run_id):
     return (
         AnalysisRun.objects.select_for_update()
-        .select_related("analysis", "analysis__project", "system_revision")
+        .select_related("analysis", "analysis__project")
         .get(pk=run_id)
     )
 
