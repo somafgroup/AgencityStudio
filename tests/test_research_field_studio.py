@@ -171,7 +171,7 @@ def test_research_resource_limit_rejects_without_silent_truncation():
     owner = _owner("research-limit@example.test")
     _workspace, project = _project(owner, "Research Limit Lab")
     analysis = create_research_field_analysis(actor=owner, project=project, name="Too long", description="")
-    with pytest.raises(ValidationError, match="instance limit is 2"):
+    with pytest.raises(ValidationError, match="instance limit = 2"):
         configure_research_field_analysis(
             actor=owner,
             analysis=analysis,
@@ -215,7 +215,7 @@ def test_research_review_freezes_numerical_method_separately_from_tau_and_w():
     owner = _owner("research-review@example.test")
     _workspace, project = _project(owner, "Research Review Lab")
     analysis = create_research_field_analysis(actor=owner, project=project, name="Review", description="")
-    configure_research_field_analysis(actor=owner, analysis=analysis, values=_configuration())
+    analysis = configure_research_field_analysis(actor=owner, analysis=analysis, values=_configuration())
     snapshot = research_field_review_snapshot(analysis)
     assert snapshot["config"]["dt_solver"] == 0.01
     assert snapshot["config"]["n_steps"] == 4
