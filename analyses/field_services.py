@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 
 from datasets.field_source import field_inventory, is_field_source
 from datasets.models import DatasetImportStatus, DatasetVersion
+from labbridge.service import SUPPORTED_AGENCITYLAB_VERSION
 from projects.models import ProjectActivity
 from systems.models import MemoryWindowMode, ObservableDefinition, SystemRevision
 from workspaces.permissions import can_edit_analysis, can_run_analysis
@@ -330,8 +331,11 @@ def queue_observable_field_run(*, actor, analysis: Analysis) -> AnalysisRun:
         raise ValidationError(_("Restore the Analysis before running it."))
     snapshot = _review(locked, actor=actor)
     context = software_context()
-    if context["agencitylab_version"] != "1.2.0":
-        raise ValidationError(_("AgencityLab 1.2.0 is required for this field Analysis contract."))
+    if context["agencitylab_version"] != SUPPORTED_AGENCITYLAB_VERSION:
+        raise ValidationError(
+            _("AgencityLab %(version)s is required for this field Analysis contract.")
+            % {"version": SUPPORTED_AGENCITYLAB_VERSION}
+        )
     source_snapshot = _source_snapshot(snapshot["version"])
     options = {
         "public_function": FIELD_PUBLIC_FUNCTION,
