@@ -5,6 +5,8 @@ RUNTIME_VERSION_GUARD_MODULES = (
     "analyses.services",
     "analyses.multivariate_services",
     "analyses.diagnostic_services",
+    "analyses.field_services",
+    "analyses.research_services",
     "sensitivity.services",
 )
 
