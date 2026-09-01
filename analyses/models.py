@@ -328,7 +328,7 @@ class AnalysisResultArtifact(models.Model):
     run = models.OneToOneField(AnalysisRun, on_delete=models.CASCADE, related_name="result_artifact")
     storage_path = models.CharField(max_length=600, unique=True)
     format = models.CharField(max_length=32, default="ZIP_NPY_JSON")
-    schema_version = models.CharField(max_length=16, default="1")
+    schema_version = models.CharField(max_length=32, default="1")
     sha256 = models.CharField(max_length=64)
     size_bytes = models.BigIntegerField()
     manifest = models.JSONField(default=dict)
