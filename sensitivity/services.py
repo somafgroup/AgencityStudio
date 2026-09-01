@@ -188,7 +188,6 @@ def queue_sensitivity_study(*, actor, run: AnalysisRun, configuration: dict) -> 
             "analysis",
             "analysis__project",
             "analysis__project__workspace",
-            "system_revision",
         )
         .get(pk=run.pk)
     )
