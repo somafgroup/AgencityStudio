@@ -34,6 +34,14 @@ def _fixture():
     return x, phi0, phi_dot0
 
 
+def _numerical_fixture(model: str) -> tuple[float, int]:
+    # The equivalence test uses an explicit conservative TDGL integration fixture
+    # already exercised by the public Lab API; Studio's adapter remains unchanged.
+    if model == "TDGL":
+        return 0.002, 2
+    return 0.01, 5
+
+
 def _direct(model="KLEIN_GORDON", *, boundary_kind="DIRICHLET", boundary_value=0.0):
     x, phi0, phi_dot0 = _fixture()
     fields = public_fields_api()
@@ -45,11 +53,12 @@ def _direct(model="KLEIN_GORDON", *, boundary_kind="DIRICHLET", boundary_value=0
         boundary = fields.PeriodicBoundary()
     else:
         boundary = fields.NeumannBoundary(gradient=boundary_value)
+    dt_solver, n_steps = _numerical_fixture(model)
     kwargs = {
         "grid": grid,
         "potential": potential,
-        "dt": 0.01,
-        "n_steps": 5,
+        "dt": dt_solver,
+        "n_steps": n_steps,
         "boundary": boundary,
         "metadata": {"fixture": "plan13"},
     }
@@ -64,6 +73,7 @@ def _direct(model="KLEIN_GORDON", *, boundary_kind="DIRICHLET", boundary_value=0
 
 def _bridged(model="KLEIN_GORDON", *, boundary_kind="DIRICHLET", boundary_value=0.0):
     x, phi0, phi_dot0 = _fixture()
+    dt_solver, n_steps = _numerical_fixture(model)
     return execute_research_dynamics(
         model=model,
         phi0=phi0,
@@ -72,8 +82,8 @@ def _bridged(model="KLEIN_GORDON", *, boundary_kind="DIRICHLET", boundary_value=
         lambda_=0.7,
         mu=1.1,
         gamma=0.15 if model != "KLEIN_GORDON" else None,
-        dt_solver=0.01,
-        n_steps=5,
+        dt_solver=dt_solver,
+        n_steps=n_steps,
         boundary_kind=boundary_kind,
         boundary_value=boundary_value,
         metadata={"fixture": "plan13"},
