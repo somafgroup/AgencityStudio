@@ -106,7 +106,7 @@ class Migration(migrations.Migration):
                 ("format", models.CharField(default="ZIP_NPY_JSON", max_length=32)),
                 (
                     "schema_version",
-                    models.CharField(default="research-input-v1", max_length=16),
+                    models.CharField(default="research-input-v1", max_length=32),
                 ),
                 ("sha256", models.CharField(max_length=64)),
                 ("size_bytes", models.BigIntegerField()),
