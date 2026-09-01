@@ -22,6 +22,7 @@ from labbridge.research import (
     make_grid,
     vortex_initial_field,
 )
+from labbridge.service import SUPPORTED_AGENCITYLAB_VERSION
 from projects.models import ProjectActivity
 from workspaces.permissions import can_create_analysis, can_edit_analysis, can_run_analysis
 
@@ -45,6 +46,7 @@ from .research_contract import (
     MODEL_TDGL,
     PUBLIC_APIS,
     RESEARCH_ANALYSIS_KIND,
+    RESEARCH_INPUT_SCHEMA_VERSION,
     RESEARCH_SCIENTIFIC_STATUS,
     SCIENTIFIC_DISCLAIMER,
 )
@@ -459,8 +461,11 @@ def queue_research_field_run(*, actor, analysis: Analysis) -> AnalysisRun:
     snapshot = research_field_review_snapshot(locked)
     config = snapshot["config"]
     context = software_context()
-    if context["agencitylab_version"] != "1.2.0":
-        raise ValidationError(_("AgencityLab 1.2.0 is required for the Plan 13 RESEARCH contract."))
+    if context["agencitylab_version"] != SUPPORTED_AGENCITYLAB_VERSION:
+        raise ValidationError(
+            _("AgencityLab %(version)s is required for the Plan 13 RESEARCH contract.")
+            % {"version": SUPPORTED_AGENCITYLAB_VERSION}
+        )
 
     phi0, phi_dot0, axes, source = _materialize_initial(locked, config)
     initial_condition = _initial_descriptor(snapshot)
@@ -495,7 +500,7 @@ def queue_research_field_run(*, actor, analysis: Analysis) -> AnalysisRun:
         "spatial_shape": snapshot["field_shape"],
         "spatial_axes": snapshot["axes"],
         "axis_order_significant": True,
-        "input_schema": "research-input-v1",
+        "input_schema": RESEARCH_INPUT_SCHEMA_VERSION,
     }
     analysis_options = {
         "scientific_status": RESEARCH_SCIENTIFIC_STATUS,
