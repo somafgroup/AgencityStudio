@@ -31,7 +31,6 @@ def _locked(run_id) -> AnalysisRun:
         .select_related(
             "analysis",
             "analysis__project",
-            "system_revision",
         )
         .get(pk=run_id)
     )
