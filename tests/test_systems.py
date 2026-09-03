@@ -7,6 +7,7 @@ from django.db import IntegrityError
 from django.urls import reverse
 
 from labbridge.scientific_context import inspect_public_context_contract
+from labbridge.service import SUPPORTED_AGENCITYLAB_VERSION
 from projects.services import create_project, delete_project
 from systems.models import (
     MemoryWindowMode,
@@ -454,7 +455,7 @@ def test_database_prevents_two_primary_observables_in_one_revision():
 @pytest.mark.django_db
 def test_labbridge_reflects_required_public_context_arguments_without_running_analysis():
     contract = inspect_public_context_contract()
-    assert contract.lab_version == "1.1.3"
+    assert contract.lab_version == SUPPORTED_AGENCITYLAB_VERSION
     assert contract.compatible
     assert {
         "A_ref",

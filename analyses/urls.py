@@ -6,6 +6,8 @@ from . import (
     field_visualization_views,
     multivariate_views,
     multivariate_visualization_views,
+    research_views,
+    research_visualization_views,
     views,
     visualization_views,
 )
@@ -24,6 +26,11 @@ urlpatterns = [
         "workspaces/<slug:workspace_slug>/projects/<uuid:project_id>/<slug:project_slug>/analyses/new/observable-field/",
         field_views.observable_field_create,
         name="field-create",
+    ),
+    path(
+        "workspaces/<slug:workspace_slug>/projects/<uuid:project_id>/<slug:project_slug>/analyses/new/research-field/",
+        research_views.research_field_create,
+        name="research-create",
     ),
     path("analyses/<uuid:analysis_id>/", views.analysis_detail, name="detail"),
     path("analyses/<uuid:analysis_id>/configure/", views.analysis_configure, name="configure"),
@@ -48,10 +55,24 @@ urlpatterns = [
         field_views.observable_field_review,
         name="field-review",
     ),
+    path(
+        "analyses/<uuid:analysis_id>/research-field/configure/",
+        research_views.research_field_configure,
+        name="research-configure",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/research-field/review/",
+        research_views.research_field_review,
+        name="research-review",
+    ),
     path("analyses/<uuid:analysis_id>/archive/", views.analysis_archive, name="archive"),
     path("analyses/<uuid:analysis_id>/restore/", views.analysis_restore, name="restore"),
     path("analyses/<uuid:analysis_id>/delete/", views.analysis_delete, name="delete"),
-    path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/", views.run_detail, name="run-detail"),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/",
+        research_views.run_detail_dispatch,
+        name="run-detail",
+    ),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/status/", views.run_status, name="run-status"),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/cancel/", views.run_cancel, name="run-cancel"),
     path("analyses/<uuid:analysis_id>/runs/<uuid:run_id>/rerun/", views.run_rerun, name="run-rerun"),
@@ -64,6 +85,11 @@ urlpatterns = [
         "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/observable-field/rerun/",
         field_views.observable_field_rerun,
         name="field-rerun",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/research-field/rerun/",
+        research_views.research_field_rerun,
+        name="research-rerun",
     ),
     path(
         "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/results/",
@@ -97,6 +123,42 @@ urlpatterns = [
         "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/observable-field/results/<slug:section>/",
         field_visualization_views.field_workspace,
         name="field-results-section",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/research-field/results/",
+        research_visualization_views.research_workspace,
+        {"section": "overview"},
+        name="research-results",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/research-field/results/<slug:section>/",
+        research_visualization_views.research_workspace,
+        name="research-results-section",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/research-field/manifest/",
+        research_visualization_views.research_manifest,
+        name="research-manifest",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/research-field/slice/",
+        research_visualization_views.research_slice,
+        name="research-slice",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/research-field/point/",
+        research_visualization_views.research_point,
+        name="research-point",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/research-field/trace/",
+        research_visualization_views.research_trace,
+        name="research-trace",
+    ),
+    path(
+        "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/research-field/derived/",
+        research_visualization_views.research_derived,
+        name="research-derived",
     ),
     path(
         "analyses/<uuid:analysis_id>/runs/<uuid:run_id>/observable-field/manifest/",

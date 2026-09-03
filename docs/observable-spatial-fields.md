@@ -2,7 +2,7 @@
 
 **Scientific status: EXPERIMENTAL**
 
-AgencityStudio 0.12 exposes the public AgencityLab 1.1.3 observable-field API without reproducing Agencity equations in Studio.
+AgencityStudio exposes the public AgencityLab 1.2.0 observable-field API without reproducing Agencity equations in Studio. Plan 13 adds a separate RESEARCH autonomous-field workflow, but it does not change this observable-field scientific contract.
 
 ## Public AgencityLab contract
 
@@ -12,7 +12,7 @@ Studio calls only:
 from agencitylab.fields import compute_agencity_field
 ```
 
-The inspected AgencityLab 1.1.3 signature is:
+The inspected AgencityLab 1.2.0 signature is:
 
 ```python
 compute_agencity_field(
@@ -29,11 +29,11 @@ compute_agencity_field(
 ) -> ObservableAgencityFieldResult
 ```
 
-The installed 1.1.3 implementation requires `u` to have at least two non-empty dimensions and finite real values. `t` is a finite one-dimensional array with at least three samples, exactly matches the selected time dimension, and is strictly increasing. `time_axis` accepts NumPy-style negative indices; Studio records the normalized axis in the immutable Run snapshot.
+The implementation requires `u` to have at least two non-empty dimensions and finite real values. `t` is a finite one-dimensional array with at least three samples, exactly matches the selected time dimension, and is strictly increasing. `time_axis` accepts NumPy-style negative indices; Studio records the normalized axis in the immutable Run snapshot.
 
 `spatial_axes=None` is preserved as such when the user selects spatial indices. AgencityLab then represents each spatial dimension by sample indices. With explicit spatial coordinates, exactly one finite strictly monotone one-dimensional coordinate array must be supplied for every spatial dimension, in exact dimension order and with exact lengths.
 
-AgencityLab 1.1.3 supports:
+AgencityLab 1.2.0 supports:
 
 - `A_ref`: scalar or exact spatial shape;
 - `tau`: scalar or exact spatial shape;
@@ -42,9 +42,9 @@ AgencityLab 1.1.3 supports:
 
 `A_ref`, `tau` and explicit `w` values must be strictly positive. `P_c` must be finite and non-negative; local `P_c = 0` is valid.
 
-When Studio submits `w=None`, it submits literal `None`. The inspected AgencityLab 1.1.3 implementation then resolves its effective field internally and records `w_mode = fallback_w_equals_tau`. This is an AgencityLab implementation convention. Studio does not materialize `w=tau` itself.
+When Studio submits `w=None`, it submits literal `None`. AgencityLab resolves its effective field internally and reports the corresponding result metadata. This is an AgencityLab implementation convention. Studio does not materialize `w=tau` itself.
 
-The public result contains `t`, `spatial_axes`, `u`, `u_star`, `X_star`, `A_star`, `M`, `O`, `D`, `S`, `J`, `U`, `beta`, `b`, resolved `A_ref`, `tau`, `w`, `P_c`, `time_axis`, `spatial_shape`, metadata, status, model and backend. Public aliases `beta_obs` and `b_obs` identify the observable field explicitly. AgencityLab 1.1.3 does **not** return a field `theta`; Studio therefore never reconstructs one as `arg(beta_obs)`.
+The public result contains `t`, `spatial_axes`, `u`, `u_star`, `X_star`, `A_star`, `M`, `O`, `D`, `S`, `J`, `U`, `beta`, `b`, resolved `A_ref`, `tau`, `w`, `P_c`, `time_axis`, `spatial_shape`, metadata, status, model and backend. Public aliases `beta_obs` and `b_obs` identify the observable field explicitly. The public result does **not** expose a field `theta`; Studio therefore never reconstructs one as `arg(beta_obs)`.
 
 ## Scientific boundary
 
@@ -76,7 +76,9 @@ No thermodynamics.
 No gravity.
 ```
 
-It also introduces no automatic bridge from `beta_obs` to `phi`. Autonomous-field models and other research extensions belong to a separate future RESEARCH workflow.
+Plan 13 now exposes autonomous Research fields as a **separate** workflow. A completed Observable Field Run still never launches autonomous dynamics automatically and its stored `beta_obs` artifact is never relabelled as `phi`.
+
+AgencityLab 1.2.0 does expose an explicit public Research bridge `beta_to_phi`. Studio exposes that bridge only after the user explicitly chooses **Create/Configure Research Field Study**, selects the exact completed Observable Field Run and time index, reviews the RESEARCH configuration, and queues a distinct immutable Research Run. The bridge output is a new Research initial condition with its own provenance. This does not establish `beta_obs = phi`; it is an explicit research-level mapping defined by the public Lab API.
 
 A non-zero local `beta_obs` or a large `b_obs` is not by itself evidence of coherent or "real" agencity.
 
@@ -171,6 +173,9 @@ Tests compare:
 
 1. direct `compute_agencity_field(...)` with `Studio -> labbridge -> compute_agencity_field(...)` using the same arrays and parameters;
 2. selected field locations with direct public scalar `compute_agencity(...)` on the corresponding temporal trajectory;
-3. serialized complex arrays with the public Lab result after storage and reader round-trip.
+3. serialized complex arrays with the public Lab result after storage and reader round-trip;
+4. when the explicit Research bridge is used, direct public `beta_to_phi(...)` with the separate Studio Research bridge output.
 
 The expected scientific values come from AgencityLab's public APIs, not from duplicated Studio formulas.
+
+See `docs/research-fields.md` for the autonomous Research contract. The distinction remains mandatory: **observable `beta_obs(x,t)` is EXPERIMENTAL; autonomous `phi(x,t)` is RESEARCH; they are not interchangeable.**

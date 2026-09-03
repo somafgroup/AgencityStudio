@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from labbridge.diagnostics import DIAGNOSTIC_PUBLIC_API, REQUIRED_CANONICAL_SERIES
+from labbridge.service import SUPPORTED_AGENCITYLAB_VERSION
 from projects.models import ProjectActivity
 from workspaces.permissions import can_run_diagnostics, can_view_diagnostic_run
 
@@ -86,8 +87,11 @@ def diagnostic_review_snapshot(*, run: AnalysisRun, configuration: dict) -> dict
     if context["agencitylab_version"] != run.agencitylab_version:
         raise ValidationError(
             _("Diagnostics require the same AgencityLab version as the canonical Run."))
-    if context["agencitylab_version"] != "1.1.3":
-        raise ValidationError(_("AgencityLab 1.1.3 is required for the Plan 9 diagnostic contract."))
+    if context["agencitylab_version"] != SUPPORTED_AGENCITYLAB_VERSION:
+        raise ValidationError(
+            _("AgencityLab %(version)s is required for the diagnostic contract.")
+            % {"version": SUPPORTED_AGENCITYLAB_VERSION}
+        )
     return {
         "canonical_run": run,
         "canonical_artifact": artifact,

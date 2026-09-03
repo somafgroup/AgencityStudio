@@ -13,7 +13,7 @@ def test_health_endpoint(client):
 def test_readiness_reports_ready_dependencies(client, monkeypatch):
     monkeypatch.setattr(views, "_database_status", lambda: "available")
     monkeypatch.setattr(views, "_broker_status", lambda: "available")
-    monkeypatch.setattr(views, "get_lab_version", lambda: "1.1.3")
+    monkeypatch.setattr(views, "get_lab_version", lambda: "1.2.0")
     monkeypatch.setattr(views, "lab_is_compatible", lambda: True)
 
     response = client.get(reverse("readiness"))
@@ -22,14 +22,14 @@ def test_readiness_reports_ready_dependencies(client, monkeypatch):
     assert response.json()["status"] == "ready"
     assert response.json()["dependencies"]["agencitylab"] == {
         "status": "compatible",
-        "version": "1.1.3",
+        "version": "1.2.0",
     }
 
 
 def test_readiness_fails_when_broker_is_unavailable(client, monkeypatch):
     monkeypatch.setattr(views, "_database_status", lambda: "available")
     monkeypatch.setattr(views, "_broker_status", lambda: "unavailable")
-    monkeypatch.setattr(views, "get_lab_version", lambda: "1.1.3")
+    monkeypatch.setattr(views, "get_lab_version", lambda: "1.2.0")
     monkeypatch.setattr(views, "lab_is_compatible", lambda: True)
 
     response = client.get(reverse("readiness"))

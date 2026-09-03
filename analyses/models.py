@@ -14,6 +14,8 @@ from django.utils.translation import gettext_lazy as _
 class AnalysisKind(models.TextChoices):
     CANONICAL_SCALAR = "CANONICAL_SCALAR", _("Canonical scalar")
     MULTIVARIATE = "MULTIVARIATE", _("Multivariate Agencity")
+    OBSERVABLE_SPATIAL_FIELD = "OBSERVABLE_SPATIAL_FIELD", _("Observable spatial Agencity field")
+    RESEARCH_FIELD = "RESEARCH_FIELD", _("Research autonomous field")
 
 
 class AnalysisStatus(models.TextChoices):
@@ -32,6 +34,7 @@ class RunStatus(models.TextChoices):
 class SourceType(models.TextChoices):
     RAW_DATASET_VERSION = "RAW_DATASET_VERSION", _("Original Dataset Version")
     PREPARED_DATA = "PREPARED_DATA", _("Prepared Data")
+    RESEARCH_FIELD_INPUT = "RESEARCH_FIELD_INPUT", _("Immutable Research field input")
 
 
 class RunErrorCategory(models.TextChoices):
@@ -139,7 +142,11 @@ class AnalysisRun(models.Model):
     mapping_snapshot = models.JSONField(default=dict)
 
     system_revision = models.ForeignKey(
-        "systems.SystemRevision", on_delete=models.PROTECT, related_name="analysis_runs"
+        "systems.SystemRevision",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="analysis_runs",
     )
     system_observable = models.ForeignKey(
         "systems.ObservableDefinition",
@@ -181,10 +188,26 @@ class AnalysisRun(models.Model):
             models.CheckConstraint(condition=Q(run_number__gt=0), name="analysis_run_number_positive"),
             models.CheckConstraint(
                 condition=(
-                    (Q(source_dataset_version__isnull=False) & Q(source_prepared_artifact__isnull=True))
-                    | (Q(source_dataset_version__isnull=True) & Q(source_prepared_artifact__isnull=False))
+                    (
+                        Q(source_type=SourceType.RESEARCH_FIELD_INPUT)
+                        & Q(source_dataset_version__isnull=True)
+                        & Q(source_prepared_artifact__isnull=True)
+                    )
+                    | (
+                        ~Q(source_type=SourceType.RESEARCH_FIELD_INPUT)
+                        & (
+                            (
+                                Q(source_dataset_version__isnull=False)
+                                & Q(source_prepared_artifact__isnull=True)
+                            )
+                            | (
+                                Q(source_dataset_version__isnull=True)
+                                & Q(source_prepared_artifact__isnull=False)
+                            )
+                        )
+                    )
                 ),
-                name="analysis_run_exactly_one_source",
+                name="analysis_run_source_contract",
             ),
         ]
         indexes = [
@@ -210,6 +233,40 @@ class AnalysisRun(models.Model):
 
     def __str__(self) -> str:
         return f"{self.analysis} · Run {self.run_number}"
+
+
+class ResearchFieldInputArtifact(models.Model):
+    """Private immutable initial state used by one RESEARCH autonomous field Run."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    run = models.OneToOneField(
+        AnalysisRun,
+        on_delete=models.CASCADE,
+        related_name="research_input_artifact",
+    )
+    storage_path = models.CharField(max_length=600, unique=True)
+    format = models.CharField(max_length=32, default="ZIP_NPY_JSON")
+    schema_version = models.CharField(max_length=32, default="research-input-v1")
+    sha256 = models.CharField(max_length=64)
+    size_bytes = models.BigIntegerField()
+    manifest = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(size_bytes__gte=0),
+                name="research_input_size_nonnegative",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.pk and ResearchFieldInputArtifact.objects.filter(pk=self.pk).exists():
+            raise ValidationError(_("Research field input artifacts are immutable."))
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.run} · research initial condition"
 
 
 class AnalysisRunComponent(models.Model):
@@ -271,7 +328,7 @@ class AnalysisResultArtifact(models.Model):
     run = models.OneToOneField(AnalysisRun, on_delete=models.CASCADE, related_name="result_artifact")
     storage_path = models.CharField(max_length=600, unique=True)
     format = models.CharField(max_length=32, default="ZIP_NPY_JSON")
-    schema_version = models.CharField(max_length=16, default="1")
+    schema_version = models.CharField(max_length=32, default="1")
     sha256 = models.CharField(max_length=64)
     size_bytes = models.BigIntegerField()
     manifest = models.JSONField(default=dict)

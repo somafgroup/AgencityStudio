@@ -16,6 +16,7 @@ from projects.models import ProjectActivity
 
 from .field_contract import FIELD_ANALYSIS_KIND
 from .models import AnalysisKind, AnalysisResultArtifact, AnalysisRun, RunErrorCategory, RunStatus
+from .research_contract import RESEARCH_ANALYSIS_KIND
 from .sources import SourceContractError, materialize_vectors
 from .storage import analysis_storage, write_analysis_result
 from .validation import validate_sample_contract
@@ -30,7 +31,6 @@ def _locked(run_id) -> AnalysisRun:
         .select_related(
             "analysis",
             "analysis__project",
-            "system_revision",
         )
         .get(pk=run_id)
     )
@@ -79,6 +79,10 @@ def execute_analysis_run(run_id: str) -> str:
         from .field_tasks import execute_observable_field_run
 
         return execute_observable_field_run(run_id)
+    if kind == RESEARCH_ANALYSIS_KIND:
+        from .research_tasks import execute_research_field_run
+
+        return execute_research_field_run(run_id)
 
     started_clock = time.monotonic()
     with transaction.atomic():

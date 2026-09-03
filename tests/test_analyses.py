@@ -26,7 +26,7 @@ from datasets.models import (
 )
 from datasets.storage import dataset_storage
 from labbridge.execution import execute_canonical_analysis
-from labbridge.service import public_api
+from labbridge.service import SUPPORTED_AGENCITYLAB_VERSION, public_api
 from projects.services import create_project
 from systems.models import MemoryWindowMode, ObservableDefinition, System, SystemRevision
 from workspaces.models import WorkspaceMembership, WorkspaceRole
@@ -246,7 +246,7 @@ def test_raw_run_pins_source_system_executes_lab_and_reads_private_result(tmp_pa
         assert execute_analysis_run(str(run.pk)) == "completed"
         run.refresh_from_db()
         assert run.status == RunStatus.COMPLETED
-        assert run.agencitylab_version == "1.1.3"
+        assert run.agencitylab_version == SUPPORTED_AGENCITYLAB_VERSION
         assert run.result_sha256
         assert AnalysisResultArtifact.objects.filter(run=run).count() == 1
         stored = read_analysis_result(run, verify_hash=True)

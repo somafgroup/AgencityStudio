@@ -13,6 +13,7 @@ from labbridge.multivariate import (
     MULTIVARIATE_PUBLIC_FUNCTION,
     MULTIVARIATE_SCIENTIFIC_STATUS,
 )
+from labbridge.service import SUPPORTED_AGENCITYLAB_VERSION
 from systems.models import ObservableDefinition, SystemRevision
 from workspaces.permissions import can_edit_analysis, can_run_analysis
 
@@ -245,8 +246,11 @@ def queue_multivariate_run(*, actor, analysis: Analysis) -> AnalysisRun:
         component_parameters=[item["parameters"] for item in snapshot["components"]],
     )
     context = software_context()
-    if context["agencitylab_version"] != "1.1.3":
-        raise ValidationError(_("AgencityLab 1.1.3 is required for this Analysis contract."))
+    if context["agencitylab_version"] != SUPPORTED_AGENCITYLAB_VERSION:
+        raise ValidationError(
+            _("AgencityLab %(version)s is required for this Analysis contract.")
+            % {"version": SUPPORTED_AGENCITYLAB_VERSION}
+        )
     mapping = _mapping_snapshot(snapshot)
     source_snapshot = _source_snapshot(snapshot["descriptor"])
     component_fingerprint_payload = [

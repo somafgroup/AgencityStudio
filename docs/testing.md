@@ -100,49 +100,81 @@ The field fixtures cover one- and two-dimensional space, a non-zero `time_axis`,
 
 There is no Studio-side golden field equation. Tests fail if Studio changes axes, reshapes data silently, changes `w=None`, corrupts a map, loses complex dtype/shape, returns the wrong exact cell or leaks a field result across Workspaces.
 
-## Real worker coverage
+## Plan 13 Research-field equivalence
 
-Canonical, diagnostic, sensitivity and observable-field execution are real Celery workloads. The Plan 12 Playwright path exercises a small immutable NPZ field through:
+Plan 13 adds a distinct **RESEARCH** autonomous-field path. Every scientific module integrated by Studio is tested against the same direct public AgencityLab 1.2.0 call.
+
+Autonomous dynamics:
 
 ```text
-AnalysisRun QUEUED
-  -> Redis
-  -> Celery worker
-  -> public compute_agencity_field
-  -> immutable field result artifact
-  -> COMPLETED
+direct agencitylab.fields.simulate_klein_gordon / simulate_dissipative_klein_gordon / simulate_tdgl
+vs
+Studio -> labbridge.research -> same public solver
 ```
 
-Only a Run UUID is sent through Redis. The E2E path then opens the EXPERIMENTAL field workspace, changes the selected time, selects an exact spatial position, inspects the local trace and verifies reproducibility information.
+The tests compare exact `times`, `phi`, optional `phi_dot`, spatial shape/axes, dynamics name, boundary name, scientific status and solver metadata. Boundary mapping covers Periodic, Dirichlet and Neumann public objects and includes a fixture where changing the boundary changes the Lab result.
+
+The explicit observable→autonomous bridge compares direct `agencitylab.fields.beta_to_phi` with Studio's bridge adapter and uses a scale where the result is demonstrably not the original `beta`. This is a regression against any silent `beta_obs = phi` identity.
+
+Coherent-structure initializers compare direct `domain_wall_profile` and `vortex_field` outputs with the Studio adapter. Vortex fixtures provide an explicit radial-profile array because AgencityLab deliberately provides no fake exact profile. These tests cover generation, not defect detection.
+
+Topology compares public `phase_winding` on the exact configured contour. Thermodynamic tests compare direct `total_dissipated_power`, `total_entropy_production` and `field_agencial_entropy` frame by frame. No Studio formula is used to generate expected values.
+
+Blocking Plan 13 regressions include:
+
+- wrong initial `phi_0` or `phi_dot_0`;
+- axis-order or N-D shape corruption;
+- non-uniform grid silently resampled instead of rejected;
+- wrong boundary object/value mapping;
+- wrong model parameter or numerical `dt_solver`/step mapping;
+- silent identity between `beta_obs` and `phi` or automatic Research-run creation;
+- complex dtype/value loss or float downcast;
+- mutation of the immutable Research input, completed Run or result artifact;
+- an unsupported Gravity/effective-beta/quantum/cosmology execution endpoint appearing in Plan 13;
+- private `agencitylab.core` imports;
+- Studio-side `np.gradient`, `np.diff`, `np.roll`, `solve_ivp`, FFT or equivalent hidden field numerics in the Research adapter;
+- cross-Workspace Research data access;
+- resource-limit truncation instead of clear rejection;
+- a failed Lab configuration producing a completed artifact.
+
+Tests also verify capability classification: autonomous dynamics, the explicit bridge, coherent initializers, topology and the selected thermodynamic subset are `SUPPORTED`; Gravity simulation is `UNAVAILABLE`; effective-beta, quantum and cosmology are `OUT_OF_SCOPE` for Plan 13.
+
+## Real worker coverage
+
+Canonical, diagnostic, sensitivity, observable-field and Research-field execution are real Celery workloads. Only stable record UUIDs are sent through Redis.
+
+The Plan 12 Playwright path exercises a small immutable NPZ observable field through `QUEUED -> worker -> public compute_agencity_field -> immutable artifact -> COMPLETED` and then checks the EXPERIMENTAL field workspace.
+
+The Plan 13 Playwright path exercises a small autonomous field through `QUEUED -> Redis -> worker -> public Research solver -> immutable Research result -> COMPLETED`, then checks the visible RESEARCH status, field workspace, exact point and reproducibility provenance. A single representative real-worker Research path is sufficient; every Research model need not be duplicated in browser E2E because direct backend equivalence carries the scientific burden.
 
 Scientific validation/configuration errors are expected to become safe failed records rather than uncontrolled retries.
 
 ## Playwright
 
-Playwright covers user workflows, not every numeric permutation. Backend tests carry the combinatorial burden for roles, dimensions, axis orders and parameter modes. E2E tests intentionally avoid pixel-perfect chart assertions, arbitrary canvas clicks and fixed sleeps.
+Playwright covers user workflows, not every numeric permutation. Backend tests carry the combinatorial burden for roles, dimensions, axis orders, boundary conditions and parameter modes. E2E tests intentionally avoid pixel-perfect chart assertions, arbitrary canvas clicks and fixed sleeps.
 
-## Negative/flat outcomes
+## Negative/flat/unexpected outcomes
 
-A test must not force a positive scientific label or preferred scale simply because a fixture is sinusoidal, stochastic or chaotic.
+A test must not force a positive scientific label, preferred scale, coherent structure or visually attractive Research trajectory merely because a fixture was chosen for demonstration.
 
-Valid outcomes include diagnostic no-detection/unknown states, sensitivity curves that are flat or unexpected, and observable fields whose local `beta_obs` or `b_obs` values do not support any coherence claim.
+Valid outcomes include diagnostic no-detection/unknown states, sensitivity curves that are flat or unexpected, observable fields whose local `beta_obs` or `b_obs` values do not support any coherence claim, and Research fields that are unstable, trivial or structure-free.
 
-Tests must never change `beta`, `J`, `D`, `S`, `Theta`, `tau`, `w`, `A_ref` or `P_c` merely to obtain an attractive classification, spectrum or spatial map.
+Tests must never change canonical equations/parameters or Research equations/model parameters merely to obtain an attractive classification, spectrum, map, domain wall or vortex.
 
 ## Threshold, grid and field-operation tests
 
 Any diagnostic threshold appearing in production code must be traceable to explicit user configuration, a public Lab contract, numerical safety or a test fixture.
 
-Sensitivity grid values are user/study configuration, not theory constants. Field upload/element/display limits are operational guards only. Tests must ensure Studio rejects oversized requests rather than silently truncating scientific data.
+Sensitivity grid values are user/study configuration, not theory constants. Field upload/element/display limits and Research element/step/output limits are operational guards only. Tests must ensure Studio rejects oversized requests rather than silently truncating scientific data.
 
-Plan 12 tests and code review additionally protect the absence of spatial CRM, spatial derivatives, automatic spatial averaging, interpolation, resampling, smoothing, normalization and signal-derived physical parameter maps.
+Plan 12 tests and code review additionally protect the absence of spatial CRM, spatial derivatives, automatic spatial averaging, interpolation, resampling, smoothing, normalization and signal-derived physical parameter maps. Plan 13 protects the absence of duplicated autonomous PDEs, topology equations, thermodynamic equations, gravity equations and browser-side defect detection.
 
 ## Security and isolation
 
-Blocking regressions include cross-Workspace canonical/diagnostic/sensitivity/field result access, Viewer escalation, mismatched pinned hashes, public storage URLs, leaked backend paths and mutation of historical artifacts.
+Blocking regressions include cross-Workspace canonical/diagnostic/sensitivity/observable-field/Research result access, Viewer escalation, mismatched pinned hashes, public storage URLs, leaked backend paths and mutation of historical artifacts. NPY readers use `allow_pickle=False`; object dtype is not a supported scientific artifact format.
 
 ## CI acceptance
 
-Plan 12 is not complete merely because focused tests pass. Required CI must remain healthy through PostgreSQL, Playwright and Docker/Compose readiness. Report only counts and statuses actually observed from CI logs.
+Plan 13 is not complete merely because focused tests pass. Required CI must remain healthy through PostgreSQL, frontend build, Playwright, Docker/Compose readiness and Redis/Celery execution. Report only counts and statuses actually observed from CI logs.
 
-The key scientific CI rule is: Studio must reproduce the corresponding **AgencityLab public software contract** for identical inputs. The tests do not prove the underlying theory, validate autonomous field physics, or automatically validate a physical parameter from a numerical result.
+The key scientific CI rule is: Studio must reproduce the corresponding **AgencityLab public software contract** for identical inputs. These tests confirm software execution and reproducibility; they do not prove the underlying theory or experimentally validate autonomous Research-field physics.

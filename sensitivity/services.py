@@ -17,6 +17,7 @@ from analyses.services import software_context
 from analyses.sources import descriptor_for, materialize_vectors
 from analyses.storage import analysis_storage
 from labbridge.sensitivity import TAU_MULTISCALE_API, WINDOW_SENSITIVITY_API
+from labbridge.service import SUPPORTED_AGENCITYLAB_VERSION
 from projects.models import ProjectActivity
 from workspaces.permissions import can_run_analysis, can_view_analysis_result
 
@@ -94,8 +95,11 @@ def sensitivity_review_snapshot(*, run: AnalysisRun, configuration: dict) -> dic
         raise ValidationError(
             _("Sensitivity studies require the same AgencityLab version as the canonical Run.")
         )
-    if context["agencitylab_version"] != "1.1.3":
-        raise ValidationError(_("AgencityLab 1.1.3 is required for the Plan 10 contract."))
+    if context["agencitylab_version"] != SUPPORTED_AGENCITYLAB_VERSION:
+        raise ValidationError(
+            _("AgencityLab %(version)s is required for the sensitivity contract.")
+            % {"version": SUPPORTED_AGENCITYLAB_VERSION}
+        )
 
     study_type = str(configuration.get("study_type") or "")
     grid_type = str(configuration.get("grid_type") or "")
@@ -184,7 +188,6 @@ def queue_sensitivity_study(*, actor, run: AnalysisRun, configuration: dict) -> 
             "analysis",
             "analysis__project",
             "analysis__project__workspace",
-            "system_revision",
         )
         .get(pk=run.pk)
     )

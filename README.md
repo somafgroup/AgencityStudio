@@ -7,7 +7,7 @@ AgencityStudio is the Web interface and orchestration layer for AgencityLab. It 
 - Django 5.2 application served through ASGI/Uvicorn.
 - PostgreSQL persistence.
 - Redis-backed Celery worker execution.
-- AgencityLab 1.1.3 pinned as the scientific runtime dependency.
+- AgencityLab 1.2.0 pinned as the scientific runtime dependency.
 - Server-rendered templates with Tailwind CSS, HTMX and Alpine.js.
 - Local email/password authentication with Django sessions.
 - Email-identified custom user accounts, profile and persisted preferences.
@@ -35,7 +35,7 @@ AgencityStudio is the Web interface and orchestration layer for AgencityLab. It 
 - Immutable DiagnosticRuns derived from an exact completed AnalysisRun and pinned canonical result SHA-256.
 - Public AgencityLab `analyze_agencity` execution through a dedicated diagnostic labbridge, with no copied diagnostic equations or private Lab imports.
 - Private immutable diagnostic result artifacts, deterministic diagnostic fingerprints, threshold/configuration provenance and Lab warning preservation.
-- Diagnostic workspace for coherence/orientation, geometry/topology, events/transitions, regimes and real-agencity evidence when supplied by AgencityLab 1.1.3.
+- Diagnostic workspace for coherence/orientation, geometry/topology, events/transitions, regimes and real-agencity evidence when supplied by AgencityLab 1.2.0.
 - Exact sample synchronization between canonical and diagnostic workspaces with display-only diagnostic decimation.
 - Immutable SensitivityStudies derived from completed canonical Runs, with exact scale grids, fixed-context snapshots and private result artifacts.
 - Public AgencityLab `compute_agencity_spectrum` tau multiscale execution and `optimize_agencity_window` Phi2 window sensitivity only; no Studio scale optimizer.
@@ -44,14 +44,18 @@ AgencityStudio is the Web interface and orchestration layer for AgencityLab. It 
 - Multivariate Analyses using the public AgencityLab multivariate API, ordered component mappings and Lab-returned aggregate outputs only.
 - **EXPERIMENTAL Observable Spatial Agencity Field Analyses** using only `agencitylab.fields.compute_agencity_field`, with explicit N-D shape/time-axis/spatial-axis contracts, scalar or spatial `A_ref`/`tau`/`w`, scalar/spatial/space-time `P_c`, immutable map provenance and lossless field artifacts.
 - Observable-field ECharts workspaces for 1D time-space heatmaps, exact selected-time spatial maps/slices, exact point inspection and local temporal traces.
+- **RESEARCH autonomous field Analyses** using public AgencityLab 1.2.0 autonomous-field solvers, explicit initial conditions, exact uniform rectilinear grids, boundary conditions, numerical-method provenance, immutable input/result artifacts, and optional public topology/thermodynamic post-processing.
+- Explicit public `beta_to_phi` bridge available only as a user-triggered Research initial-condition path; `beta_obs(x,t)` is never implicitly identified with autonomous `phi(x,t)`.
+- Public coherent-structure initializers for real-sector domain walls and caller-profile vortices, clearly separated from defect detection.
+- Gravity research primitives are audited but no executable Studio Gravity simulation is exposed because AgencityLab 1.2.0 provides no public Einstein/metric dynamics solver.
 - Light, dark and system themes, including live chart re-theming.
-- Chromium Playwright coverage for shell, account, workspace, invitation, Project, Dataset, preparation, System, Analysis, Results visualization, Diagnostics, Sensitivity and permission workflows.
+- Chromium Playwright coverage for shell, account, workspace, invitation, Project, Dataset, preparation, System, Analysis, Results visualization, Diagnostics, Sensitivity, observable fields, Research fields and permission workflows.
 - Docker Compose development/runtime stack.
 - Liveness at `/health/` and dependency readiness at `/health/ready/`.
 
 ## Scientific boundary
 
-Studio must never reproduce canonical equations or reach into private AgencityLab internals. Scientific computation enters through `labbridge`, which imports the documented AgencityLab package surface. The pinned runtime contract is currently AgencityLab `1.1.3`.
+Studio must never reproduce canonical equations or reach into private AgencityLab internals. Scientific computation enters through `labbridge`, which imports documented AgencityLab package surfaces only. The pinned runtime contract is currently AgencityLab `1.2.0`.
 
 Identity, workspace and Project permissions are application concerns. Dataset inspection describes source data and data quality; it does not infer `A_ref`, `tau`, `w` or `P_c`, and it performs no Agencity calculation. Raw DatasetVersions are never silently sorted, filtered, interpolated, resampled, normalized or otherwise preprocessed.
 
@@ -71,6 +75,8 @@ Plan 11 adds the public multivariate Analysis path while preserving component or
 
 Plan 12 adds the first spatial extension with scientific status **EXPERIMENTAL**. Studio sends one exact N-dimensional observable source to public `agencitylab.fields.compute_agencity_field`. CRM remains temporal and independent at each spatial location. `beta_obs(x,t)` and `b_obs(x,t)` are observable fields derived from `u(x,t)` and are **not** the autonomous dynamical field `phi(x,t)`. Plan 12 introduces no spatial CRM, spatial derivative, PDE, autonomous-field evolution, domain-wall/vortex physics, thermodynamics or gravity. Spatial physical parameter maps must be explicitly supplied and justified; Studio never derives them from local signal statistics. An unspecified field `w` is submitted as literal `None`, with any effective resolution delegated to AgencityLab.
 
+Plan 13 adds a separate **RESEARCH** autonomous-field layer. Research Runs configure and call the public AgencityLab 1.2.0 functions `simulate_klein_gordon`, `simulate_dissipative_klein_gordon` or `simulate_tdgl`; Studio never implements their PDEs or time-stepping equations. Initial `phi_0`/optional `phi_dot_0`, field geometry, boundary condition, model parameters and numerical method are frozen into an immutable Research input artifact before Celery execution. The public `beta_to_phi` relation can be used only through an explicit Research bridge step; completing an Observable Field Run never starts autonomous dynamics automatically. Public `domain_wall_profile`, `vortex_field`, `phase_winding`, `total_dissipated_power`, `total_entropy_production` and `field_agencial_entropy` are exposed only according to their public contracts and RESEARCH status. Successful numerical execution means the implemented research model ran successfully; it is not experimental validation of the corresponding physical interpretation.
+
 Frequency filtering remains deliberately deferred until a precise sampling/cutoff/order/phase/anti-alias contract is implemented. Studio does not introduce hidden filter defaults merely to expose another preprocessing option.
 
 ## Quick start with Docker Compose
@@ -83,7 +89,7 @@ docker compose run --rm web python manage.py migrate --noinput
 docker compose up -d web worker
 ```
 
-Open `http://localhost:8000/`, create a local account and AgencityStudio will create its private personal workspace. Projects organise the scientific work. The Data Workspace can import immutable raw tabular sources and immutable NPZ field sources; the Prepare tab can materialize explicit tabular derived views; the Systems tab documents versioned scientific context independently from data artifacts; and the Analyses tab can queue scalar, multivariate or observable-field AgencityLab execution. A completed observable field Run opens a read-only field workspace with exact provenance and exact space-time inspection.
+Open `http://localhost:8000/`, create a local account and AgencityStudio will create its private personal workspace. Projects organise the scientific work. The Data Workspace can import immutable raw tabular sources and immutable NPZ field sources; the Prepare tab can materialize explicit tabular derived views; the Systems tab documents versioned scientific context independently from data artifacts; and the Analyses tab can queue scalar, multivariate, observable-field or autonomous Research-field AgencityLab execution. Completed field Runs open read-only artifact-backed workspaces with exact provenance and exact value inspection.
 
 The readiness endpoint should return HTTP 200 once PostgreSQL, Redis and the compatible AgencityLab runtime are available:
 
@@ -117,11 +123,14 @@ FIELD_MAX_ARRAYS=<arrays per NPZ>
 FIELD_MAX_ELEMENTS=<total declared elements>
 FIELD_MAX_UNCOMPRESSED_BYTES=<bytes>
 FIELD_MAX_DISPLAY_POINTS=<display-only points>
+RESEARCH_FIELD_MAX_ELEMENTS=<initial field elements>
+RESEARCH_FIELD_MAX_STEPS=<integration steps>
+RESEARCH_FIELD_MAX_OUTPUT_BYTES=<complete result bytes>
 ```
 
-These are operational memory, storage and browser-safety limits, never scientific thresholds. Field limits reject an oversized source clearly; they never truncate scientific arrays or silently calculate only part of a field.
+These are operational memory, storage and browser-safety limits, never scientific thresholds. Field and Research limits reject oversized requests clearly; they never truncate scientific arrays or silently calculate only part of a field.
 
-See `docs/accounts-and-workspaces.md` for identity/workspace semantics, `docs/datasets.md` for raw Dataset contracts, `docs/data-preparation.md` for prepared-data lineage and transformations, `docs/systems.md` for scientific System revisions and physical/contextual parameter provenance, `docs/analyses.md` for execution and reproducibility, `docs/visualization.md` for presentation contracts, `docs/diagnostics.md` for diagnostics, `docs/sensitivity-and-multiscale.md` for Plan 10 semantics, and `docs/observable-spatial-fields.md` for the exact Plan 12 field contract.
+See `docs/accounts-and-workspaces.md` for identity/workspace semantics, `docs/datasets.md` for raw Dataset contracts, `docs/data-preparation.md` for prepared-data lineage and transformations, `docs/systems.md` for scientific System revisions and physical/contextual parameter provenance, `docs/analyses.md` for execution and reproducibility, `docs/visualization.md` for presentation contracts, `docs/diagnostics.md` for diagnostics, `docs/sensitivity-and-multiscale.md` for Plan 10 semantics, `docs/observable-spatial-fields.md` for the exact Plan 12 field contract, and `docs/research-fields.md` for the Plan 13 Research boundary and audited public AgencityLab 1.2.0 capabilities.
 
 To verify the asynchronous worker path end to end through Studio's configured Celery application:
 
@@ -153,6 +162,6 @@ celery -A config worker --loglevel=INFO
 
 ## Validation
 
-The CI pipeline checks Python quality, Django configuration, production settings, migration consistency, PostgreSQL migrations, backend identity/workspace/Project/Dataset/preparation/System/Analysis/visualization/diagnostic/sensitivity/multivariate/field permission and provenance tests, direct AgencityLab-versus-labbridge equivalence, local field-versus-direct-scalar equivalence, exact result-reader and complex-value preservation, frontend build, critical Playwright flows with real workers, Docker image construction, Compose readiness and an actual Celery task round trip.
+The CI pipeline checks Python quality, Django configuration, production settings, migration consistency, PostgreSQL migrations, backend identity/workspace/Project/Dataset/preparation/System/Analysis/visualization/diagnostic/sensitivity/multivariate/field/Research permission and provenance tests, direct AgencityLab-versus-labbridge equivalence, exact result-reader and complex-value preservation, frontend build, critical Playwright flows with real workers, Docker image construction, Compose readiness and an actual Celery task round trip.
 
-Additional documentation lives under `docs/`, especially `docs/architecture.md`, `docs/accounts-and-workspaces.md`, `docs/projects.md`, `docs/datasets.md`, `docs/data-preparation.md`, `docs/systems.md`, `docs/analyses.md`, `docs/visualization.md`, `docs/diagnostics.md`, `docs/sensitivity-and-multiscale.md`, `docs/observable-spatial-fields.md`, `docs/development.md`, `docs/testing.md` and `docs/ui.md`.
+Additional documentation lives under `docs/`, especially `docs/architecture.md`, `docs/accounts-and-workspaces.md`, `docs/projects.md`, `docs/datasets.md`, `docs/data-preparation.md`, `docs/systems.md`, `docs/analyses.md`, `docs/visualization.md`, `docs/diagnostics.md`, `docs/sensitivity-and-multiscale.md`, `docs/observable-spatial-fields.md`, `docs/research-fields.md`, `docs/development.md`, `docs/testing.md` and `docs/ui.md`.
