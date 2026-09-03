@@ -66,7 +66,7 @@ test('Plan 13 autonomous RESEARCH field executes through the real worker with ex
 
   await expect(page.getByRole('heading', { name: 'Research Field Review', exact: true })).toBeVisible();
   await expect(page.getByText('RESEARCH FIELD STUDY', { exact: true })).toBeVisible();
-  await expect(page.getByText('agencitylab.fields.simulate_klein_gordon', { exact: true })).toBeVisible();
+  await expect(page.getByText('agencitylab.fields.simulate_klein_gordon', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/dt_solver is not tau/)).toBeVisible();
   await expect(page.getByText(/Successful numerical execution confirms software execution/)).toBeVisible();
   await page.getByRole('button', { name: 'Run RESEARCH Field', exact: true }).click();
@@ -93,6 +93,6 @@ test('Plan 13 autonomous RESEARCH field executes through the real worker with ex
   await expect(page.getByText('Execution fingerprint:', { exact: true })).toBeVisible();
   await expect(page.getByText('Initial condition SHA-256:', { exact: true })).toBeVisible();
   await expect(page.getByText('Public function:', { exact: true })).toBeVisible();
-  await expect(page.getByText('agencitylab.fields.simulate_klein_gordon', { exact: true })).toBeVisible();
+  await expect(page.getByText('agencitylab.fields.simulate_klein_gordon', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/does not constitute experimental validation/)).toBeVisible();
 });
