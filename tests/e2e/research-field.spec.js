@@ -43,24 +43,25 @@ test('Plan 13 autonomous RESEARCH field executes through the real worker with ex
 
   await expect(page.getByText('beta_obs(x,t) ≠ phi(x,t)', { exact: true })).toBeVisible();
   await expect(page.locator('label[for="id_model"]')).toContainText('Autonomous field model');
+  await expect(page.locator('label[for="id_generated_shape"]')).toContainText('Generated grid shape');
   await page.locator('select[name="model"]').selectOption('KLEIN_GORDON');
   await page.locator('select[name="initial_mode"]').selectOption('DOMAIN_WALL');
   await page.locator('select[name="initial_velocity_mode"]').selectOption('ZERO');
-  await page.getByLabel('Generated grid shape', { exact: true }).fill('17');
-  await page.getByLabel('Generated grid spacings', { exact: true }).fill('0.25');
-  await page.getByLabel('Generated grid origins', { exact: true }).fill('-2.0');
-  await page.getByLabel('Domain-wall center', { exact: true }).fill('0');
+  await page.locator('input[name="generated_shape"]').fill('17');
+  await page.locator('input[name="generated_spacings"]').fill('0.25');
+  await page.locator('input[name="generated_origins"]').fill('-2.0');
+  await page.locator('input[name="domain_wall_center"]').fill('0');
   await page.locator('select[name="domain_wall_orientation"]').selectOption('1');
-  await page.getByLabel('lambda model parameter', { exact: true }).fill('1');
-  await page.getByLabel('lambda provenance', { exact: true }).fill('AgencityLab dimensionless benchmark fixture');
-  await page.getByLabel('mu model parameter', { exact: true }).fill('1');
-  await page.getByLabel('mu provenance', { exact: true }).fill('AgencityLab dimensionless benchmark fixture');
+  await page.locator('input[name="lambda_"]').fill('1');
+  await page.locator('input[name="lambda_origin"]').fill('AgencityLab dimensionless benchmark fixture');
+  await page.locator('input[name="mu"]').fill('1');
+  await page.locator('input[name="mu_origin"]').fill('AgencityLab dimensionless benchmark fixture');
   await page.locator('select[name="units_convention"]').selectOption('dimensionless');
   await page.locator('select[name="boundary_kind"]').selectOption('DIRICHLET');
-  await page.getByLabel('Boundary value / gradient (real)', { exact: true }).fill('0');
-  await page.getByLabel('Boundary value / gradient (imaginary)', { exact: true }).fill('0');
-  await page.getByLabel('Numerical dt_solver', { exact: true }).fill('0.01');
-  await page.getByLabel('Numerical integration steps', { exact: true }).fill('4');
+  await page.locator('input[name="boundary_value_real"]').fill('0');
+  await page.locator('input[name="boundary_value_imag"]').fill('0');
+  await page.locator('input[name="dt_solver"]').fill('0.01');
+  await page.locator('input[name="n_steps"]').fill('4');
   await page.getByRole('button', { name: 'Continue to Review', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Research Field Review', exact: true })).toBeVisible();
